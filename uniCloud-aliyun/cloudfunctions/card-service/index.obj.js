@@ -143,11 +143,11 @@ module.exports = {
     }
 
     // 增加浏览次数
-    await cardsCollection.doc(cardId).update({
+    await cardsCollection.where({ _id: cardId }).update({
       view_count: dbCmd.inc(1)
     })
 
-    const res = await cardsCollection.doc(cardId).get()
+    const res = await cardsCollection.where({ _id: cardId }).get()
 
     if (res.data.length === 0) {
       return { code: 404, msg: '卡片不存在' }
@@ -302,6 +302,133 @@ module.exports = {
       code: 0,
       msg: 'success',
       data: res.data
+    }
+  },
+
+  // 初始化测试数据（仅限开发阶段使用）
+  async initData() {
+    // 1. 清理现有数据
+    await Promise.all([
+      categoriesCollection.where({ _id: dbCmd.exists(true) }).remove(),
+      cardsCollection.where({ _id: dbCmd.exists(true) }).remove()
+    ])
+
+    // 2. 插入分类
+    const categoryData = [
+      { name: '动物', icon: '🦁', sort: 100, status: 1, color: '#FF9F7F', gradient: 'linear-gradient(135deg, #FF9F7F, #FFB347)', create_time: Date.now() },
+      { name: '水果', icon: '🍎', sort: 90, status: 1, color: '#7ED321', gradient: 'linear-gradient(135deg, #7ED321, #B4E33D)', create_time: Date.now() },
+      { name: '交通', icon: '🚗', sort: 80, status: 1, color: '#60A5FA', gradient: 'linear-gradient(135deg, #60A5FA, #A78BFA)', create_time: Date.now() }
+    ]
+
+    const categoriesRes = await Promise.all(categoryData.map(item => categoriesCollection.add(item)))
+    const [catAnimal, catFruit, catTransport] = categoriesRes.map(r => r.id)
+
+    // 3. 插入卡片
+    const cardData = [
+      // 动物
+      { 
+        category_id: catAnimal, 
+        name: '老虎', 
+        name_en: 'Tiger', 
+        name_pinyin: 'lǎo hǔ', 
+        image: 'https://images.unsplash.com/photo-1561731216-c3a4d99437d5?w=600', 
+        audio: 'https://dict.youdao.com/dictvoice?audio=%E8%80%81%E8%99%8E&le=zh',
+        audio_en: 'https://dict.youdao.com/dictvoice?audio=tiger&type=2',
+        sound: 'https://www.soundjay.com/animal/lion-roar-01.mp3', // 叫声
+        description: '老虎是世界上最大的猫科动物，体型比狮子还要大。它们生活在亚洲的森林里，是非常厉害的捕猎者。老虎身上有漂亮的条纹，每只老虎的条纹都是独一无二的，就像人的指纹一样。',
+        fun_fact: '老虎是游泳高手！它们喜欢在水里玩耍，而且可以游很长的距离。老虎的叫声可以传到3公里远的地方！',
+        is_hot: true, 
+        status: 1, 
+        view_count: 1200, 
+        create_time: Date.now() 
+      },
+      { 
+        category_id: catAnimal, 
+        name: '狮子', 
+        name_en: 'Lion', 
+        name_pinyin: 'shī zi', 
+        image: 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?w=600', 
+        audio: 'https://dict.youdao.com/dictvoice?audio=%E7%8B%AE%E5%AD%90&le=zh',
+        audio_en: 'https://dict.youdao.com/dictvoice?audio=lion&type=2',
+        sound: '',
+        description: '狮子被称为“丛林之王”，它们是唯一一种喜欢群居的猫科动物。雄狮那漂亮的鬣毛能保护它们的脖子，并让它们看起来更威武。',
+        fun_fact: '狮子的吼声非常大，在8公里外都能听到！',
+        is_hot: true, 
+        status: 1, 
+        view_count: 800, 
+        create_time: Date.now() 
+      },
+      { 
+        category_id: catAnimal, 
+        name: '大象', 
+        name_en: 'Elephant', 
+        name_pinyin: 'dà xiàng', 
+        image: 'https://images.unsplash.com/photo-1557050543-4d5f4e07ef46?w=600', 
+        audio: 'https://dict.youdao.com/dictvoice?audio=%E5%A4%A7%E8%B1%A1&le=zh',
+        audio_en: 'https://dict.youdao.com/dictvoice?audio=elephant&type=2',
+        sound: '',
+        description: '大象是陆地上最大的动物。它们的长鼻子不仅能闻味，还能抓取食物、喝水，甚至互相打招呼。',
+        fun_fact: '大象非常聪明，它们有着惊人的记忆力，可以记住很多年前的朋友！',
+        is_hot: false, 
+        status: 1, 
+        view_count: 500, 
+        create_time: Date.now() 
+      },
+      // 水果
+      { 
+        category_id: catFruit, 
+        name: '苹果', 
+        name_en: 'Apple', 
+        name_pinyin: 'píng guǒ', 
+        image: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=600', 
+        audio: 'https://dict.youdao.com/dictvoice?audio=%E8%90%8D%E6%9E%9C&le=zh',
+        audio_en: 'https://dict.youdao.com/dictvoice?audio=apple&type=2',
+        description: '苹果是一种非常健康的水果，含有丰富的维生素和纤维。每天吃一个苹果，医生远离我！',
+        fun_fact: '世界上有超过7500个品种的苹果！如果你每天尝试一种，需要20年才能全部尝遍。',
+        is_hot: true, 
+        status: 1, 
+        view_count: 1500, 
+        create_time: Date.now() 
+      },
+      { 
+        category_id: catFruit, 
+        name: '香蕉', 
+        name_en: 'Banana', 
+        name_pinyin: 'xiāng jiāo', 
+        image: 'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=600', 
+        audio: 'https://dict.youdao.com/dictvoice?audio=%E9%A6%99%E8%95%89&le=zh',
+        audio_en: 'https://dict.youdao.com/dictvoice?audio=banana&type=2',
+        description: '香蕉是神奇的“开心水果”，吃完能让人心情变好。它们生长在像大叶子一样的香蕉树上。',
+        fun_fact: '香蕉实际上是一种浆果，而香蕉树其实是一种巨大的草本植物！',
+        is_hot: false, 
+        status: 1, 
+        view_count: 900, 
+        create_time: Date.now() 
+      },
+      // 交通
+      { 
+        category_id: catTransport, 
+        name: '汽车', 
+        name_en: 'Car', 
+        name_pinyin: 'qì chē', 
+        image: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=600', 
+        audio: 'https://dict.youdao.com/dictvoice?audio=%E6%B1%BD%E8%BD%A6&le=zh',
+        audio_en: 'https://dict.youdao.com/dictvoice?audio=car&type=2',
+        sound: '',
+        description: '汽车是我们日常生活中最常见的交通工具之一。它们有四个轮子，可以带我们去任何想去的地方。',
+        fun_fact: '第一辆汽车在100多年前被发明出来，当时的最高速度还没你骑自行车快呢！',
+        is_hot: true, 
+        status: 1, 
+        view_count: 2000, 
+        create_time: Date.now() 
+      }
+    ]
+
+    await Promise.all(cardData.map(item => cardsCollection.add(item)))
+
+    return {
+      code: 0,
+      msg: '数据初始化成功！'
     }
   }
 }

@@ -1,6 +1,5 @@
-const userCenter = uniCloud.importObject('user-center')
-const cardService = uniCloud.importObject('card-service')
-const pointsService = uniCloud.importObject('points-service')
+// 获取云对象实例的辅助函数
+const getService = (name: string) => uniCloud.importObject(name)
 
 export interface ApiResponse<T = any> {
   code: number
@@ -25,6 +24,7 @@ export interface Category {
   icon: string
   cover: string
   card_count: number
+  gradient?: string
 }
 
 export interface Card {
@@ -53,86 +53,70 @@ export interface Card {
 
 export const userApi = {
   loginByWeixin: (code: string, inviteCode?: string) => 
-    userCenter.loginByWeixin({ code, inviteCode }) as Promise<ApiResponse>,
-  
+    getService('user-center').loginByWeixin({ code, inviteCode }) as Promise<ApiResponse>,
   getUserInfo: () => 
-    userCenter.getUserInfo() as Promise<ApiResponse<UserInfo>>,
-  
+    getService('user-center').getUserInfo() as Promise<ApiResponse<UserInfo>>,
   updateUserInfo: (params: { nickname?: string; avatar?: string; gender?: number }) =>
-    userCenter.updateUserInfo(params) as Promise<ApiResponse>,
-  
+    getService('user-center').updateUserInfo(params) as Promise<ApiResponse>,
   getInviteInfo: () =>
-    userCenter.getInviteInfo() as Promise<ApiResponse>,
-  
+    getService('user-center').getInviteInfo() as Promise<ApiResponse>,
   getPointsLog: (params?: { page?: number; pageSize?: number }) =>
-    userCenter.getPointsLog(params) as Promise<ApiResponse>
+    getService('user-center').getPointsLog(params) as Promise<ApiResponse>
 }
 
 export const cardApi = {
   getCategories: () =>
-    cardService.getCategories() as Promise<ApiResponse<Category[]>>,
-  
+    getService('card-service').getCategories() as Promise<ApiResponse<Category[]>>,
   getHomeData: () =>
-    cardService.getHomeData() as Promise<ApiResponse<{
+    getService('card-service').getHomeData() as Promise<ApiResponse<{
       categories: Category[]
       hotCards: Card[]
       recentCards: Card[]
     }>>,
-  
   getCardsByCategory: (params: { categoryId: string; page?: number; pageSize?: number }) =>
-    cardService.getCardsByCategory(params) as Promise<ApiResponse<{
+    getService('card-service').getCardsByCategory(params) as Promise<ApiResponse<{
       list: Card[]
       total: number
       page: number
       pageSize: number
     }>>,
-  
   searchCards: (params: { keyword: string; page?: number; pageSize?: number }) =>
-    cardService.searchCards(params) as Promise<ApiResponse<{
+    getService('card-service').searchCards(params) as Promise<ApiResponse<{
       list: Card[]
       keyword: string
       page: number
       pageSize: number
     }>>,
-  
   getCardDetail: (cardId: string) =>
-    cardService.getCardDetail({ cardId }) as Promise<ApiResponse<Card>>,
-  
+    getService('card-service').getCardDetail({ cardId }) as Promise<ApiResponse<Card>>,
   toggleFavorite: (cardId: string) =>
-    cardService.toggleFavorite({ cardId }) as Promise<ApiResponse<{ isFavorited: boolean }>>,
-  
+    getService('card-service').toggleFavorite({ cardId }) as Promise<ApiResponse<{ isFavorited: boolean }>>,
   getFavorites: (params?: { page?: number; pageSize?: number }) =>
-    cardService.getFavorites(params) as Promise<ApiResponse>,
-  
+    getService('card-service').getFavorites(params) as Promise<ApiResponse>,
   getRelatedCards: (params: { cardId: string; categoryId: string; limit?: number }) =>
-    cardService.getRelatedCards(params) as Promise<ApiResponse<Card[]>>
+    getService('card-service').getRelatedCards(params) as Promise<ApiResponse<Card[]>>
 }
 
 export const pointsApi = {
   earnByAd: (adType: 'banner' | 'video') =>
-    pointsService.earnByAd({ adType }) as Promise<ApiResponse<{
+    getService('points-service').earnByAd({ adType }) as Promise<ApiResponse<{
       earnPoints: number
       balance: number
     }>>,
-  
   signIn: () =>
-    pointsService.signIn() as Promise<ApiResponse<{
+    getService('points-service').signIn() as Promise<ApiResponse<{
       earnPoints: number
       balance: number
     }>>,
-  
   consumePoints: (cardId: string, points: number) =>
-    pointsService.consumePoints({ cardId, points }) as Promise<ApiResponse>,
-  
+    getService('points-service').consumePoints({ cardId, points }) as Promise<ApiResponse>,
   getSignInStatus: () =>
-    pointsService.getSignInStatus() as Promise<ApiResponse<{ hasSigned: boolean }>>,
-  
+    getService('points-service').getSignInStatus() as Promise<ApiResponse<{ hasSigned: boolean }>>,
   addFreeViews: () =>
-    pointsService.addFreeViews() as Promise<ApiResponse<{
+    getService('points-service').addFreeViews() as Promise<ApiResponse<{
       addViews: number
       freeViews: number
     }>>,
-  
   consumeFreeView: () =>
-    pointsService.consumeFreeView() as Promise<ApiResponse<{ remaining: number }>>
+    getService('points-service').consumeFreeView() as Promise<ApiResponse<{ remaining: number }>>
 }

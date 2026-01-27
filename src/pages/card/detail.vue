@@ -13,7 +13,12 @@
       </view>
     </view>
 
-    <scroll-view scroll-y class="main-scroll" :style="{ paddingTop: navBarHeight + 'px' }">
+    <view v-if="isLoading" class="loading-state">
+      <text class="loading-icon">⏳</text>
+      <text class="loading-text">正在加载识物详情...</text>
+    </view>
+
+    <scroll-view v-else scroll-y class="main-scroll" :style="{ paddingTop: navBarHeight + 'px' }">
       <!-- 主图区域 -->
       <view class="hero-section">
         <swiper class="hero-swiper" indicator-dots indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#FFFFFF">
@@ -48,12 +53,12 @@
           </view>
         </view>
         <view class="name-sub">
-          <text class="name-en">{{ cardData.nameEn }}</text>
+          <text class="name-en">{{ cardData.name_en }}</text>
           <view class="name-action-small" @click="playNameAudio('en')">
             <text class="action-flag">🇺🇸</text>
           </view>
         </view>
-        <text class="name-pinyin">[ {{ cardData.pinyin }} ]</text>
+        <text class="name-pinyin">[ {{ cardData.name_pinyin }} ]</text>
       </view>
 
       <!-- 快捷操作区 -->
@@ -100,7 +105,7 @@
             <text class="fun-icon">💡</text>
             <text class="fun-title">你知道吗？</text>
           </view>
-          <text class="fun-content">{{ cardData.funFact }}</text>
+          <text class="fun-content">{{ cardData.fun_fact }}</text>
           <view class="fun-decoration">
             <text class="decoration-emoji">✨</text>
             <text class="decoration-emoji">🌟</text>
@@ -118,9 +123,9 @@
           <view class="related-list">
             <view 
               v-for="item in relatedCards" 
-              :key="item.id" 
+              :key="item._id" 
               class="related-card"
-              @click="goCardDetail(item.id)"
+              @click="goCardDetail(item._id)"
             >
               <image class="related-image" :src="item.image" mode="aspectFill" />
               <text class="related-name">{{ item.name }}</text>
@@ -153,53 +158,135 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onUnmounted } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import { getStatusBarHeight, getNavBarHeight, navigateTo, navigateBack, showToast } from '@/utils'
+import { cardApi, type Card } from '@/api'
 
 const statusBarHeight = ref(getStatusBarHeight())
 const navBarHeight = ref(getNavBarHeight())
 const isFavorited = ref(false)
+const isLoading = ref(true)
 
-const cardData = ref({
-  id: '1',
-  name: '老虎',
-  nameEn: 'Tiger',
-  pinyin: 'lǎo hǔ',
-  image: 'https://images.unsplash.com/photo-1561731216-c3a4d99437d5?w=800',
-  audio: '',
-  audioEn: '',
-  sound: '',
-  video: 'https://example.com/tiger.mp4',
-  description: '老虎是世界上最大的猫科动物，体型比狮子还要大。它们生活在亚洲的森林里，是非常厉害的捕猎者。老虎身上有漂亮的条纹，每只老虎的条纹都是独一无二的，就像人的指纹一样。',
-  funFact: '老虎是游泳高手！它们喜欢在水里玩耍，而且可以游很长的距离。老虎的叫声可以传到3公里远的地方！'
+const cardData = ref<Card>({
+  _id: '',
+  name: '',
+  name_en: '',
+  name_pinyin: '',
+  image: '',
+  description: '',
+  fun_fact: '',
+  is_free: true,
+  points_cost: 0,
+  view_count: 0,
+  favorite_count: 0,
+  is_hot: false,
+  category_id: ''
 })
 
-const relatedCards = ref([
-  { id: '2', name: '狮子', image: 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?w=400' },
-  { id: '3', name: '豹子', image: 'https://images.unsplash.com/photo-1456926631375-92c8ce872def?w=400' },
-  { id: '4', name: '猎豹', image: 'https://images.unsplash.com/photo-1475044895892-d8e67d1b54cd?w=400' },
-  { id: '5', name: '猫咪', image: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400' }
-])
+const relatedCards = ref<Card[]>([])
+
+// 音频上下文
+const audioContext = uni.createInnerAudioContext()
+
+onUnmounted(() => {
+  audioContext.destroy()
+})
+
+onLoad((options) => {
+  if (options && options.id) {
+    loadCardDetail(options.id)
+  } else {
+    showToast('卡片不存在', 'error')
+    setTimeout(() => goBack(), 1500)
+  }
+})
+
+async function loadCardDetail(id: string) {
+  isLoading.value = true
+  try {
+    const res = await cardApi.getCardDetail(id)
+    if (res.code === 0 && res.data) {
+      cardData.value = res.data
+      isFavorited.value = !!res.data.isFavorited
+      
+      // 加载相关推荐
+      if (res.data.category_id) {
+        loadRelatedCards(res.data._id, res.data.category_id)
+      }
+    } else {
+      showToast(res.msg || '加载失败', 'error')
+    }
+  } catch (e) {
+    console.error('加载卡片详情失败:', e)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+async function loadRelatedCards(cardId: string, categoryId: string) {
+  try {
+    const res = await cardApi.getRelatedCards({ cardId, categoryId, limit: 6 })
+    if (res.code === 0) {
+      relatedCards.value = res.data || []
+    }
+  } catch (e) {
+    console.error('加载相关推荐失败:', e)
+  }
+}
 
 function goBack() {
   navigateBack()
 }
 
-function toggleFavorite() {
-  isFavorited.value = !isFavorited.value
-  showToast(isFavorited.value ? '已收藏 ❤️' : '已取消收藏', 'success')
+async function toggleFavorite() {
+  try {
+    const res = await cardApi.toggleFavorite(cardData.value._id)
+    if (res.code === 0) {
+      isFavorited.value = res.data.isFavorited
+      showToast(isFavorited.value ? '已收藏 ❤️' : '已取消收藏', 'success')
+    }
+  } catch (e) {
+    showToast('操作失败', 'error')
+  }
+}
+
+function playAudio(url: string | undefined, label: string) {
+  if (!url) {
+    showToast(`暂无${label}`, 'none')
+    return
+  }
+  
+  audioContext.stop()
+  audioContext.src = url
+  audioContext.play()
+  
+  audioContext.onError((res) => {
+    console.error('播放失败:', res)
+    showToast('播放失败，请检查网络', 'error')
+    // 播放失败清空 src，防止持续报错
+    audioContext.src = ''
+  })
 }
 
 function playNameAudio(lang: 'cn' | 'en') {
-  showToast(`播放${lang === 'cn' ? '中文' : '英文'}发音 🗣️`)
+  if (lang === 'cn') {
+    // 优先使用录制的音频，如果没有则提示
+    playAudio(cardData.value.audio, '中文发音')
+  } else {
+    playAudio(cardData.value.audio_en, '英文发音')
+  }
 }
 
 function playSound() {
-  showToast('播放老虎叫声 🐯')
+  playAudio(cardData.value.sound, '音效')
 }
 
 function playVideo() {
-  showToast('播放视频 📹')
+  if (cardData.value.video) {
+    // 这里可以跳转到专门的视频播放页或者使用 uni.previewImage 预览视频
+    showToast('播放视频 📹')
+  }
 }
 
 function goCardDetail(id: string) {
@@ -211,12 +298,41 @@ function shareCard() {
 }
 
 function nextCard() {
-  showToast('切换到下一个卡片 →')
+  if (relatedCards.value.length > 0) {
+    const next = relatedCards.value[0]
+    goCardDetail(next._id)
+  } else {
+    showToast('没有更多卡片了', 'none')
+  }
 }
 </script>
 
 <style scoped lang="scss">
 @import '@/styles/design-system.scss';
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  gap: $spacing-4;
+  
+  .loading-icon {
+    font-size: 80rpx;
+    animation: rotate 2s linear infinite;
+  }
+  
+  .loading-text {
+    font-size: $font-size-md;
+    color: $color-text-secondary;
+  }
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 
 .page {
   min-height: 100vh;

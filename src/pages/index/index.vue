@@ -54,10 +54,10 @@
         <view class="category-grid">
           <view 
             v-for="(item, index) in categories" 
-            :key="item.id" 
+            :key="item._id" 
             class="category-card"
             :class="'delay-' + index"
-            @click="goCategoryDetail(item.id)"
+            @click="goCategoryDetail(item._id)"
           >
             <view class="category-icon-wrapper" :style="{ background: item.gradient }">
               <text class="category-emoji">{{ item.icon }}</text>
@@ -80,9 +80,9 @@
           <view class="hot-list">
             <view 
               v-for="card in hotCards" 
-              :key="card.id" 
+              :key="card._id" 
               class="hot-card"
-              @click="goCardDetail(card.id)"
+              @click="goCardDetail(card._id)"
             >
               <view class="hot-image-wrapper">
                 <image class="hot-image" :src="card.image" mode="aspectFill" />
@@ -92,7 +92,7 @@
               </view>
               <view class="hot-info">
                 <text class="hot-name">{{ card.name }}</text>
-                <text class="hot-name-en">{{ card.nameEn }}</text>
+                <text class="hot-name-en">{{ card.name_en }}</text>
               </view>
               <view class="hot-play-btn">
                 <text class="play-icon">▶</text>
@@ -117,9 +117,9 @@
         <view class="card-grid">
           <view 
             v-for="card in recentCards" 
-            :key="card.id" 
+            :key="card._id" 
             class="card-item"
-            @click="goCardDetail(card.id)"
+            @click="goCardDetail(card._id)"
           >
             <view class="card-image-wrapper">
               <image class="card-image" :src="card.image" mode="aspectFill" />
@@ -130,10 +130,10 @@
               <view class="card-footer">
                 <view class="card-stat">
                   <text class="stat-icon">👀</text>
-                  <text class="stat-value">{{ formatViews(card.views) }}</text>
+                  <text class="stat-value">{{ formatViews(card.view_count || 0) }}</text>
                 </view>
-                <view class="card-tag" :style="{ backgroundColor: card.tagColor }">
-                  {{ card.category }}
+                <view class="card-tag" :style="{ backgroundColor: 'rgba(96, 165, 250, 0.15)' }">
+                  {{ card.category?.name || '未分类' }}
                 </view>
               </view>
             </view>
@@ -178,40 +178,59 @@
 </template>
 
 <script setup lang="ts">
+import { onShow, onLoad } from '@dcloudio/uni-app'
 import { ref, computed } from 'vue'
 import { getStatusBarHeight, getNavBarHeight, navigateTo } from '@/utils'
 import CustomTabbar from '@/components/CustomTabbar/CustomTabbar.vue'
+import { cardApi, pointsApi, type Category, type Card } from '@/api'
 
 const statusBarHeight = ref(getStatusBarHeight())
 const navBarHeight = ref(getNavBarHeight())
 
-const categories = ref([
-  { id: '1', name: '动物', icon: '🦁', count: 24, gradient: 'linear-gradient(135deg, #FF9F7F, #FFB347)' },
-  { id: '2', name: '水果', icon: '🍎', count: 18, gradient: 'linear-gradient(135deg, #7ED321, #B4E33D)' },
-  { id: '3', name: '蔬菜', icon: '🥕', count: 15, gradient: 'linear-gradient(135deg, #FFA94D, #FFD93D)' },
-  { id: '4', name: '交通', icon: '🚗', count: 20, gradient: 'linear-gradient(135deg, #60A5FA, #A78BFA)' },
-  { id: '5', name: '数字', icon: '🔢', count: 10, gradient: 'linear-gradient(135deg, #F472B6, #FF6B6B)' },
-  { id: '6', name: '形状', icon: '⭐', count: 8, gradient: 'linear-gradient(135deg, #FFE66D, #FFA94D)' },
-  { id: '7', name: '颜色', icon: '🌈', count: 12, gradient: 'linear-gradient(135deg, #4ECDC4, #60A5FA)' },
-  { id: '8', name: '更多', icon: '📚', count: 50, gradient: 'linear-gradient(135deg, #9CA3AF, #6B7280)' }
-])
+const categories = ref<Category[]>([])
+const hotCards = ref<Card[]>([])
+const recentCards = ref<Card[]>([])
+const isLoading = ref(false)
 
-const hotCards = ref([
-  { id: '1', name: '老虎', nameEn: 'Tiger', image: 'https://images.unsplash.com/photo-1561731216-c3a4d99437d5?w=400' },
-  { id: '2', name: '狮子', nameEn: 'Lion', image: 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?w=400' },
-  { id: '3', name: '大象', nameEn: 'Elephant', image: 'https://images.unsplash.com/photo-1557050543-4d5f4e07ef46?w=400' },
-  { id: '4', name: '长颈鹿', nameEn: 'Giraffe', image: 'https://images.unsplash.com/photo-1547721064-da6cfb341d50?w=400' },
-  { id: '5', name: '熊猫', nameEn: 'Panda', image: 'https://images.unsplash.com/photo-1564349683136-77e08dba1ef7?w=400' }
-])
+// 加载首页真实数据
+const loadData = async () => {
+  if (isLoading.value) return
+  isLoading.value = true
+  try {
+    const res = await cardApi.getHomeData()
+    if (res.code === 0 && res.data) {
+      categories.value = res.data.categories || []
+      hotCards.value = res.data.hotCards || []
+      recentCards.value = res.data.recentCards || []
+    }
+  } catch (e) {
+    console.error('加载首页数据失败:', e)
+  } finally {
+    isLoading.value = false
+  }
+}
 
-const recentCards = ref([
-  { id: '1', name: '苹果', category: '水果', image: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400', views: 1234, isNew: true, tagColor: 'rgba(126, 211, 33, 0.15)' },
-  { id: '2', name: '香蕉', category: '水果', image: 'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=400', views: 856, isNew: true, tagColor: 'rgba(126, 211, 33, 0.15)' },
-  { id: '3', name: '汽车', category: '交通', image: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400', views: 2341, isNew: false, tagColor: 'rgba(96, 165, 250, 0.15)' },
-  { id: '4', name: '飞机', category: '交通', image: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400', views: 1567, isNew: false, tagColor: 'rgba(96, 165, 250, 0.15)' },
-  { id: '5', name: '火车', category: '交通', image: 'https://images.unsplash.com/photo-1474487548417-781cb71495f3?w=400', views: 987, isNew: false, tagColor: 'rgba(96, 165, 250, 0.15)' },
-  { id: '6', name: '西瓜', category: '水果', image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400', views: 654, isNew: true, tagColor: 'rgba(126, 211, 33, 0.15)' }
-])
+// 加载签到状态
+const loadSignInStatus = async () => {
+  try {
+    const res = await pointsApi.getSignInStatus()
+    if (res.code === 0) {
+      hasSigned.value = res.data?.hasSigned || false
+    }
+  } catch (e) {
+    console.error('获取签到状态失败:', e)
+  }
+}
+
+const hasSigned = ref(false)
+
+onLoad(() => {
+  loadData()
+})
+
+onShow(() => {
+  loadSignInStatus()
+})
 
 const todayStats = ref({
   learned: 5,

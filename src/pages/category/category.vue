@@ -7,14 +7,14 @@
     </view>
 
     <!-- 分类列表 -->
-    <view class="category-list">
+    <view v-if="!isInitialLoading" class="category-list">
       <view 
         v-for="(item, index) in categories" 
-        :key="item.id" 
+        :key="item._id" 
         class="category-section"
         :class="'delay-' + index"
       >
-        <view class="category-header" @click="toggleExpand(item.id)">
+        <view class="category-header" @click="toggleExpand(item._id)">
           <view class="category-left">
             <view class="category-icon" :style="{ background: item.gradient }">
               <text class="category-emoji">{{ item.icon }}</text>
@@ -24,18 +24,18 @@
               <text class="category-count">{{ item.count }}个卡片</text>
             </view>
           </view>
-          <view class="expand-btn" :class="{ expanded: expandedIds.includes(item.id) }">
+          <view class="expand-btn" :class="{ expanded: expandedIds.includes(item._id) }">
             <text class="expand-icon">▼</text>
           </view>
         </view>
         
         <!-- 展开的卡片列表 -->
-        <view v-if="expandedIds.includes(item.id)" class="card-grid">
+        <view v-if="expandedIds.includes(item._id)" class="card-grid">
           <view 
             v-for="card in item.cards" 
-            :key="card.id" 
+            :key="card._id" 
             class="card-item"
-            @click="goCardDetail(card.id)"
+            @click="goCardDetail(card._id)"
           >
             <view class="card-image-wrapper">
               <image class="card-image" :src="card.image" mode="aspectFill" />
@@ -44,16 +44,21 @@
           </view>
           
           <!-- 加载更多 -->
-          <view v-if="item.cards.length > 0" class="load-more" @click="loadMore(item.id)">
+          <view v-if="item.cards.length > 0 && item.hasMore" class="load-more" @click="loadMore(item._id)">
             <text class="load-more-icon">+</text>
             <text class="load-more-text">更多</text>
           </view>
         </view>
         
         <!-- 空状态 -->
-        <view v-if="expandedIds.includes(item.id) && item.cards.length === 0" class="empty-state">
+        <view v-if="expandedIds.includes(item._id) && item.cards.length === 0 && !item.isLoading" class="empty-state">
           <text class="empty-icon">📭</text>
           <text class="empty-text">暂无卡片</text>
+        </view>
+        
+        <!-- 加载中状态 -->
+        <view v-if="item.isLoading" class="item-loading">
+          <text class="loading-dot">. . .</text>
         </view>
       </view>
     </view>
@@ -69,14 +74,28 @@ import { ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { navigateTo, showToast } from '@/utils'
 import CustomTabbar from '@/components/CustomTabbar/CustomTabbar.vue'
+import { cardApi, type Category, type Card } from '@/api'
 
-const expandedIds = ref<string[]>(['1'])
+interface CategoryWithCards extends Category {
+  cards: Card[]
+  page: number
+  hasMore: boolean
+  isLoading: boolean
+}
 
-onShow(() => {
+const categories = ref<CategoryWithCards[]>([])
+const expandedIds = ref<string[]>([])
+const isInitialLoading = ref(true)
+
+onShow(async () => {
+  await loadCategories()
+  
   try {
     const targetId = uni.getStorageSync('TARGET_CATEGORY_ID')
     if (targetId) {
-      expandedIds.value = [targetId]
+      if (!expandedIds.value.includes(targetId)) {
+        toggleExpand(targetId)
+      }
       uni.removeStorageSync('TARGET_CATEGORY_ID')
     }
   } catch (e) {
@@ -84,75 +103,64 @@ onShow(() => {
   }
 })
 
-const categories = ref([
-  { 
-    id: '1', 
-    name: '动物', 
-    icon: '🦁', 
-    gradient: 'linear-gradient(135deg, #FF9F7F, #FFB347)', 
-    count: 24,
-    cards: [
-      { id: '1', name: '老虎', image: 'https://images.unsplash.com/photo-1561731216-c3a4d99437d5?w=400' },
-      { id: '2', name: '狮子', image: 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?w=400' },
-      { id: '3', name: '大象', image: 'https://images.unsplash.com/photo-1557050543-4d5f4e07ef46?w=400' },
-      { id: '4', name: '熊猫', image: 'https://images.unsplash.com/photo-1564349683136-77e08dba1ef7?w=400' }
-    ]
-  },
-  { 
-    id: '2', 
-    name: '水果', 
-    icon: '🍎', 
-    gradient: 'linear-gradient(135deg, #7ED321, #B4E33D)', 
-    count: 18,
-    cards: [
-      { id: '5', name: '苹果', image: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400' },
-      { id: '6', name: '香蕉', image: 'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=400' }
-    ]
-  },
-  { 
-    id: '3', 
-    name: '交通工具', 
-    icon: '🚗', 
-    gradient: 'linear-gradient(135deg, #60A5FA, #A78BFA)', 
-    count: 15,
-    cards: [
-      { id: '7', name: '汽车', image: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400' },
-      { id: '8', name: '飞机', image: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400' }
-    ]
-  },
-  { 
-    id: '4', 
-    name: '蔬菜', 
-    icon: '🥕', 
-    gradient: 'linear-gradient(135deg, #FFA94D, #FFD93D)', 
-    count: 12,
-    cards: []
-  },
-  { 
-    id: '5', 
-    name: '数字', 
-    icon: '🔢', 
-    gradient: 'linear-gradient(135deg, #F472B6, #FF6B6B)', 
-    count: 10,
-    cards: []
-  },
-  { 
-    id: '6', 
-    name: '形状', 
-    icon: '⭐', 
-    gradient: 'linear-gradient(135deg, #FFE66D, #FFA94D)', 
-    count: 8,
-    cards: []
-  },
-  { 
-    id: '7', 
-    name: '颜色', 
-    icon: '🌈', 
-    gradient: 'linear-gradient(135deg, #4ECDC4, #60A5FA)', 
-    count: 12,
-    cards: []
+async function loadCategories() {
+  isInitialLoading.value = true
+  try {
+    const res = await cardApi.getCategories()
+    if (res.code === 0 && res.data) {
+      // 保持之前的展开状态和已加载的卡片
+      const oldCategories = categories.value
+      categories.value = res.data.map(cat => {
+        const oldCat = oldCategories.find(oc => oc._id === cat._id)
+        return {
+          ...cat,
+          cards: oldCat ? oldCat.cards : [],
+          page: oldCat ? oldCat.page : 1,
+          hasMore: oldCat ? oldCat.hasMore : true,
+          isLoading: false
+        }
+      })
+      
+      // 默认展开第一个（如果是第一次加载）
+      if (expandedIds.value.length === 0 && categories.value.length > 0) {
+        toggleExpand(categories.value[0]._id)
+      }
+    }
+  } catch (e) {
+    console.error('加载分类失败:', e)
+  } finally {
+    isInitialLoading.value = false
   }
-])
+}
+
+async function loadCards(categoryId: string) {
+  const category = categories.value.find(c => c._id === categoryId)
+  if (!category || category.isLoading || !category.hasMore) return
+
+  category.isLoading = true
+  try {
+    const res = await cardApi.getCardsByCategory({
+      categoryId,
+      page: category.page,
+      pageSize: 12
+    })
+    
+    if (res.code === 0 && res.data) {
+      if (category.page === 1) {
+        category.cards = res.data.list
+      } else {
+        category.cards = [...category.cards, ...res.data.list]
+      }
+      
+      category.hasMore = category.cards.length < res.data.total
+      category.page++
+    }
+  } catch (e) {
+    console.error('加载卡片失败:', e)
+  } finally {
+    category.isLoading = false
+  }
+}
 
 function toggleExpand(id: string) {
   const index = expandedIds.value.indexOf(id)
@@ -160,6 +168,11 @@ function toggleExpand(id: string) {
     expandedIds.value.splice(index, 1)
   } else {
     expandedIds.value.push(id)
+    // 展开时如果没数据则加载
+    const category = categories.value.find(c => c._id === id)
+    if (category && category.cards.length === 0) {
+      loadCards(id)
+    }
   }
 }
 
@@ -168,7 +181,7 @@ function goCardDetail(id: string) {
 }
 
 function loadMore(categoryId: string) {
-  showToast('加载更多...')
+  loadCards(categoryId)
 }
 </script>
 
