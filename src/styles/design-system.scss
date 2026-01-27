@@ -198,8 +198,55 @@ $gradient-color: linear-gradient(135deg, #4ECDC4, #A78BFA, #F472B6);
   }
 }
 
+// ============================================
+// CLAYMORPHISM - Soft 3D Style
+// ============================================
+
+// Clay Colors
+$clay-bg: #EEF2FF;
+$clay-card: rgba(255, 255, 255, 0.9);
+$clay-border: rgba(255, 255, 255, 0.8);
+
+// Clay Shadows
+$clay-shadow-out: 16rpx 16rpx 32rpx rgba(176, 176, 176, 0.2);
+$clay-shadow-in: inset 4rpx 4rpx 8rpx rgba(255, 255, 255, 1), inset -4rpx -4rpx 8rpx rgba(0, 0, 0, 0.05);
+$clay-shadow-active: inset 6rpx 6rpx 12rpx rgba(0, 0, 0, 0.08), inset -6rpx -6rpx 12rpx rgba(255, 255, 255, 1);
+
+@mixin clay-card {
+  background: $clay-card;
+  backdrop-filter: blur(20px);
+  border-radius: $radius-xl;
+  border: 2rpx solid $clay-border;
+  box-shadow: $clay-shadow-out, $clay-shadow-in;
+  transition: all $duration-normal $ease-bounce;
+  
+  &:active {
+    transform: scale(0.98);
+    box-shadow: $clay-shadow-active;
+  }
+}
+
+@mixin clay-button($bg-color: $color-primary) {
+  background: $bg-color;
+  color: white;
+  border-radius: $radius-full;
+  padding: $spacing-3 $spacing-6;
+  font-weight: $font-weight-bold;
+  box-shadow: 
+    8rpx 8rpx 16rpx rgba($bg-color, 0.3),
+    inset 2rpx 2rpx 4rpx rgba(255, 255, 255, 0.4),
+    inset -2rpx -2rpx 4rpx rgba(0, 0, 0, 0.1);
+  transition: all $duration-fast $ease-bounce;
+  
+  &:active {
+    transform: scale(0.95);
+    box-shadow: inset 4rpx 4rpx 8rpx rgba(0, 0, 0, 0.2);
+  }
+}
+
 // Button Styles
 @mixin button-base {
+
   display: flex;
   align-items: center;
   justify-content: center;
