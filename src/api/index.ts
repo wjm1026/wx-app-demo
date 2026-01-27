@@ -120,3 +120,78 @@ export const pointsApi = {
   consumeFreeView: () =>
     getService('points-service').consumeFreeView() as Promise<ApiResponse<{ remaining: number }>>
 }
+
+export const adminApi = {
+  checkAdmin: () =>
+    getService('admin-service').checkAdmin() as Promise<ApiResponse<{ isAdmin: boolean; nickname: string; avatar: string }>>,
+  getStats: () =>
+    getService('admin-service').getStats() as Promise<ApiResponse>,
+  getUserList: (params?: { page?: number; pageSize?: number; status?: number; keyword?: string }) =>
+    getService('admin-service').getUserList(params) as Promise<ApiResponse>,
+  getUserDetail: (userId: string) =>
+    getService('admin-service').getUserDetail({ userId }) as Promise<ApiResponse>,
+  updateUserStatus: (userId: string, status: number) =>
+    getService('admin-service').updateUserStatus({ userId, status }) as Promise<ApiResponse>,
+  adjustUserPoints: (userId: string, amount: number, reason?: string) =>
+    getService('admin-service').adjustUserPoints({ userId, amount, reason }) as Promise<ApiResponse>,
+  setUserRole: (userId: string, role: 'user' | 'admin') =>
+    getService('admin-service').setUserRole({ userId, role }) as Promise<ApiResponse>,
+  getCardList: (params?: { page?: number; pageSize?: number; categoryId?: string; keyword?: string }) =>
+    getService('admin-service').getCardList(params) as Promise<ApiResponse>,
+  saveCard: (cardData: any) =>
+    getService('admin-service').saveCard(cardData) as Promise<ApiResponse>,
+  deleteCard: (cardId: string) =>
+    getService('admin-service').deleteCard({ cardId }) as Promise<ApiResponse>,
+  getCategoryList: () =>
+    getService('admin-service').getCategoryList() as Promise<ApiResponse>,
+  saveCategory: (categoryData: any) =>
+    getService('admin-service').saveCategory(categoryData) as Promise<ApiResponse>,
+  deleteCategory: (categoryId: string) =>
+    getService('admin-service').deleteCategory({ categoryId }) as Promise<ApiResponse>
+}
+
+export interface Achievement {
+  id: string
+  name: string
+  icon: string
+  description: string
+  points: number
+  unlocked: boolean
+  unlockTime?: number
+}
+
+export interface LearningProgress {
+  cardsLearned: number
+  totalCards: number
+  progress: number
+  signStreak: number
+  categoryProgress: Array<{
+    categoryId: string
+    name: string
+    icon: string
+    total: number
+    learned: number
+    progress: number
+    isComplete: boolean
+  }>
+}
+
+export const achievementApi = {
+  recordLearning: (cardId: string, duration?: number) =>
+    getService('achievement-service').recordLearning({ cardId, duration }) as Promise<ApiResponse<{
+      isNewCard: boolean
+      newAchievements: Achievement[]
+    }>>,
+  getLearningProgress: () =>
+    getService('achievement-service').getLearningProgress() as Promise<ApiResponse<LearningProgress>>,
+  getAchievements: () =>
+    getService('achievement-service').getAchievements() as Promise<ApiResponse<{
+      achievements: Achievement[]
+      unlockedCount: number
+      totalCount: number
+    }>>,
+  checkAndUnlockAchievements: () =>
+    getService('achievement-service').checkAndUnlockAchievements() as Promise<ApiResponse<{
+      newAchievements: Achievement[]
+    }>>
+}

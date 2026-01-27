@@ -161,7 +161,10 @@
 import { ref, onUnmounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getStatusBarHeight, getNavBarHeight, navigateTo, navigateBack, showToast } from '@/utils'
-import { cardApi, type Card } from '@/api'
+import { cardApi, achievementApi, type Card } from '@/api'
+import { useStore } from '@/store'
+
+const store = useStore()
 
 const statusBarHeight = ref(getStatusBarHeight())
 const navBarHeight = ref(getNavBarHeight())
@@ -210,6 +213,11 @@ async function loadCardDetail(id: string) {
       cardData.value = res.data
       isFavorited.value = !!res.data.isFavorited
       
+      // 记录学习进度（登录用户）
+      if (store.isLoggedIn) {
+        recordLearning(id)
+      }
+      
       // 加载相关推荐
       if (res.data.category_id) {
         loadRelatedCards(res.data._id, res.data.category_id)
@@ -221,6 +229,20 @@ async function loadCardDetail(id: string) {
     console.error('加载卡片详情失败:', e)
   } finally {
     isLoading.value = false
+  }
+}
+
+async function recordLearning(cardId: string) {
+  try {
+    const res = await achievementApi.recordLearning(cardId)
+    if (res.code === 0 && res.data?.newAchievements?.length > 0) {
+      const achievement = res.data.newAchievements[0]
+      setTimeout(() => {
+        showToast(`🎉 解锁成就: ${achievement.name}`, 'success')
+      }, 1000)
+    }
+  } catch (e) {
+    // 静默失败，不影响主流程
   }
 }
 

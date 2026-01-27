@@ -89,6 +89,13 @@
           <text class="menu-title">我的收藏</text>
           <text class="menu-arrow">→</text>
         </view>
+        <view class="menu-item" @click="goAchievements">
+          <view class="menu-icon-wrapper achievements">
+            <text class="menu-icon">🏆</text>
+          </view>
+          <text class="menu-title">学习成就</text>
+          <text class="menu-arrow">→</text>
+        </view>
         <view class="menu-item" @click="goInvite">
           <view class="menu-icon-wrapper invite">
             <text class="menu-icon">🎁</text>
@@ -129,6 +136,17 @@
           <text class="menu-arrow">→</text>
         </button>
       </view>
+
+      <view v-if="store.isAdmin" class="menu-group">
+        <view class="menu-item" @click="goAdmin">
+          <view class="menu-icon-wrapper admin">
+            <text class="menu-icon">⚙️</text>
+          </view>
+          <text class="menu-title">管理后台</text>
+          <view class="menu-badge admin-badge">管理员</view>
+          <text class="menu-arrow">→</text>
+        </view>
+      </view>
     </view>
 
     <!-- 登录按钮 -->
@@ -147,78 +165,308 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { getStatusBarHeight, navigateTo, showToast } from '@/utils'
+import { userApi, pointsApi, type UserInfo } from '@/api'
+import { useStore } from '@/store'
 import CustomTabbar from '@/components/CustomTabbar/CustomTabbar.vue'
 
+const store = useStore()
 const statusBarHeight = ref(getStatusBarHeight())
-const isLoggedIn = ref(true)
 const hasSigned = ref(false)
+const isLoading = ref(false)
 
 const defaultAvatar = 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
 
-const userInfo = ref({
-  nickname: '宝宝妈妈',
-  avatar: '',
-  points: 150,
-  freeViews: 8,
-  inviteCount: 3,
-  inviteCode: 'BABY2024',
-  isVip: false
+// 是否已登录
+const isLoggedIn = computed(() => !!store.userInfo)
+
+// 用户信息
+const userInfo = computed(() => ({
+  nickname: store.userInfo?.nickname || '点击登录',
+  avatar: store.userInfo?.avatar || '',
+  points: store.userInfo?.points || 0,
+  freeViews: store.userInfo?.free_views || 0,
+  inviteCount: store.userInfo?.invite_count || 0,
+  inviteCode: store.userInfo?.invite_code || '',
+  isVip: store.userInfo?.is_vip || false
+}))
+
+// 初始化
+onMounted(() => {
+  if (isLoggedIn.value) {
+    loadUserInfo()
+    checkSignInStatus()
+  }
 })
 
+onShow(() => {
+  if (isLoggedIn.value) {
+    loadUserInfo()
+    checkSignInStatus()
+  }
+})
+
+// 加载用户信息
+async function loadUserInfo() {
+  try {
+    const res = await userApi.getUserInfo()
+    if (res.code === 0 && res.data) {
+      store.setUserInfo(res.data)
+    }
+  } catch (e) {
+    console.error('获取用户信息失败:', e)
+  }
+}
+
+// 检查签到状态
+async function checkSignInStatus() {
+  try {
+    const res = await pointsApi.getSignInStatus()
+    if (res.code === 0) {
+      hasSigned.value = res.data?.hasSigned || false
+    }
+  } catch (e) {
+    console.error('获取签到状态失败:', e)
+  }
+}
+
+// 选择头像
 function chooseAvatar() {
   if (!isLoggedIn.value) {
     doLogin()
     return
   }
-  showToast('选择头像')
+  
+  uni.chooseImage({
+    count: 1,
+    sizeType: ['compressed'],
+    sourceType: ['album', 'camera'],
+    success: async (res) => {
+      const tempFilePath = res.tempFilePaths[0]
+      // 这里可以上传头像到云存储，暂时只显示提示
+      showToast('头像功能开发中')
+    }
+  })
 }
 
-function doLogin() {
-  showToast('微信登录中...')
-  setTimeout(() => {
-    isLoggedIn.value = true
-    showToast('登录成功 🎉', 'success')
-  }, 1000)
+// 微信登录
+async function doLogin() {
+  if (isLoading.value) return
+  isLoading.value = true
+  
+  try {
+    // 获取微信登录code
+    const loginRes = await new Promise<UniApp.LoginRes>((resolve, reject) => {
+      uni.login({
+        provider: 'weixin',
+        success: resolve,
+        fail: reject
+      })
+    })
+    
+    if (!loginRes.code) {
+      showToast('获取登录凭证失败')
+      return
+    }
+    
+    showToast('登录中...', 'loading')
+    
+    // 获取邀请码（如果有）
+    const inviteCode = uni.getStorageSync('INVITE_CODE') || undefined
+    
+    // 调用云函数登录
+    const res = await userApi.loginByWeixin(loginRes.code, inviteCode)
+    
+    if (res.code === 0 && res.data) {
+      // 保存token
+      if (res.data.token) {
+        uni.setStorageSync('uni_id_token', res.data.token)
+        uni.setStorageSync('uni_id_token_expired', res.data.tokenExpired)
+      }
+      
+      // 保存用户信息
+      store.setUserInfo(res.data.userInfo)
+      
+      // 清除邀请码
+      uni.removeStorageSync('INVITE_CODE')
+      
+      uni.hideToast()
+      
+      if (res.data.isNewUser) {
+        showToast('欢迎新用户！获得100积分 🎉', 'success')
+      } else {
+        showToast('登录成功 🎉', 'success')
+      }
+      
+      // 检查签到状态
+      checkSignInStatus()
+    } else {
+      showToast(res.msg || '登录失败')
+    }
+  } catch (e: any) {
+    console.error('登录失败:', e)
+    showToast(e.message || '登录失败，请重试')
+  } finally {
+    isLoading.value = false
+  }
 }
 
-function doSignIn() {
+// 每日签到
+async function doSignIn() {
+  if (!isLoggedIn.value) {
+    doLogin()
+    return
+  }
+  
   if (hasSigned.value) {
     showToast('今日已签到 ✅')
     return
   }
-  hasSigned.value = true
-  userInfo.value.points += 5
-  showToast('签到成功 +5积分 🎉', 'success')
+  
+  try {
+    showToast('签到中...', 'loading')
+    const res = await pointsApi.signIn()
+    uni.hideToast()
+    
+    if (res.code === 0) {
+      hasSigned.value = true
+      // 刷新用户信息
+      loadUserInfo()
+      showToast(`签到成功 +${res.data?.earnPoints || 5}积分 🎉`, 'success')
+    } else {
+      showToast(res.msg || '签到失败')
+    }
+  } catch (e: any) {
+    uni.hideToast()
+    showToast(e.message || '签到失败')
+  }
 }
 
-function watchAd() {
-  showToast('加载广告中...')
-  setTimeout(() => {
-    userInfo.value.points += 10
-    showToast('获得10积分 🎉', 'success')
+// 看广告赚积分
+async function watchAd() {
+  if (!isLoggedIn.value) {
+    doLogin()
+    return
+  }
+  
+  // #ifdef MP-WEIXIN
+  try {
+    // 创建激励视频广告
+    const videoAd = uni.createRewardedVideoAd({
+      adUnitId: 'adunit-xxxxxxxxx' // 需要替换为真实的广告单元ID
+    })
+    
+    // 监听关闭事件
+    videoAd.onClose(async (status: any) => {
+      if (status && status.isEnded) {
+        // 广告观看完成，发放奖励
+        try {
+          const res = await pointsApi.earnByAd('video')
+          if (res.code === 0) {
+            loadUserInfo()
+            showToast(`获得${res.data?.earnPoints || 10}积分 🎉`, 'success')
+          }
+        } catch (e) {
+          console.error('积分发放失败:', e)
+        }
+      } else {
+        showToast('请看完广告才能获得奖励')
+      }
+    })
+    
+    // 显示广告
+    videoAd.show().catch(() => {
+      videoAd.load().then(() => videoAd.show())
+    })
+  } catch (e) {
+    // 广告加载失败，直接给积分（开发环境）
+    console.warn('广告加载失败，开发模式直接发放积分')
+    try {
+      const res = await pointsApi.earnByAd('video')
+      if (res.code === 0) {
+        loadUserInfo()
+        showToast(`获得${res.data?.earnPoints || 10}积分 🎉`, 'success')
+      }
+    } catch (err) {
+      showToast('获取积分失败')
+    }
+  }
+  // #endif
+  
+  // #ifndef MP-WEIXIN
+  // 非微信环境模拟
+  showToast('加载广告中...', 'loading')
+  setTimeout(async () => {
+    uni.hideToast()
+    try {
+      const res = await pointsApi.earnByAd('video')
+      if (res.code === 0) {
+        loadUserInfo()
+        showToast(`获得${res.data?.earnPoints || 10}积分 🎉`, 'success')
+      }
+    } catch (e) {
+      showToast('获取积分失败')
+    }
   }, 2000)
+  // #endif
 }
 
 function goFavorites() {
+  if (!isLoggedIn.value) {
+    doLogin()
+    return
+  }
   navigateTo('/pages/user/favorites')
 }
 
+function goAchievements() {
+  if (!isLoggedIn.value) {
+    doLogin()
+    return
+  }
+  navigateTo('/pages/user/achievements')
+}
+
 function goInvite() {
+  if (!isLoggedIn.value) {
+    doLogin()
+    return
+  }
   navigateTo('/pages/user/invite')
 }
 
 function goPointsLog() {
-  showToast('积分明细')
+  if (!isLoggedIn.value) {
+    doLogin()
+    return
+  }
+  navigateTo('/pages/user/points-log')
 }
 
 function goFeedback() {
-  showToast('意见反馈')
+  uni.openCustomerServiceChat?.({
+    extInfo: { url: '' },
+    corpId: '',
+    success() {},
+    fail() {
+      showToast('客服功能开发中')
+    }
+  }) || showToast('客服功能开发中')
 }
 
 function goAbout() {
-  showToast('关于我们')
+  navigateTo('/pages/about/about')
+}
+
+// 管理员入口
+function goAdmin() {
+  if (!isLoggedIn.value) {
+    doLogin()
+    return
+  }
+  navigateTo('/pages/admin/admin')
 }
 </script>
 
@@ -498,11 +746,13 @@ function goAbout() {
   margin-right: $spacing-3;
   
   &.favorites { background: rgba(255, 107, 107, 0.12); }
+  &.achievements { background: rgba(255, 193, 7, 0.12); }
   &.invite { background: rgba(167, 139, 250, 0.12); }
   &.points { background: rgba(255, 193, 7, 0.12); }
   &.feedback { background: rgba(78, 205, 196, 0.12); }
   &.about { background: rgba(96, 165, 250, 0.12); }
   &.share { background: rgba(52, 211, 153, 0.12); }
+  &.admin { background: rgba(239, 68, 68, 0.12); }
 }
 
 .menu-icon {
@@ -524,6 +774,11 @@ function goAbout() {
   color: $color-primary;
   font-weight: $font-weight-medium;
   margin-right: $spacing-2;
+  
+  &.admin-badge {
+    background: rgba(239, 68, 68, 0.12);
+    color: #EF4444;
+  }
 }
 
 .menu-arrow {

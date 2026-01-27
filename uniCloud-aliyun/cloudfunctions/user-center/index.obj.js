@@ -30,8 +30,8 @@ module.exports = {
       {
         method: 'GET',
         data: {
-          appid: '', // 需要配置
-          secret: '', // 需要配置
+          appid: 'wx0a25acae1d9666ee', // 需要配置
+          secret: '299b6b8ca2a28c71489291ff5f8fe37b', // 需要配置
           js_code: code,
           grant_type: 'authorization_code'
         },

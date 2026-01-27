@@ -1,0 +1,6 @@
+{
+  "name": "achievement-service",
+  "version": "1.0.0",
+  "main": "index.obj.js",
+  "dependencies": {}
+}

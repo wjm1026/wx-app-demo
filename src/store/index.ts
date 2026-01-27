@@ -1,43 +1,93 @@
-import { reactive } from 'vue'
+import { reactive, readonly } from 'vue'
 import type { UserInfo } from '@/api'
 
 interface AppState {
   userInfo: UserInfo | null
   isLoggedIn: boolean
   token: string
+  isAdmin: boolean
 }
 
-export const appStore = reactive<AppState>({
+const state = reactive<AppState>({
   userInfo: null,
   isLoggedIn: false,
-  token: ''
+  token: '',
+  isAdmin: false
 })
 
 export function setUserInfo(userInfo: UserInfo | null) {
-  appStore.userInfo = userInfo
-  appStore.isLoggedIn = !!userInfo
+  state.userInfo = userInfo
+  state.isLoggedIn = !!userInfo
+  state.isAdmin = !!(userInfo && (userInfo as any).role === 'admin')
+  
+  if (userInfo) {
+    uni.setStorageSync('userInfo', JSON.stringify(userInfo))
+  } else {
+    uni.removeStorageSync('userInfo')
+  }
 }
 
-export function setToken(token: string) {
-  appStore.token = token
+export function setToken(token: string, expired?: number) {
+  state.token = token
   if (token) {
-    uni.setStorageSync('token', token)
+    uni.setStorageSync('uni_id_token', token)
+    if (expired) {
+      uni.setStorageSync('uni_id_token_expired', expired)
+    }
   } else {
-    uni.removeStorageSync('token')
+    uni.removeStorageSync('uni_id_token')
+    uni.removeStorageSync('uni_id_token_expired')
   }
 }
 
 export function initStore() {
-  const token = uni.getStorageSync('token')
+  const token = uni.getStorageSync('uni_id_token')
   if (token) {
-    appStore.token = token
-    appStore.isLoggedIn = true
+    state.token = token
+    state.isLoggedIn = true
+  }
+  
+  try {
+    const userInfoStr = uni.getStorageSync('userInfo')
+    if (userInfoStr) {
+      const userInfo = JSON.parse(userInfoStr)
+      state.userInfo = userInfo
+      state.isAdmin = !!(userInfo && userInfo.role === 'admin')
+    }
+  } catch (e) {
+    console.error('Failed to restore userInfo:', e)
   }
 }
 
 export function logout() {
-  appStore.userInfo = null
-  appStore.isLoggedIn = false
-  appStore.token = ''
-  uni.removeStorageSync('token')
+  state.userInfo = null
+  state.isLoggedIn = false
+  state.token = ''
+  state.isAdmin = false
+  uni.removeStorageSync('uni_id_token')
+  uni.removeStorageSync('uni_id_token_expired')
+  uni.removeStorageSync('userInfo')
 }
+
+export function updatePoints(points: number) {
+  if (state.userInfo) {
+    state.userInfo.points = points
+    uni.setStorageSync('userInfo', JSON.stringify(state.userInfo))
+  }
+}
+
+export function useStore() {
+  return {
+    ...readonly(state),
+    get userInfo() { return state.userInfo },
+    get isLoggedIn() { return state.isLoggedIn },
+    get token() { return state.token },
+    get isAdmin() { return state.isAdmin },
+    setUserInfo,
+    setToken,
+    logout,
+    updatePoints
+  }
+}
+
+export const appStore = state
