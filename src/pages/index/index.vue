@@ -238,7 +238,11 @@ function goCategory() {
 }
 
 function goCategoryDetail(id: string) {
-  navigateTo(`/pages/category/category?id=${id}`)
+  // TabBar页面不支持带参数跳转，通过Storage传递参数
+  uni.setStorageSync('TARGET_CATEGORY_ID', id)
+  uni.switchTab({
+    url: '/pages/category/category'
+  })
 }
 
 function goCardDetail(id: string) {

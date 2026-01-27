@@ -66,10 +66,23 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { navigateTo, showToast } from '@/utils'
 import CustomTabbar from '@/components/CustomTabbar/CustomTabbar.vue'
 
 const expandedIds = ref<string[]>(['1'])
+
+onShow(() => {
+  try {
+    const targetId = uni.getStorageSync('TARGET_CATEGORY_ID')
+    if (targetId) {
+      expandedIds.value = [targetId]
+      uni.removeStorageSync('TARGET_CATEGORY_ID')
+    }
+  } catch (e) {
+    console.error('读取分类参数失败', e)
+  }
+})
 
 const categories = ref([
   { 
