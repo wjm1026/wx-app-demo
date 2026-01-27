@@ -1,0 +1,178 @@
+/**
+ * uni-app 内置样式变量 + 宝宝识物主题定制
+ * 
+ * Design System: Playful & Childlike (童趣活泼)
+ * Based on UI/UX Pro Max Skill Guidelines
+ * 
+ * Note: design-system.scss is imported directly in each component
+ * because uni.scss path resolution differs per component location
+ */
+
+/* 主题色 - 儿童风格 */
+$uni-color-primary: #FF6B6B;
+$uni-color-success: #7ED321;
+$uni-color-warning: #FFE66D;
+$uni-color-error: #FF4757;
+
+$primary-color: #FF6B6B;
+$secondary-color: #4ECDC4;
+$accent-color: #FFE66D;
+$success-color: #7ED321;
+$warning-color: #F5A623;
+$error-color: #FF4757;
+
+/* 文字颜色 */
+$uni-text-color: #333333;
+$uni-text-color-inverse: #FFFFFF;
+$uni-text-color-grey: #999999;
+$uni-text-color-placeholder: #CCCCCC;
+$uni-text-color-disable: #C0C0C0;
+
+$text-color: #333333;
+$text-color-secondary: #666666;
+$text-color-light: #999999;
+$text-color-white: #FFFFFF;
+
+/* 背景颜色 */
+$uni-bg-color: #FFFFFF;
+$uni-bg-color-grey: #FFF9F0;
+$uni-bg-color-hover: #FFF0E8;
+$uni-bg-color-mask: rgba(0, 0, 0, 0.4);
+
+$bg-color: #FFF9F0;
+$bg-color-light: #FFFFFF;
+$bg-color-card: #FFFFFF;
+
+/* 边框颜色 */
+$uni-border-color: #EEEEEE;
+$border-color: #EEEEEE;
+$shadow-color: rgba(0, 0, 0, 0.08);
+
+/* 文字尺寸 */
+$uni-font-size-sm: 24rpx;
+$uni-font-size-base: 28rpx;
+$uni-font-size-lg: 32rpx;
+
+$font-size-xs: 20rpx;
+$font-size-sm: 24rpx;
+$font-size-base: 28rpx;
+$font-size-lg: 32rpx;
+$font-size-xl: 36rpx;
+$font-size-xxl: 44rpx;
+$font-size-title: 56rpx;
+
+/* 图片尺寸 */
+$uni-img-size-sm: 40rpx;
+$uni-img-size-base: 52rpx;
+$uni-img-size-lg: 80rpx;
+
+/* Border Radius */
+$uni-border-radius-sm: 8rpx;
+$uni-border-radius-base: 16rpx;
+$uni-border-radius-lg: 24rpx;
+$uni-border-radius-circle: 50%;
+
+$border-radius-sm: 8rpx;
+$border-radius-base: 16rpx;
+$border-radius-lg: 24rpx;
+$border-radius-xl: 32rpx;
+$border-radius-round: 999rpx;
+
+/* 间距 */
+$uni-spacing-row-sm: 10rpx;
+$uni-spacing-row-base: 20rpx;
+$uni-spacing-row-lg: 30rpx;
+
+$uni-spacing-col-sm: 8rpx;
+$uni-spacing-col-base: 16rpx;
+$uni-spacing-col-lg: 24rpx;
+
+$spacing-xs: 8rpx;
+$spacing-sm: 16rpx;
+$spacing-base: 24rpx;
+$spacing-lg: 32rpx;
+$spacing-xl: 48rpx;
+
+/* 透明度 */
+$uni-opacity-disabled: 0.3;
+
+/* 文章场景相关 */
+$uni-color-title: #333333;
+$uni-font-size-title: 40rpx;
+$uni-color-subtitle: #666666;
+$uni-font-size-subtitle: 36rpx;
+$uni-color-paragraph: #333333;
+$uni-font-size-paragraph: 28rpx;
+
+/* 通用样式类 */
+.page {
+  min-height: 100vh;
+  background-color: $bg-color;
+}
+
+.container {
+  padding: $spacing-base;
+}
+
+.card {
+  background-color: $bg-color-card;
+  border-radius: $border-radius-lg;
+  box-shadow: 0 4rpx 20rpx $shadow-color;
+  overflow: hidden;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, $primary-color, #FF8E8E);
+  color: $text-color-white;
+  border: none;
+  border-radius: $border-radius-round;
+  padding: $spacing-base $spacing-xl;
+  font-size: $font-size-base;
+  font-weight: 500;
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, $secondary-color, #6EDDD4);
+  color: $text-color-white;
+  border: none;
+  border-radius: $border-radius-round;
+  padding: $spacing-base $spacing-xl;
+  font-size: $font-size-base;
+  font-weight: 500;
+}
+
+.text-primary {
+  color: $primary-color;
+}
+
+.text-secondary {
+  color: $text-color-secondary;
+}
+
+.text-light {
+  color: $text-color-light;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.flex-1 {
+  flex: 1;
+}

@@ -1,0 +1,124 @@
+{
+  "bsonType": "object",
+  "required": ["name", "category_id", "image"],
+  "permission": {
+    "read": true,
+    "create": "'admin' in auth.role",
+    "update": "'admin' in auth.role",
+    "delete": "'admin' in auth.role"
+  },
+  "properties": {
+    "_id": {
+      "description": "卡片ID"
+    },
+    "name": {
+      "bsonType": "string",
+      "description": "名称（如：老虎）",
+      "trim": "both"
+    },
+    "name_en": {
+      "bsonType": "string",
+      "description": "英文名称",
+      "trim": "both"
+    },
+    "name_pinyin": {
+      "bsonType": "string",
+      "description": "拼音",
+      "trim": "both"
+    },
+    "category_id": {
+      "bsonType": "string",
+      "description": "分类ID",
+      "foreignKey": "categories._id"
+    },
+    "image": {
+      "bsonType": "string",
+      "description": "卡片图片URL"
+    },
+    "images": {
+      "bsonType": "array",
+      "description": "更多图片",
+      "items": {
+        "bsonType": "string"
+      }
+    },
+    "audio": {
+      "bsonType": "string",
+      "description": "发音音频URL"
+    },
+    "audio_en": {
+      "bsonType": "string",
+      "description": "英文发音音频URL"
+    },
+    "sound": {
+      "bsonType": "string",
+      "description": "事物声音URL（如老虎叫声）"
+    },
+    "video": {
+      "bsonType": "string",
+      "description": "视频URL"
+    },
+    "description": {
+      "bsonType": "string",
+      "description": "简介描述"
+    },
+    "fun_fact": {
+      "bsonType": "string",
+      "description": "趣味知识"
+    },
+    "tags": {
+      "bsonType": "array",
+      "description": "标签",
+      "items": {
+        "bsonType": "string"
+      }
+    },
+    "is_free": {
+      "bsonType": "bool",
+      "description": "是否免费",
+      "defaultValue": true
+    },
+    "points_cost": {
+      "bsonType": "int",
+      "description": "解锁所需积分",
+      "defaultValue": 0
+    },
+    "view_count": {
+      "bsonType": "int",
+      "description": "浏览次数",
+      "defaultValue": 0
+    },
+    "favorite_count": {
+      "bsonType": "int",
+      "description": "收藏次数",
+      "defaultValue": 0
+    },
+    "is_hot": {
+      "bsonType": "bool",
+      "description": "是否热门推荐",
+      "defaultValue": false
+    },
+    "sort": {
+      "bsonType": "int",
+      "description": "排序权重",
+      "defaultValue": 0
+    },
+    "status": {
+      "bsonType": "int",
+      "description": "状态 0禁用 1启用",
+      "enum": [0, 1],
+      "defaultValue": 1
+    },
+    "create_time": {
+      "bsonType": "timestamp",
+      "description": "创建时间",
+      "forceDefaultValue": {
+        "$env": "now"
+      }
+    },
+    "update_time": {
+      "bsonType": "timestamp",
+      "description": "更新时间"
+    }
+  }
+}

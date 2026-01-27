@@ -1,0 +1,55 @@
+{
+  "bsonType": "object",
+  "required": ["name", "category_id"],
+  "permission": {
+    "read": true,
+    "create": "'admin' in auth.role",
+    "update": "'admin' in auth.role",
+    "delete": "'admin' in auth.role"
+  },
+  "properties": {
+    "_id": {
+      "description": "分类ID"
+    },
+    "name": {
+      "bsonType": "string",
+      "description": "分类名称",
+      "trim": "both"
+    },
+    "icon": {
+      "bsonType": "string",
+      "description": "分类图标URL"
+    },
+    "cover": {
+      "bsonType": "string",
+      "description": "分类封面图"
+    },
+    "description": {
+      "bsonType": "string",
+      "description": "分类描述"
+    },
+    "sort": {
+      "bsonType": "int",
+      "description": "排序权重",
+      "defaultValue": 0
+    },
+    "card_count": {
+      "bsonType": "int",
+      "description": "卡片数量",
+      "defaultValue": 0
+    },
+    "status": {
+      "bsonType": "int",
+      "description": "状态 0禁用 1启用",
+      "enum": [0, 1],
+      "defaultValue": 1
+    },
+    "create_time": {
+      "bsonType": "timestamp",
+      "description": "创建时间",
+      "forceDefaultValue": {
+        "$env": "now"
+      }
+    }
+  }
+}

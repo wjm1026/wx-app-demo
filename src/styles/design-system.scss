@@ -1,0 +1,449 @@
+/**
+ * Baby Learning Cards - Design System
+ * Style: Playful & Childlike (童趣活泼)
+ * 
+ * Based on UI/UX Pro Max Skill Guidelines:
+ * - Rounded shapes + Bright colors + Bouncy animations
+ * - Touch target: minimum 44x44px (88rpx)
+ * - Animation: 200-400ms with ease-out/spring timing
+ * - Accessibility: WCAG AA contrast ratio 4.5:1
+ */
+
+// ============================================
+// COLOR PALETTE - Playful & Childlike
+// ============================================
+
+// Primary Colors - Warm & Inviting
+$color-primary: #FF6B6B;           // Coral Red - Main brand
+$color-primary-light: #FF8E8E;     // Light coral
+$color-primary-dark: #E85555;      // Dark coral
+
+// Secondary Colors - Fresh & Fun
+$color-secondary: #4ECDC4;         // Turquoise
+$color-secondary-light: #6EDDD4;   // Light turquoise
+$color-secondary-dark: #3DBDB4;    // Dark turquoise
+
+// Accent Colors - Playful Rainbow
+$color-accent-yellow: #FFE66D;     // Sunny yellow
+$color-accent-orange: #FFA94D;     // Playful orange
+$color-accent-purple: #A78BFA;     // Soft purple
+$color-accent-pink: #F472B6;       // Bubblegum pink
+$color-accent-green: #34D399;      // Fresh green
+$color-accent-blue: #60A5FA;       // Sky blue
+
+// Semantic Colors
+$color-success: #10B981;           // Success green
+$color-warning: #F59E0B;           // Warning amber
+$color-error: #EF4444;             // Error red
+$color-info: #3B82F6;              // Info blue
+
+// Background Colors - Soft & Warm
+$color-bg-primary: #FFFBF5;        // Warm cream (main bg)
+$color-bg-secondary: #FFF5EB;      // Peach tint
+$color-bg-card: #FFFFFF;           // White cards
+$color-bg-overlay: rgba(0, 0, 0, 0.4);
+
+// Text Colors - High Contrast
+$color-text-primary: #1F2937;      // Near black (WCAG AAA)
+$color-text-secondary: #4B5563;    // Dark gray
+$color-text-tertiary: #9CA3AF;     // Medium gray
+$color-text-inverse: #FFFFFF;      // White text
+$color-text-placeholder: #D1D5DB;  // Light gray
+
+// Border & Shadow
+$color-border: #F3F4F6;            // Very light gray
+$color-border-focus: $color-primary;
+$shadow-sm: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+$shadow-md: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
+$shadow-lg: 0 16rpx 48rpx rgba(0, 0, 0, 0.12);
+$shadow-colored: 0 8rpx 24rpx rgba(255, 107, 107, 0.25);
+
+// ============================================
+// TYPOGRAPHY - Friendly & Readable
+// ============================================
+
+// Font Family
+$font-family-base: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+
+// Font Sizes (mobile-first, minimum 16px body)
+$font-size-xs: 22rpx;     // 11px - captions only
+$font-size-sm: 26rpx;     // 13px - small text
+$font-size-base: 30rpx;   // 15px - body text (increased for readability)
+$font-size-md: 32rpx;     // 16px - emphasized body
+$font-size-lg: 36rpx;     // 18px - section titles
+$font-size-xl: 44rpx;     // 22px - page titles
+$font-size-2xl: 56rpx;    // 28px - hero titles
+$font-size-3xl: 72rpx;    // 36px - big display
+
+// Font Weights
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+// Line Heights
+$line-height-tight: 1.25;
+$line-height-normal: 1.5;
+$line-height-relaxed: 1.75;
+
+// ============================================
+// SPACING - 8px Grid System
+// ============================================
+
+$spacing-0: 0;
+$spacing-1: 8rpx;      // 4px
+$spacing-2: 16rpx;     // 8px
+$spacing-3: 24rpx;     // 12px
+$spacing-4: 32rpx;     // 16px
+$spacing-5: 40rpx;     // 20px
+$spacing-6: 48rpx;     // 24px
+$spacing-8: 64rpx;     // 32px
+$spacing-10: 80rpx;    // 40px
+$spacing-12: 96rpx;    // 48px
+$spacing-16: 128rpx;   // 64px
+
+// ============================================
+// BORDER RADIUS - Soft & Rounded
+// ============================================
+
+$radius-sm: 12rpx;     // Small elements
+$radius-md: 20rpx;     // Cards, buttons
+$radius-lg: 28rpx;     // Large cards
+$radius-xl: 40rpx;     // Hero sections
+$radius-2xl: 56rpx;    // Extra rounded
+$radius-full: 9999rpx; // Pills & circles
+
+// ============================================
+// ANIMATION - Bouncy & Playful
+// ============================================
+
+// Duration
+$duration-fast: 150ms;
+$duration-normal: 250ms;
+$duration-slow: 400ms;
+$duration-slower: 600ms;
+
+// Easing - Playful bounce effect
+$ease-out: cubic-bezier(0.33, 1, 0.68, 1);
+$ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+$ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);  // Overshoot bounce
+$ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+// ============================================
+// TOUCH TARGETS - Accessibility
+// ============================================
+
+$touch-target-min: 88rpx;  // 44px minimum
+$touch-spacing: 16rpx;     // 8px gap between targets
+
+// ============================================
+// Z-INDEX Scale
+// ============================================
+
+$z-dropdown: 10;
+$z-sticky: 20;
+$z-fixed: 30;
+$z-modal-backdrop: 40;
+$z-modal: 50;
+$z-popover: 60;
+$z-tooltip: 70;
+$z-toast: 100;
+
+// ============================================
+// GRADIENTS - Fun & Vibrant
+// ============================================
+
+$gradient-primary: linear-gradient(135deg, $color-primary, $color-primary-light);
+$gradient-secondary: linear-gradient(135deg, $color-secondary, $color-secondary-light);
+$gradient-sunset: linear-gradient(135deg, #FF6B6B, #FFA94D);
+$gradient-ocean: linear-gradient(135deg, #4ECDC4, #60A5FA);
+$gradient-candy: linear-gradient(135deg, #F472B6, #A78BFA);
+$gradient-forest: linear-gradient(135deg, #34D399, #4ECDC4);
+$gradient-rainbow: linear-gradient(135deg, #FF6B6B, #FFA94D, #FFE66D, #34D399, #60A5FA, #A78BFA);
+
+// Category-specific gradients
+$gradient-animal: linear-gradient(135deg, #FF9F7F, #FFB347);
+$gradient-fruit: linear-gradient(135deg, #7ED321, #B4E33D);
+$gradient-vegetable: linear-gradient(135deg, #FFA94D, #FFD93D);
+$gradient-transport: linear-gradient(135deg, #60A5FA, #A78BFA);
+$gradient-number: linear-gradient(135deg, #F472B6, #FF6B6B);
+$gradient-shape: linear-gradient(135deg, #FFE66D, #FFA94D);
+$gradient-color: linear-gradient(135deg, #4ECDC4, #A78BFA, #F472B6);
+
+// ============================================
+// COMPONENT STYLES
+// ============================================
+
+// Card Styles
+@mixin card-base {
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-md;
+  overflow: hidden;
+  transition: transform $duration-normal $ease-bounce,
+              box-shadow $duration-normal $ease-out;
+  
+  &:active {
+    transform: scale(0.98);
+    box-shadow: $shadow-sm;
+  }
+}
+
+@mixin card-elevated {
+  @include card-base;
+  box-shadow: $shadow-lg;
+  
+  &:active {
+    transform: scale(0.97) translateY(4rpx);
+  }
+}
+
+// Button Styles
+@mixin button-base {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: $touch-target-min;
+  padding: $spacing-3 $spacing-6;
+  border-radius: $radius-full;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  transition: transform $duration-fast $ease-bounce,
+              box-shadow $duration-fast $ease-out,
+              opacity $duration-fast $ease-out;
+  cursor: pointer;
+  
+  &:active {
+    transform: scale(0.95);
+    opacity: 0.9;
+  }
+}
+
+@mixin button-primary {
+  @include button-base;
+  background: $gradient-primary;
+  color: $color-text-inverse;
+  box-shadow: $shadow-colored;
+  
+  &:active {
+    box-shadow: 0 4rpx 16rpx rgba(255, 107, 107, 0.3);
+  }
+}
+
+@mixin button-secondary {
+  @include button-base;
+  background: $gradient-secondary;
+  color: $color-text-inverse;
+  box-shadow: 0 8rpx 24rpx rgba(78, 205, 196, 0.25);
+}
+
+@mixin button-ghost {
+  @include button-base;
+  background: transparent;
+  color: $color-primary;
+  border: 3rpx solid $color-primary;
+  
+  &:active {
+    background: rgba($color-primary, 0.1);
+  }
+}
+
+// Icon Button (circular)
+@mixin icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: $touch-target-min;
+  height: $touch-target-min;
+  border-radius: $radius-full;
+  background-color: rgba($color-bg-card, 0.9);
+  box-shadow: $shadow-sm;
+  transition: transform $duration-fast $ease-bounce,
+              background-color $duration-fast $ease-out;
+  cursor: pointer;
+  
+  &:active {
+    transform: scale(0.9);
+    background-color: $color-bg-secondary;
+  }
+}
+
+// Category Icon
+@mixin category-icon($gradient) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: $radius-xl;
+  background: $gradient;
+  box-shadow: 0 8rpx 20rpx rgba(0, 0, 0, 0.1);
+  transition: transform $duration-normal $ease-bounce;
+  
+  &:active {
+    transform: scale(0.92) rotate(-3deg);
+  }
+}
+
+// Tag/Badge
+@mixin tag-base {
+  display: inline-flex;
+  align-items: center;
+  padding: $spacing-1 $spacing-3;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+}
+
+@mixin tag-primary {
+  @include tag-base;
+  background-color: rgba($color-primary, 0.12);
+  color: $color-primary;
+}
+
+@mixin tag-secondary {
+  @include tag-base;
+  background-color: rgba($color-secondary, 0.12);
+  color: $color-secondary-dark;
+}
+
+// Input Styles
+@mixin input-base {
+  width: 100%;
+  min-height: $touch-target-min;
+  padding: $spacing-3 $spacing-4;
+  background-color: $color-bg-secondary;
+  border: 3rpx solid transparent;
+  border-radius: $radius-lg;
+  font-size: $font-size-base;
+  color: $color-text-primary;
+  transition: border-color $duration-fast $ease-out,
+              box-shadow $duration-fast $ease-out;
+  
+  &::placeholder {
+    color: $color-text-placeholder;
+  }
+  
+  &:focus {
+    border-color: $color-primary;
+    box-shadow: 0 0 0 6rpx rgba($color-primary, 0.1);
+  }
+}
+
+// Section Header
+@mixin section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-4;
+  
+  .section-title {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    color: $color-text-primary;
+    display: flex;
+    align-items: center;
+    gap: $spacing-2;
+  }
+  
+  .section-more {
+    font-size: $font-size-sm;
+    color: $color-text-tertiary;
+    display: flex;
+    align-items: center;
+    gap: $spacing-1;
+  }
+}
+
+// ============================================
+// ANIMATION KEYFRAMES
+// ============================================
+
+@keyframes bounce-in {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes wiggle {
+  0%, 100% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10rpx);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba($color-primary, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 20rpx rgba($color-primary, 0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+// Loading skeleton
+@mixin skeleton {
+  background: linear-gradient(
+    90deg,
+    $color-bg-secondary 25%,
+    $color-bg-card 50%,
+    $color-bg-secondary 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: $radius-md;
+}
+
+// ============================================
+// UTILITY CLASSES
+// ============================================
+
+.animate-bounce-in {
+  animation: bounce-in $duration-slow $ease-bounce;
+}
+
+.animate-wiggle {
+  animation: wiggle 0.5s $ease-in-out;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+// Reduced motion support - Note: * selector not supported in WeChat Mini Program
+// Apply reduced motion handling in individual components if needed
