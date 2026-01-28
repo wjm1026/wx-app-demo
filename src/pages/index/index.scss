@@ -1,0 +1,533 @@
+@import '@/styles/design-system.scss';
+
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-primary;
+}
+
+// 导航栏
+.nav-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: $z-fixed;
+  background: $gradient-primary;
+  border-radius: 0 0 $radius-xl $radius-xl;
+  box-shadow: 0 8rpx 32rpx rgba(255, 107, 107, 0.3);
+}
+
+.nav-content {
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 $spacing-4;
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+}
+
+.logo-icon {
+  font-size: 48rpx;
+  animation: float 3s ease-in-out infinite;
+}
+
+.nav-title {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-inverse;
+  letter-spacing: 2rpx;
+}
+
+.nav-actions {
+  display: flex;
+  gap: $spacing-2;
+}
+
+.nav-btn {
+  @include icon-button;
+  background-color: rgba(255, 255, 255, 0.25);
+  
+  &:active {
+    background-color: rgba(255, 255, 255, 0.35);
+  }
+}
+
+.nav-icon {
+  font-size: 40rpx;
+}
+
+.main-scroll {
+  height: 100vh;
+}
+
+// 欢迎横幅
+.welcome-banner {
+  margin: $spacing-4;
+  padding: $spacing-5;
+  background: linear-gradient(135deg, #FFF5EB, #FFE4D6);
+  border-radius: $radius-xl;
+  box-shadow: $shadow-md;
+  overflow: hidden;
+}
+
+.welcome-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.welcome-text {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2;
+}
+
+.welcome-greeting {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.welcome-message {
+  font-size: $font-size-base;
+  color: $color-text-secondary;
+}
+
+.welcome-decoration {
+  display: flex;
+  gap: $spacing-1;
+}
+
+.deco-emoji {
+  font-size: 44rpx;
+  animation: float 2s ease-in-out infinite;
+  
+  &.bounce-1 { animation-delay: 0s; }
+  &.bounce-2 { animation-delay: 0.3s; }
+  &.bounce-3 { animation-delay: 0.6s; }
+}
+
+// 搜索入口
+.search-entry {
+  padding: 0 $spacing-4;
+  margin-bottom: $spacing-4;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  height: 96rpx;
+  background-color: $color-bg-card;
+  border-radius: $radius-full;
+  padding: 0 $spacing-5;
+  box-shadow: $shadow-md;
+  transition: transform $duration-normal $ease-bounce,
+              box-shadow $duration-normal $ease-out;
+  
+  &:active {
+    transform: scale(0.98);
+    box-shadow: $shadow-sm;
+  }
+}
+
+.search-icon {
+  font-size: 36rpx;
+  margin-right: $spacing-3;
+}
+
+.search-placeholder {
+  font-size: $font-size-base;
+  color: $color-text-placeholder;
+}
+
+// 区块样式
+.section {
+  padding: 0 $spacing-4;
+  margin-bottom: $spacing-6;
+}
+
+.section-header {
+  @include section-header;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+}
+
+.title-icon {
+  font-size: 40rpx;
+}
+
+.title-text {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.section-more {
+  display: flex;
+  align-items: center;
+  gap: $spacing-1;
+  padding: $spacing-2 $spacing-3;
+  background-color: rgba($color-primary, 0.1);
+  border-radius: $radius-full;
+  transition: background-color $duration-fast $ease-out;
+  
+  &:active {
+    background-color: rgba($color-primary, 0.2);
+  }
+}
+
+.more-text {
+  font-size: $font-size-sm;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+}
+
+.more-arrow {
+  font-size: $font-size-sm;
+  color: $color-primary;
+}
+
+// 分类网格
+.category-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-3;
+}
+
+.category-card {
+  width: calc(25% - #{$spacing-3 * 0.75});
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $spacing-3 0;
+  transition: transform $duration-normal $ease-bounce;
+  
+  &:active {
+    transform: scale(0.92);
+  }
+  
+  @for $i from 0 through 7 {
+    &.delay-#{$i} {
+      animation: bounce-in 0.5s $ease-bounce backwards;
+      animation-delay: #{$i * 0.05}s;
+    }
+  }
+}
+
+.category-icon-wrapper {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: $radius-xl;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: $spacing-2;
+  box-shadow: 0 8rpx 20rpx rgba(0, 0, 0, 0.12);
+  transition: transform $duration-normal $ease-bounce;
+}
+
+.category-card:active .category-icon-wrapper {
+  transform: rotate(-5deg) scale(1.05);
+}
+
+.category-emoji {
+  font-size: 52rpx;
+}
+
+.category-name {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: 4rpx;
+}
+
+.category-count {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+// 热门推荐滚动
+.hot-scroll {
+  margin: 0 #{-$spacing-4};
+  padding: 0 $spacing-4;
+  white-space: nowrap;
+}
+
+.hot-list {
+  display: inline-flex;
+  gap: $spacing-4;
+  padding: $spacing-2 0;
+}
+
+.hot-card {
+  position: relative;
+  width: 300rpx;
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  overflow: hidden;
+  box-shadow: $shadow-md;
+  transition: transform $duration-normal $ease-bounce,
+              box-shadow $duration-normal $ease-out;
+  
+  &:active {
+    transform: scale(0.97) translateY(4rpx);
+    box-shadow: $shadow-sm;
+  }
+}
+
+.hot-image-wrapper {
+  position: relative;
+  width: 100%;
+  height: 220rpx;
+}
+
+.hot-image {
+  width: 100%;
+  height: 100%;
+}
+
+.hot-badge {
+  position: absolute;
+  top: $spacing-2;
+  left: $spacing-2;
+  padding: 6rpx 16rpx;
+  background: $gradient-sunset;
+  border-radius: $radius-full;
+  box-shadow: 0 4rpx 12rpx rgba(255, 107, 107, 0.4);
+}
+
+.badge-text {
+  font-size: 20rpx;
+  font-weight: $font-weight-bold;
+  color: $color-text-inverse;
+  letter-spacing: 1rpx;
+}
+
+.hot-info {
+  padding: $spacing-3;
+}
+
+.hot-name {
+  display: block;
+  font-size: $font-size-md;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.hot-name-en {
+  display: block;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: 4rpx;
+}
+
+.hot-play-btn {
+  position: absolute;
+  right: $spacing-3;
+  bottom: $spacing-3;
+  width: 64rpx;
+  height: 64rpx;
+  background: $gradient-primary;
+  border-radius: $radius-full;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: $shadow-colored;
+  transition: transform $duration-fast $ease-bounce;
+  
+  &:active {
+    transform: scale(0.9);
+  }
+}
+
+.play-icon {
+  font-size: 24rpx;
+  color: $color-text-inverse;
+  margin-left: 4rpx;
+}
+
+// 卡片网格
+.card-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-4;
+}
+
+.card-item {
+  width: calc(50% - #{$spacing-4 * 0.5});
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  overflow: hidden;
+  box-shadow: $shadow-md;
+  transition: transform $duration-normal $ease-bounce,
+              box-shadow $duration-normal $ease-out;
+  
+  &:active {
+    transform: scale(0.97);
+    box-shadow: $shadow-sm;
+  }
+}
+
+.card-image-wrapper {
+  position: relative;
+  width: 100%;
+  height: 240rpx;
+}
+
+.card-image {
+  width: 100%;
+  height: 100%;
+}
+
+.new-badge {
+  position: absolute;
+  top: $spacing-2;
+  right: $spacing-2;
+  padding: 6rpx 16rpx;
+  background: $gradient-forest;
+  border-radius: $radius-full;
+  font-size: 18rpx;
+  font-weight: $font-weight-bold;
+  color: $color-text-inverse;
+  box-shadow: 0 4rpx 12rpx rgba(52, 211, 153, 0.4);
+}
+
+.card-content {
+  padding: $spacing-3;
+}
+
+.card-name {
+  display: block;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-2;
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-stat {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+}
+
+.stat-icon {
+  font-size: 24rpx;
+}
+
+.stat-value {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.card-tag {
+  padding: 4rpx 12rpx;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+}
+
+// 学习进度
+.progress-section {
+  padding: 0 $spacing-4;
+  margin-bottom: $spacing-6;
+}
+
+.progress-card {
+  background: linear-gradient(135deg, $color-secondary, $color-secondary-light);
+  border-radius: $radius-xl;
+  padding: $spacing-5;
+  box-shadow: 0 12rpx 32rpx rgba(78, 205, 196, 0.3);
+}
+
+.progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-4;
+}
+
+.progress-title {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-text-inverse;
+}
+
+.progress-detail {
+  font-size: $font-size-sm;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.progress-stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  margin-bottom: $spacing-4;
+  padding: $spacing-4;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: $radius-lg;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-number {
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-inverse;
+}
+
+.stat-label {
+  font-size: $font-size-xs;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 4rpx;
+}
+
+.stat-divider {
+  width: 2rpx;
+  height: 60rpx;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.progress-bar-wrapper {
+  height: 16rpx;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: $radius-full;
+  overflow: hidden;
+  margin-bottom: $spacing-3;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #FFE66D, #FFA94D);
+  border-radius: $radius-full;
+  transition: width 0.5s $ease-out;
+}
+
+.progress-tip {
+  font-size: $font-size-sm;
+  color: rgba(255, 255, 255, 0.9);
+  text-align: center;
+}
+
+.safe-bottom {
+  height: 180rpx;
+}

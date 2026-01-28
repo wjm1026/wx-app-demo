@@ -245,13 +245,16 @@ module.exports = {
 
     const { page = 1, pageSize = 20 } = params || {}
 
-    // 获取收藏记录
-    const favoritesRes = await favoritesCollection
-      .where({ user_id: uid })
-      .orderBy('create_time', 'desc')
-      .skip((page - 1) * pageSize)
-      .limit(pageSize)
-      .get()
+    // 获取收藏记录 + 总数
+    const [favoritesRes, totalRes] = await Promise.all([
+      favoritesCollection
+        .where({ user_id: uid })
+        .orderBy('create_time', 'desc')
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .get(),
+      favoritesCollection.where({ user_id: uid }).count()
+    ])
 
     // 获取卡片详情
     const cardIds = favoritesRes.data.map(f => f.card_id)
@@ -264,20 +267,23 @@ module.exports = {
       cards = cardsRes.data
     }
 
-    // 合并数据
+    // 合并数据（返回卡片列表，附加收藏信息）
     const list = favoritesRes.data.map(fav => {
       const card = cards.find(c => c._id === fav.card_id)
+      if (!card) return null
       return {
-        ...fav,
-        card
+        ...card,
+        favorite_id: fav._id,
+        favorited_at: fav.create_time
       }
-    }).filter(item => item.card)
+    }).filter(Boolean)
 
     return {
       code: 0,
       msg: 'success',
       data: {
         list,
+        total: totalRes.total,
         page,
         pageSize
       }

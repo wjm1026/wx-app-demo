@@ -22,8 +22,8 @@
       <!-- 主图区域 -->
       <view class="hero-section">
         <swiper class="hero-swiper" indicator-dots indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#FFFFFF">
-          <swiper-item>
-            <image class="hero-image" :src="cardData.image" mode="aspectFill" />
+          <swiper-item v-for="(img, index) in heroImages" :key="`${img}-${index}`">
+            <image class="hero-image" :src="img" mode="aspectFill" />
           </swiper-item>
         </swiper>
         
@@ -37,8 +37,8 @@
         
         <!-- 分类标签 -->
         <view class="hero-badge">
-          <text class="badge-icon">🦁</text>
-          <text class="badge-text">动物</text>
+          <text class="badge-icon">{{ heroBadgeIcon }}</text>
+          <text class="badge-text">{{ heroBadgeText }}</text>
         </view>
       </view>
 
@@ -100,7 +100,7 @@
         </view>
 
         <!-- 趣味知识 -->
-        <view v-if="cardData.funFact" class="fun-card">
+        <view v-if="cardData.fun_fact" class="fun-card">
           <view class="fun-header">
             <text class="fun-icon">💡</text>
             <text class="fun-title">你知道吗？</text>
@@ -158,7 +158,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onUnmounted } from 'vue'
+import { ref, onUnmounted, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getStatusBarHeight, getNavBarHeight, navigateTo, navigateBack, showToast } from '@/utils'
 import { cardApi, achievementApi, type Card } from '@/api'
@@ -189,8 +189,24 @@ const cardData = ref<Card>({
 
 const relatedCards = ref<Card[]>([])
 
+const heroImages = computed(() => {
+  const cover = cardData.value.image ? [cardData.value.image] : []
+  const extra = (cardData.value.images || []).filter(Boolean)
+  const merged = [...cover, ...extra]
+  return Array.from(new Set(merged))
+})
+
+const heroBadgeIcon = computed(() => cardData.value.category?.icon || '📚')
+const heroBadgeText = computed(() => cardData.value.category?.name || '未分类')
+
 // 音频上下文
 const audioContext = uni.createInnerAudioContext()
+audioContext.onError((res) => {
+  console.error('播放失败:', res)
+  showToast('播放失败，请检查网络', 'error')
+  audioContext.stop()
+  audioContext.src = ''
+})
 
 onUnmounted(() => {
   audioContext.destroy()
@@ -262,11 +278,18 @@ function goBack() {
 }
 
 async function toggleFavorite() {
+  if (!store.isLoggedIn) {
+    showToast('请先登录', 'none')
+    return
+  }
+  if (!cardData.value._id) return
   try {
     const res = await cardApi.toggleFavorite(cardData.value._id)
     if (res.code === 0) {
       isFavorited.value = res.data.isFavorited
       showToast(isFavorited.value ? '已收藏 ❤️' : '已取消收藏', 'success')
+    } else {
+      showToast(res.msg || '操作失败', 'error')
     }
   } catch (e) {
     showToast('操作失败', 'error')
@@ -282,13 +305,6 @@ function playAudio(url: string | undefined, label: string) {
   audioContext.stop()
   audioContext.src = url
   audioContext.play()
-  
-  audioContext.onError((res) => {
-    console.error('播放失败:', res)
-    showToast('播放失败，请检查网络', 'error')
-    // 播放失败清空 src，防止持续报错
-    audioContext.src = ''
-  })
 }
 
 function playNameAudio(lang: 'cn' | 'en') {
@@ -329,479 +345,4 @@ function nextCard() {
 }
 </script>
 
-<style scoped lang="scss">
-@import '@/styles/design-system.scss';
-
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 60vh;
-  gap: $spacing-4;
-  
-  .loading-icon {
-    font-size: 80rpx;
-    animation: rotate 2s linear infinite;
-  }
-  
-  .loading-text {
-    font-size: $font-size-md;
-    color: $color-text-secondary;
-  }
-}
-
-@keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.page {
-  min-height: 100vh;
-  background-color: $color-bg-primary;
-}
-
-// 导航栏
-.nav-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: $z-fixed;
-  background: $gradient-primary;
-}
-
-.nav-content {
-  height: 88rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 $spacing-3;
-}
-
-.nav-btn {
-  @include icon-button;
-  background-color: rgba(255, 255, 255, 0.25);
-  
-  &:active {
-    background-color: rgba(255, 255, 255, 0.35);
-    transform: scale(0.9);
-  }
-}
-
-.nav-icon {
-  font-size: 40rpx;
-  color: $color-text-inverse;
-}
-
-.favorite-icon {
-  font-size: 40rpx;
-}
-
-.nav-title {
-  font-size: $font-size-lg;
-  font-weight: $font-weight-bold;
-  color: $color-text-inverse;
-}
-
-.main-scroll {
-  height: calc(100vh - 140rpx);
-}
-
-// 主图区域
-.hero-section {
-  position: relative;
-  width: 100%;
-  height: 520rpx;
-}
-
-.hero-swiper {
-  width: 100%;
-  height: 100%;
-}
-
-.hero-image {
-  width: 100%;
-  height: 100%;
-}
-
-.hero-actions {
-  position: absolute;
-  bottom: $spacing-4;
-  right: $spacing-4;
-}
-
-.action-fab {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: $spacing-3;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: $radius-lg;
-  box-shadow: $shadow-lg;
-  transition: transform $duration-fast $ease-bounce;
-  
-  &:active {
-    transform: scale(0.9);
-  }
-}
-
-.fab-icon {
-  font-size: 48rpx;
-}
-
-.fab-label {
-  font-size: $font-size-xs;
-  color: $color-text-secondary;
-  margin-top: 4rpx;
-}
-
-.hero-badge {
-  position: absolute;
-  top: $spacing-4;
-  left: $spacing-4;
-  display: flex;
-  align-items: center;
-  gap: $spacing-1;
-  padding: $spacing-2 $spacing-3;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: $radius-full;
-}
-
-.badge-icon {
-  font-size: 28rpx;
-}
-
-.badge-text {
-  font-size: $font-size-sm;
-  color: $color-text-inverse;
-}
-
-// 名称区域
-.name-section {
-  padding: $spacing-5;
-  text-align: center;
-  background-color: $color-bg-card;
-  margin: -$spacing-5 $spacing-4 $spacing-4;
-  border-radius: $radius-xl;
-  box-shadow: $shadow-lg;
-  position: relative;
-  z-index: 1;
-}
-
-.name-main {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: $spacing-3;
-  margin-bottom: $spacing-2;
-}
-
-.name-cn {
-  font-size: $font-size-2xl;
-  font-weight: $font-weight-bold;
-  color: $color-text-primary;
-}
-
-.name-actions {
-  display: flex;
-  gap: $spacing-2;
-}
-
-.name-action {
-  width: 56rpx;
-  height: 56rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: $color-bg-secondary;
-  border-radius: $radius-full;
-  transition: transform $duration-fast $ease-bounce;
-  
-  &:active {
-    transform: scale(0.9);
-  }
-}
-
-.action-flag {
-  font-size: 32rpx;
-}
-
-.name-sub {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: $spacing-2;
-  margin-bottom: $spacing-2;
-}
-
-.name-en {
-  font-size: $font-size-lg;
-  color: $color-text-secondary;
-}
-
-.name-action-small {
-  width: 44rpx;
-  height: 44rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: $color-bg-secondary;
-  border-radius: $radius-full;
-  
-  .action-flag {
-    font-size: 24rpx;
-  }
-}
-
-.name-pinyin {
-  font-size: $font-size-base;
-  color: $color-text-tertiary;
-}
-
-// 快捷操作
-.quick-actions {
-  display: flex;
-  justify-content: center;
-  gap: $spacing-5;
-  padding: 0 $spacing-4;
-  margin-bottom: $spacing-5;
-}
-
-.quick-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: $spacing-2;
-  transition: transform $duration-fast $ease-bounce;
-  
-  &:active {
-    transform: scale(0.92);
-  }
-}
-
-.quick-icon-wrapper {
-  width: 100rpx;
-  height: 100rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: $radius-xl;
-  box-shadow: $shadow-md;
-  
-  &.cn {
-    background: linear-gradient(135deg, #FF6B6B, #FF8E8E);
-  }
-  
-  &.en {
-    background: linear-gradient(135deg, #60A5FA, #A78BFA);
-  }
-  
-  &.sound {
-    background: linear-gradient(135deg, #34D399, #4ECDC4);
-  }
-  
-  &.video {
-    background: linear-gradient(135deg, #FFA94D, #FFD93D);
-  }
-}
-
-.quick-icon {
-  font-size: 44rpx;
-}
-
-.quick-label {
-  font-size: $font-size-sm;
-  color: $color-text-secondary;
-  font-weight: $font-weight-medium;
-}
-
-// 知识卡片
-.content-section {
-  padding: 0 $spacing-4;
-}
-
-.knowledge-card {
-  background-color: $color-bg-card;
-  border-radius: $radius-lg;
-  padding: $spacing-5;
-  margin-bottom: $spacing-4;
-  box-shadow: $shadow-md;
-}
-
-.card-header {
-  margin-bottom: $spacing-3;
-}
-
-.card-title {
-  font-size: $font-size-md;
-  font-weight: $font-weight-bold;
-  color: $color-text-primary;
-}
-
-.card-content {
-  font-size: $font-size-base;
-  color: $color-text-secondary;
-  line-height: $line-height-relaxed;
-}
-
-.fun-card {
-  background: $gradient-secondary;
-  border-radius: $radius-xl;
-  padding: $spacing-5;
-  margin-bottom: $spacing-4;
-  box-shadow: 0 12rpx 32rpx rgba(78, 205, 196, 0.3);
-  position: relative;
-  overflow: hidden;
-}
-
-.fun-header {
-  display: flex;
-  align-items: center;
-  gap: $spacing-2;
-  margin-bottom: $spacing-3;
-}
-
-.fun-icon {
-  font-size: 40rpx;
-}
-
-.fun-title {
-  font-size: $font-size-md;
-  font-weight: $font-weight-bold;
-  color: $color-text-inverse;
-}
-
-.fun-content {
-  font-size: $font-size-base;
-  color: rgba(255, 255, 255, 0.95);
-  line-height: $line-height-relaxed;
-}
-
-.fun-decoration {
-  position: absolute;
-  top: -20rpx;
-  right: -20rpx;
-  display: flex;
-  gap: $spacing-2;
-  opacity: 0.3;
-}
-
-.decoration-emoji {
-  font-size: 80rpx;
-}
-
-// 相关推荐
-.related-section {
-  padding: $spacing-4;
-}
-
-.section-header {
-  margin-bottom: $spacing-4;
-}
-
-.section-title {
-  font-size: $font-size-lg;
-  font-weight: $font-weight-bold;
-  color: $color-text-primary;
-}
-
-.related-scroll {
-  margin: 0 #{-$spacing-4};
-  padding: 0 $spacing-4;
-}
-
-.related-list {
-  display: inline-flex;
-  gap: $spacing-4;
-  padding: $spacing-2 0;
-}
-
-.related-card {
-  width: 200rpx;
-  text-align: center;
-  transition: transform $duration-normal $ease-bounce;
-  
-  &:active {
-    transform: scale(0.95);
-  }
-}
-
-.related-image {
-  width: 200rpx;
-  height: 160rpx;
-  border-radius: $radius-lg;
-  box-shadow: $shadow-md;
-  margin-bottom: $spacing-2;
-}
-
-.related-name {
-  font-size: $font-size-sm;
-  color: $color-text-primary;
-  font-weight: $font-weight-medium;
-}
-
-.safe-bottom {
-  height: 180rpx;
-}
-
-// 底部操作栏
-.bottom-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 140rpx;
-  background-color: $color-bg-card;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 $spacing-4;
-  padding-bottom: env(safe-area-inset-bottom);
-  box-shadow: 0 -8rpx 32rpx rgba(0, 0, 0, 0.06);
-}
-
-.bar-left {
-  display: flex;
-  gap: $spacing-5;
-}
-
-.bar-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4rpx;
-  padding: $spacing-2;
-  transition: transform $duration-fast $ease-bounce;
-  
-  &:active {
-    transform: scale(0.9);
-  }
-}
-
-.bar-icon {
-  font-size: 44rpx;
-}
-
-.bar-text {
-  font-size: $font-size-xs;
-  color: $color-text-tertiary;
-}
-
-.next-btn {
-  @include button-primary;
-  padding: $spacing-3 $spacing-8;
-}
-
-.next-text {
-  font-size: $font-size-base;
-  color: $color-text-inverse;
-  font-weight: $font-weight-semibold;
-}
-
-.next-arrow {
-  font-size: $font-size-base;
-  color: $color-text-inverse;
-  margin-left: $spacing-2;
-}
-</style>
+<style src="./detail.scss" scoped lang="scss"></style>

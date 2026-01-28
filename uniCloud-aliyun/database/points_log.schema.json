@@ -19,7 +19,7 @@
     "type": {
       "bsonType": "string",
       "description": "类型",
-      "enum": ["invite", "ad_reward", "sign_in", "consume", "refund", "gift"]
+      "enum": ["invite", "ad_reward", "sign_in", "consume", "refund", "gift", "admin_add", "admin_deduct"]
     },
     "amount": {
       "bsonType": "int",
@@ -32,6 +32,10 @@
     "description": {
       "bsonType": "string",
       "description": "描述"
+    },
+    "operator_id": {
+      "bsonType": "string",
+      "description": "操作管理员ID"
     },
     "related_id": {
       "bsonType": "string",

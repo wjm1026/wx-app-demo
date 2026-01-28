@@ -1,8 +1,11 @@
-export function showToast(title: string, icon: 'success' | 'error' | 'none' = 'none') {
+export type ToastIcon = 'success' | 'error' | 'none' | 'loading'
+
+export function showToast(title: string, icon: ToastIcon = 'none', duration = 2000) {
+  const mappedIcon: UniApp.ShowToastOptions['icon'] = icon === 'error' ? 'none' : icon
   uni.showToast({
     title,
-    icon,
-    duration: 2000
+    icon: mappedIcon,
+    duration
   })
 }
 

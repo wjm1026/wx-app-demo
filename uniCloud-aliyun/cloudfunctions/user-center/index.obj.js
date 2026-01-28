@@ -224,18 +224,22 @@ module.exports = {
 
     const { page = 1, pageSize = 20 } = params || {}
 
-    const res = await pointsLogCollection
-      .where({ user_id: uid })
-      .orderBy('create_time', 'desc')
-      .skip((page - 1) * pageSize)
-      .limit(pageSize)
-      .get()
+    const [res, countRes] = await Promise.all([
+      pointsLogCollection
+        .where({ user_id: uid })
+        .orderBy('create_time', 'desc')
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .get(),
+      pointsLogCollection.where({ user_id: uid }).count()
+    ])
 
     return {
       code: 0,
       msg: 'success',
       data: {
         list: res.data,
+        total: countRes.total,
         page,
         pageSize
       }

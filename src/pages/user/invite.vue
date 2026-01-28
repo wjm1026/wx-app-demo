@@ -62,7 +62,7 @@
           <image class="invited-avatar" :src="item.avatar || defaultAvatar" mode="aspectFill" />
           <view class="invited-info">
             <text class="invited-name">{{ item.nickname || '微信用户' }}</text>
-            <text class="invited-time">{{ formatDate(item.created_at || item.time) }}</text>
+            <text class="invited-time">{{ formatDate(item.create_time || item.created_at || item.time) }}</text>
           </view>
           <text class="invited-reward">+100积分</text>
         </view>
@@ -105,7 +105,7 @@ onShow(async () => {
   if (!store.isLoggedIn) {
     showToast('请先登录', 'none')
     setTimeout(() => {
-      uni.navigateTo({ url: '/pages/login/login' })
+      uni.switchTab({ url: '/pages/user/user' })
     }, 1500)
     return
   }
@@ -129,7 +129,7 @@ async function loadInviteData() {
           inviteCode.value = res.data.invite_code || res.data.inviteCode
         }
         
-        const list = res.data.list || res.data.invitedList || res.data.invited_users || []
+        const list = res.data.list || res.data.invitedList || res.data.invitedUsers || res.data.invited_users || []
         invitedList.value = Array.isArray(list) ? list : []
       }
     } else {

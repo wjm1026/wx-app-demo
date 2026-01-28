@@ -194,9 +194,11 @@ function getPointTypeName(type: string): string {
   const map: Record<string, string> = {
     'sign_in': '每日签到',
     'ad': '广告激励',
+    'ad_reward': '广告激励',
     'invite': '邀请好友',
     'gift': '系统赠送',
     'consume': '积分消费',
+    'refund': '积分退款',
     'admin_add': '管理员发放',
     'admin_deduct': '管理员扣除'
   }
@@ -207,9 +209,11 @@ function getPointTypeIcon(type: string): string {
   const map: Record<string, string> = {
     'sign_in': '📅',
     'ad': '🎬',
+    'ad_reward': '🎬',
     'invite': '🤝',
     'gift': '🎁',
     'consume': '🛍️',
+    'refund': '↩️',
     'admin_add': '👨‍💼',
     'admin_deduct': '📉'
   }
@@ -218,8 +222,8 @@ function getPointTypeIcon(type: string): string {
 
 function getPointTypeColor(type: string): string {
   if (['consume', 'admin_deduct'].includes(type)) return 'red'
-  if (['ad', 'invite'].includes(type)) return 'purple'
-  if (['sign_in', 'gift'].includes(type)) return 'orange'
+  if (['ad', 'ad_reward', 'invite'].includes(type)) return 'purple'
+  if (['sign_in', 'gift', 'refund'].includes(type)) return 'orange'
   return 'blue'
 }
 

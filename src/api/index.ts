@@ -16,6 +16,9 @@ export interface UserInfo {
   invite_code: string
   invite_count: number
   is_vip: boolean
+  role?: 'user' | 'admin'
+  status?: number
+  create_time?: number
 }
 
 export interface Category {
@@ -23,7 +26,7 @@ export interface Category {
   name: string
   icon: string
   cover: string
-  card_count: number
+  card_count?: number
   gradient?: string
 }
 
@@ -49,6 +52,19 @@ export interface Card {
   is_hot: boolean
   category?: Category
   isFavorited?: boolean
+  create_time?: number
+  update_time?: number
+  status?: number
+}
+
+export interface PointsLogItem {
+  _id: string
+  type: string
+  amount: number
+  balance?: number
+  description?: string
+  related_id?: string
+  create_time: number
 }
 
 export const userApi = {
@@ -61,7 +77,12 @@ export const userApi = {
   getInviteInfo: () =>
     getService('user-center').getInviteInfo() as Promise<ApiResponse>,
   getPointsLog: (params?: { page?: number; pageSize?: number }) =>
-    getService('user-center').getPointsLog(params) as Promise<ApiResponse>
+    getService('user-center').getPointsLog(params) as Promise<ApiResponse<{
+      list: PointsLogItem[]
+      total: number
+      page: number
+      pageSize: number
+    }>>
 }
 
 export const cardApi = {
@@ -92,9 +113,16 @@ export const cardApi = {
   toggleFavorite: (cardId: string) =>
     getService('card-service').toggleFavorite({ cardId }) as Promise<ApiResponse<{ isFavorited: boolean }>>,
   getFavorites: (params?: { page?: number; pageSize?: number }) =>
-    getService('card-service').getFavorites(params) as Promise<ApiResponse>,
+    getService('card-service').getFavorites(params) as Promise<ApiResponse<{
+      list: Card[]
+      total: number
+      page: number
+      pageSize: number
+    }>>,
   getRelatedCards: (params: { cardId: string; categoryId: string; limit?: number }) =>
-    getService('card-service').getRelatedCards(params) as Promise<ApiResponse<Card[]>>
+    getService('card-service').getRelatedCards(params) as Promise<ApiResponse<Card[]>>,
+  initData: () =>
+    getService('card-service').initData() as Promise<ApiResponse>
 }
 
 export const pointsApi = {

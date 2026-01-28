@@ -1,0 +1,89 @@
+.tabbar-wrapper {
+  position: relative;
+  z-index: 999;
+}
+
+// 占位符：确保页面底部内容不被 TabBar 遮挡
+.tabbar-placeholder {
+  height: calc(128rpx + env(safe-area-inset-bottom) + 20rpx);
+  width: 100%;
+}
+
+.tabbar-pill {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: 0 32rpx;
+  margin-bottom: calc(env(safe-area-inset-bottom) + 10rpx); /* 使用 margin-bottom 悬浮 */
+  height: 128rpx;
+  background: rgba(255, 255, 255, 0.95); /* 增加不透明度 */
+  backdrop-filter: blur(20px);
+  border-radius: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  
+  // Claymorphism Style
+  box-shadow: 
+    0 20rpx 40rpx rgba(0, 0, 0, 0.1),
+    inset 0 4rpx 4rpx rgba(255, 255, 255, 1),
+    inset 0 -4rpx 4rpx rgba(0, 0, 0, 0.05);
+    
+  border: 4rpx solid rgba(255, 255, 255, 0.9); /* 加粗边框 */
+  
+  /* 修复抖动：强制 GPU 加速 */
+  transform: translateZ(0);
+}
+
+.tab-item {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.icon-container {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 36rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  margin-bottom: 4rpx;
+  
+  &.is-active {
+    background: #FFF0F0;
+    transform: translateY(-8rpx);
+    box-shadow: 
+      0 12rpx 24rpx rgba(255, 107, 107, 0.25),
+      inset 0 2rpx 4rpx rgba(255, 255, 255, 1);
+  }
+}
+
+.tab-icon {
+  width: 56rpx;  /* 加大图标尺寸 */
+  height: 56rpx;
+  transition: all 0.3s ease;
+}
+
+.tab-text {
+  font-size: 22rpx;
+  color: #9493B8;
+  font-weight: 600;
+  opacity: 0.8;
+  transition: all 0.3s;
+  position: absolute;
+  bottom: 14rpx;
+  
+  &.is-active-text {
+    color: #FF6B6B;
+    opacity: 1;
+    font-weight: 700;
+    transform: scale(1.05);
+  }
+}

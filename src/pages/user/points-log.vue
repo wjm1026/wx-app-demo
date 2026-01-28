@@ -25,17 +25,17 @@
           :key="index" 
           class="log-item"
         >
-          <view class="item-icon-wrapper" :class="item.points > 0 ? 'earn' : 'consume'">
-            <text class="item-icon">{{ item.points > 0 ? '🎁' : '🛍️' }}</text>
+          <view class="item-icon-wrapper" :class="item.amount > 0 ? 'earn' : 'consume'">
+            <text class="item-icon">{{ item.amount > 0 ? '🎁' : '🛍️' }}</text>
           </view>
           
           <view class="item-content">
-            <text class="item-title">{{ item.description || (item.points > 0 ? '获取积分' : '使用积分') }}</text>
-            <text class="item-time">{{ formatDate(item.create_time) }}</text>
-          </view>
-          
-          <view class="item-amount" :class="item.points > 0 ? 'plus' : 'minus'">
-            {{ item.points > 0 ? '+' : '' }}{{ item.points }}
+          <text class="item-title">{{ item.description || (item.amount > 0 ? '获取积分' : '使用积分') }}</text>
+          <text class="item-time">{{ formatDate(item.create_time) }}</text>
+        </view>
+        
+          <view class="item-amount" :class="item.amount > 0 ? 'plus' : 'minus'">
+            {{ item.amount > 0 ? '+' : '' }}{{ item.amount }}
           </view>
         </view>
       </view>
@@ -58,13 +58,13 @@
 import { ref, onMounted } from 'vue'
 import { onShow, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app'
 import { showToast } from '@/utils'
-import { userApi } from '@/api'
+import { userApi, type PointsLogItem } from '@/api'
 import { useStore } from '@/store'
 
 const store = useStore()
 
 // State
-const logs = ref<any[]>([])
+const logs = ref<PointsLogItem[]>([])
 const page = ref(1)
 const pageSize = 20
 const total = ref(0)
@@ -127,11 +127,16 @@ async function loadData(reset = false) {
         logs.value = [...logs.value, ...list]
       }
       
-      total.value = res.data.total || 0
+      const totalCount = res.data.total || 0
+      total.value = totalCount
       
-      if (list.length < pageSize) {
-        finished.value = true
+      if (totalCount > 0) {
+        finished.value = logs.value.length >= totalCount
       } else {
+        finished.value = list.length < pageSize
+      }
+      
+      if (!finished.value) {
         page.value++
       }
     } else {

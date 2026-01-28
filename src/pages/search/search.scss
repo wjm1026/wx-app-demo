@@ -1,0 +1,435 @@
+@import '@/styles/design-system.scss';
+
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-primary;
+}
+
+// 搜索头部
+.search-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-3;
+  padding: $spacing-4;
+  background-color: $color-bg-card;
+  box-shadow: $shadow-sm;
+  position: sticky;
+  top: 0;
+  z-index: $z-sticky;
+}
+
+.search-bar {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  height: 88rpx;
+  background-color: $color-bg-secondary;
+  border-radius: $radius-full;
+  padding: 0 $spacing-4;
+  transition: box-shadow $duration-fast $ease-out;
+  
+  &:focus-within {
+    box-shadow: 0 0 0 4rpx rgba($color-primary, 0.15);
+  }
+}
+
+.search-icon {
+  font-size: 36rpx;
+  margin-right: $spacing-2;
+}
+
+.search-input {
+  flex: 1;
+  height: 100%;
+  font-size: $font-size-base;
+  color: $color-text-primary;
+}
+
+.placeholder {
+  color: $color-text-placeholder;
+}
+
+.clear-btn {
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: $color-text-tertiary;
+  border-radius: $radius-full;
+  transition: transform $duration-fast $ease-bounce;
+  
+  &:active {
+    transform: scale(0.9);
+  }
+}
+
+.clear-icon {
+  font-size: 24rpx;
+  color: $color-text-inverse;
+}
+
+.cancel-btn {
+  padding: $spacing-2 $spacing-3;
+  transition: opacity $duration-fast $ease-out;
+  
+  &:active {
+    opacity: 0.7;
+  }
+}
+
+.cancel-text {
+  font-size: $font-size-base;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+}
+
+// 搜索建议
+.suggestions {
+  background-color: $color-bg-card;
+  border-radius: 0 0 $radius-lg $radius-lg;
+  margin: 0 $spacing-4 $spacing-4;
+  box-shadow: $shadow-md;
+  overflow: hidden;
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  padding: $spacing-4;
+  border-bottom: 2rpx solid $color-border;
+  transition: background-color $duration-fast $ease-out;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+  
+  &:active {
+    background-color: $color-bg-secondary;
+  }
+}
+
+.suggestion-icon {
+  font-size: 28rpx;
+  margin-right: $spacing-3;
+  opacity: 0.5;
+}
+
+.suggestion-text {
+  flex: 1;
+  font-size: $font-size-base;
+  color: $color-text-primary;
+}
+
+.suggestion-arrow {
+  font-size: 28rpx;
+  color: $color-text-tertiary;
+}
+
+// 热门搜索
+.hot-section {
+  padding: $spacing-4;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-4;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+}
+
+.section-icon {
+  font-size: 36rpx;
+}
+
+.section-title {
+  font-size: $font-size-md;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.hot-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-3;
+}
+
+.hot-tag {
+  display: flex;
+  align-items: center;
+  gap: $spacing-1;
+  padding: $spacing-2 $spacing-4;
+  background-color: $color-bg-card;
+  border-radius: $radius-full;
+  box-shadow: $shadow-sm;
+  transition: transform $duration-fast $ease-bounce;
+  
+  &:active {
+    transform: scale(0.95);
+  }
+  
+  &.color-0 { background: linear-gradient(135deg, rgba(255, 107, 107, 0.15), rgba(255, 107, 107, 0.05)); }
+  &.color-1 { background: linear-gradient(135deg, rgba(78, 205, 196, 0.15), rgba(78, 205, 196, 0.05)); }
+  &.color-2 { background: linear-gradient(135deg, rgba(167, 139, 250, 0.15), rgba(167, 139, 250, 0.05)); }
+  &.color-3 { background: linear-gradient(135deg, rgba(255, 169, 77, 0.15), rgba(255, 169, 77, 0.05)); }
+  &.color-4 { background: linear-gradient(135deg, rgba(96, 165, 250, 0.15), rgba(96, 165, 250, 0.05)); }
+}
+
+.tag-rank {
+  width: 36rpx;
+  height: 36rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $gradient-primary;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-bold;
+  color: $color-text-inverse;
+}
+
+.tag-text {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+}
+
+// 搜索历史
+.history-section {
+  margin-top: $spacing-6;
+}
+
+.clear-history {
+  padding: $spacing-1 $spacing-3;
+  
+  &:active {
+    opacity: 0.7;
+  }
+}
+
+.clear-text {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.history-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-2;
+}
+
+.history-tag {
+  padding: $spacing-2 $spacing-4;
+  background-color: $color-bg-card;
+  border-radius: $radius-full;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  box-shadow: $shadow-sm;
+  transition: transform $duration-fast $ease-bounce;
+  
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+// 空状态
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $spacing-16 $spacing-4;
+}
+
+.empty-illustration {
+  position: relative;
+  margin-bottom: $spacing-5;
+}
+
+.empty-icon {
+  font-size: 120rpx;
+}
+
+.empty-question {
+  position: absolute;
+  top: -20rpx;
+  right: -20rpx;
+  font-size: 48rpx;
+  animation: float 2s ease-in-out infinite;
+}
+
+.empty-title {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-2;
+}
+
+.empty-subtitle {
+  font-size: $font-size-base;
+  color: $color-text-tertiary;
+  margin-bottom: $spacing-6;
+}
+
+.empty-suggestions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-3;
+}
+
+.suggestion-label {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.suggestion-tags {
+  display: flex;
+  gap: $spacing-3;
+}
+
+.suggestion-tag {
+  padding: $spacing-2 $spacing-5;
+  background: $gradient-primary;
+  border-radius: $radius-full;
+  font-size: $font-size-sm;
+  color: $color-text-inverse;
+  font-weight: $font-weight-medium;
+  box-shadow: $shadow-colored;
+  transition: transform $duration-fast $ease-bounce;
+  
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+// 搜索结果
+.results-scroll {
+  height: calc(100vh - 140rpx);
+}
+
+.results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-4;
+}
+
+.results-count {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.filter-btn {
+  display: flex;
+  align-items: center;
+  gap: $spacing-1;
+  padding: $spacing-2 $spacing-3;
+  background-color: $color-bg-card;
+  border-radius: $radius-full;
+  box-shadow: $shadow-sm;
+  
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.filter-icon {
+  font-size: 24rpx;
+}
+
+.filter-text {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.results-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-4;
+  padding: 0 $spacing-4;
+}
+
+.result-card {
+  width: calc(50% - #{$spacing-4 * 0.5});
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  overflow: hidden;
+  box-shadow: $shadow-md;
+  transition: transform $duration-normal $ease-bounce;
+  
+  &:active {
+    transform: scale(0.97);
+  }
+  
+  @for $i from 0 through 5 {
+    &.delay-#{$i} {
+      animation: bounce-in 0.4s $ease-bounce backwards;
+      animation-delay: #{$i * 0.05}s;
+    }
+  }
+}
+
+.card-image-wrapper {
+  position: relative;
+  width: 100%;
+  height: 240rpx;
+}
+
+.card-image {
+  width: 100%;
+  height: 100%;
+}
+
+.card-category {
+  position: absolute;
+  top: $spacing-2;
+  left: $spacing-2;
+  padding: 4rpx 16rpx;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  color: $color-text-inverse;
+  font-weight: $font-weight-medium;
+}
+
+.card-content {
+  padding: $spacing-3;
+}
+
+.card-name {
+  display: block;
+  font-size: $font-size-md;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-1;
+}
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+}
+
+.meta-icon {
+  font-size: 24rpx;
+}
+
+.meta-value {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.results-footer {
+  padding: $spacing-8;
+  text-align: center;
+}
+
+.footer-text {
+  font-size: $font-size-sm;
+  color: $color-text-placeholder;
+}

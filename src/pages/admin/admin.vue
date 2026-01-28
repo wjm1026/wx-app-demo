@@ -106,12 +106,8 @@ import { ref, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getStatusBarHeight, navigateTo, showToast } from '@/utils'
 import { adminApi, cardApi } from '@/api'
-import { useStore } from '@/store'
-
-const store = useStore()
 const statusBarHeight = ref(getStatusBarHeight())
-const isAdmin = ref(true)
-const isLoading = ref(false)
+const isAdmin = ref(false)
 
 const stats = ref({
   userCount: 0,
@@ -134,7 +130,7 @@ onShow(() => {
 async function checkAdmin() {
   try {
     const res = await adminApi.checkAdmin()
-    if (res.code === 0) {
+    if (res.code === 0 && res.data?.isAdmin) {
       isAdmin.value = true
       loadStats()
     } else {
@@ -171,7 +167,7 @@ async function initData() {
       if (res.confirm) {
         showToast('初始化中...', 'loading')
         try {
-          const result = await cardApi.getHomeData()
+          await cardApi.initData()
           uni.hideToast()
           showToast('初始化完成', 'success')
           loadStats()

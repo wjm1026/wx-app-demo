@@ -65,6 +65,18 @@
       "description": "是否VIP",
       "defaultValue": false
     },
+    "role": {
+      "bsonType": "string",
+      "description": "角色",
+      "enum": ["user", "admin"],
+      "defaultValue": "user"
+    },
+    "status": {
+      "bsonType": "int",
+      "description": "状态 1正常 2封禁",
+      "enum": [1, 2],
+      "defaultValue": 1
+    },
     "vip_expire_time": {
       "bsonType": "timestamp",
       "description": "VIP过期时间"
