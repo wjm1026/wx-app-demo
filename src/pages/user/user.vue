@@ -79,93 +79,96 @@
       </view>
     </view>
 
-    <!-- 菜单列表 -->
-    <view class="menu-section">
-      <view class="menu-group">
-        <view class="menu-item" @click="goFavorites">
-          <view class="menu-icon-wrapper favorites">
-            <text class="menu-icon">❤️</text>
+    <scroll-view scroll-y class="content-scroll" :style="contentScrollStyle">
+      <!-- 菜单列表 -->
+      <view class="menu-section">
+        <view class="menu-group">
+          <view class="menu-item" @click="goFavorites">
+            <view class="menu-icon-wrapper favorites">
+              <text class="menu-icon">❤️</text>
+            </view>
+            <text class="menu-title">我的收藏</text>
+            <text class="menu-arrow">→</text>
           </view>
-          <text class="menu-title">我的收藏</text>
-          <text class="menu-arrow">→</text>
+          <view class="menu-item" @click="goAchievements">
+            <view class="menu-icon-wrapper achievements">
+              <text class="menu-icon">🏆</text>
+            </view>
+            <text class="menu-title">学习成就</text>
+            <text class="menu-arrow">→</text>
+          </view>
+          <view class="menu-item" @click="goInvite">
+            <view class="menu-icon-wrapper invite">
+              <text class="menu-icon">🎁</text>
+            </view>
+            <text class="menu-title">邀请好友</text>
+            <view class="menu-badge">+100积分</view>
+            <text class="menu-arrow">→</text>
+          </view>
+          <view class="menu-item" @click="goPointsLog">
+            <view class="menu-icon-wrapper points">
+              <text class="menu-icon">📊</text>
+            </view>
+            <text class="menu-title">积分明细</text>
+            <text class="menu-arrow">→</text>
+          </view>
         </view>
-        <view class="menu-item" @click="goAchievements">
-          <view class="menu-icon-wrapper achievements">
-            <text class="menu-icon">🏆</text>
+
+        <view class="menu-group">
+          <view class="menu-item" @click="goFeedback">
+            <view class="menu-icon-wrapper feedback">
+              <text class="menu-icon">💬</text>
+            </view>
+            <text class="menu-title">意见反馈</text>
+            <text class="menu-arrow">→</text>
           </view>
-          <text class="menu-title">学习成就</text>
-          <text class="menu-arrow">→</text>
+          <view class="menu-item" @click="goAbout">
+            <view class="menu-icon-wrapper about">
+              <text class="menu-icon">ℹ️</text>
+            </view>
+            <text class="menu-title">关于我们</text>
+            <text class="menu-arrow">→</text>
+          </view>
+          <button class="menu-item share-btn" open-type="share">
+            <view class="menu-icon-wrapper share">
+              <text class="menu-icon">📤</text>
+            </view>
+            <text class="menu-title">分享给朋友</text>
+            <text class="menu-arrow">→</text>
+          </button>
         </view>
-        <view class="menu-item" @click="goInvite">
-          <view class="menu-icon-wrapper invite">
-            <text class="menu-icon">🎁</text>
+
+        <view v-if="store.isAdmin" class="menu-group">
+          <view class="menu-item" @click="goAdmin">
+            <view class="menu-icon-wrapper admin">
+              <text class="menu-icon">⚙️</text>
+            </view>
+            <text class="menu-title">管理后台</text>
+            <view class="menu-badge admin-badge">管理员</view>
+            <text class="menu-arrow">→</text>
           </view>
-          <text class="menu-title">邀请好友</text>
-          <view class="menu-badge">+100积分</view>
-          <text class="menu-arrow">→</text>
-        </view>
-        <view class="menu-item" @click="goPointsLog">
-          <view class="menu-icon-wrapper points">
-            <text class="menu-icon">📊</text>
-          </view>
-          <text class="menu-title">积分明细</text>
-          <text class="menu-arrow">→</text>
         </view>
       </view>
 
-      <view class="menu-group">
-        <view class="menu-item" @click="goFeedback">
-          <view class="menu-icon-wrapper feedback">
-            <text class="menu-icon">💬</text>
-          </view>
-          <text class="menu-title">意见反馈</text>
-          <text class="menu-arrow">→</text>
+      <!-- 登录按钮 -->
+      <view v-if="!isLoggedIn" class="login-section">
+        <view class="login-btn" @click="doLogin">
+          <text class="login-icon">💚</text>
+          <text class="login-text">微信一键登录</text>
         </view>
-        <view class="menu-item" @click="goAbout">
-          <view class="menu-icon-wrapper about">
-            <text class="menu-icon">ℹ️</text>
-          </view>
-          <text class="menu-title">关于我们</text>
-          <text class="menu-arrow">→</text>
-        </view>
-        <button class="menu-item share-btn" open-type="share">
-          <view class="menu-icon-wrapper share">
-            <text class="menu-icon">📤</text>
-          </view>
-          <text class="menu-title">分享给朋友</text>
-          <text class="menu-arrow">→</text>
-        </button>
+        <text class="login-tip">登录后可保存学习进度和收藏</text>
       </view>
 
-      <view v-if="store.isAdmin" class="menu-group">
-        <view class="menu-item" @click="goAdmin">
-          <view class="menu-icon-wrapper admin">
-            <text class="menu-icon">⚙️</text>
-          </view>
-          <text class="menu-title">管理后台</text>
-          <view class="menu-badge admin-badge">管理员</view>
-          <text class="menu-arrow">→</text>
-        </view>
-      </view>
-    </view>
+      <!-- 底部安全区 -->
+      <view class="safe-bottom"></view>
+    </scroll-view>
 
-    <!-- 登录按钮 -->
-    <view v-if="!isLoggedIn" class="login-section">
-      <view class="login-btn" @click="doLogin">
-        <text class="login-icon">💚</text>
-        <text class="login-text">微信一键登录</text>
-      </view>
-      <text class="login-tip">登录后可保存学习进度和收藏</text>
-    </view>
-
-    <!-- 底部安全区 -->
-    <view class="safe-bottom"></view>
     <CustomTabbar :current="2" />
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getStatusBarHeight, navigateTo, showToast } from '@/utils'
 import { userApi, pointsApi, type UserInfo } from '@/api'
@@ -176,6 +179,7 @@ const store = useStore()
 const statusBarHeight = ref(getStatusBarHeight())
 const hasSigned = ref(false)
 const isLoading = ref(false)
+const headerHeight = ref(0)
 
 const defaultAvatar = 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
 
@@ -193,8 +197,30 @@ const userInfo = computed(() => ({
   isVip: store.userInfo?.is_vip || false
 }))
 
+const contentScrollStyle = computed(() => {
+  const top = headerHeight.value
+  return {
+    marginTop: `${top}px`,
+    height: `calc(100vh - ${top}px)`
+  }
+})
+
+function updateHeaderHeight() {
+  nextTick(() => {
+    uni.createSelectorQuery()
+      .select('.header')
+      .boundingClientRect((rect: any) => {
+        if (rect?.height) {
+          headerHeight.value = rect.height
+        }
+      })
+      .exec()
+  })
+}
+
 // 初始化
 onMounted(() => {
+  updateHeaderHeight()
   if (isLoggedIn.value) {
     loadUserInfo()
     checkSignInStatus()
@@ -202,10 +228,15 @@ onMounted(() => {
 })
 
 onShow(() => {
+  updateHeaderHeight()
   if (isLoggedIn.value) {
     loadUserInfo()
     checkSignInStatus()
   }
+})
+
+watch(isLoggedIn, () => {
+  updateHeaderHeight()
 })
 
 // 加载用户信息
@@ -445,14 +476,18 @@ function goPointsLog() {
 }
 
 function goFeedback() {
-  uni.openCustomerServiceChat?.({
+  if (!uni.openCustomerServiceChat) {
+    showToast('客服功能开发中')
+    return
+  }
+  uni.openCustomerServiceChat({
     extInfo: { url: '' },
     corpId: '',
     success() {},
     fail() {
       showToast('客服功能开发中')
     }
-  }) || showToast('客服功能开发中')
+  })
 }
 
 function goAbout() {

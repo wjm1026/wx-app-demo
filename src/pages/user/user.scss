@@ -1,19 +1,28 @@
 @import '@/styles/design-system.scss';
 
 .page {
-  min-height: 100vh;
+  height: 100vh;
   background-color: $color-bg-primary;
+  overflow: hidden;
 }
 
 // 头部区域
 .header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: $z-sticky;
   background: linear-gradient(150deg, #ffffff 0%, #eef4ff 100%);
   padding-bottom: $spacing-5;
   border-radius: 0 0 $radius-2xl $radius-2xl;
   border-bottom: 2rpx solid rgba(78, 104, 142, 0.08);
   box-shadow: 0 10rpx 28rpx rgba(15, 23, 42, 0.08);
-  position: relative;
   overflow: hidden;
+}
+
+.content-scroll {
+  width: 100%;
 }
 
 .header-decoration {
@@ -237,6 +246,7 @@
 // 菜单区域
 .menu-section {
   padding: $spacing-4;
+  padding-top: $spacing-5;
 }
 
 .menu-group {
@@ -352,5 +362,5 @@
 }
 
 .safe-bottom {
-  height: 120rpx;
+  height: 160rpx;
 }
