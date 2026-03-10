@@ -194,15 +194,13 @@ import { onLoad } from "@dcloudio/uni-app";
 import { ref, computed } from "vue";
 import {
   formatNumber,
-  getStatusBarHeight,
-  getNavBarHeight,
   navigateTo,
 } from "@/utils";
 import CustomTabbar from "@/components/CustomTabbar/CustomTabbar.vue";
 import { cardApi, type Category, type Card } from "@/api";
+import { usePageLayout } from "@/composables/usePageLayout";
 
-const statusBarHeight = ref(getStatusBarHeight());
-const navBarHeight = ref(getNavBarHeight());
+const { statusBarHeight, navBarHeight } = usePageLayout();
 
 const categories = ref<Category[]>([]);
 const hotCards = ref<Card[]>([]);

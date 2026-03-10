@@ -55,31 +55,43 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { onShow, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app'
 import { showToast } from '@/utils'
 import { userApi, type PointsLogItem } from '@/api'
-import { useStore } from '@/store'
+import { useLoginGuard } from '@/composables/useLoginGuard'
+import { usePagedList } from '@/composables/usePagedList'
 
-const store = useStore()
-
-// State
-const logs = ref<PointsLogItem[]>([])
-const page = ref(1)
-const pageSize = 20
-const total = ref(0)
-const loading = ref(false)
-const finished = ref(false)
+const { store, ensureLoggedIn } = useLoginGuard()
+const {
+  list: logs,
+  loading,
+  hasMore,
+  refresh,
+  loadMore,
+} = usePagedList<PointsLogItem>({
+  pageSize: 20,
+  fetcher: ({ page, pageSize }) => userApi.getPointsLog({ page, pageSize }),
+  onError: (message) => showToast(message || '获取记录失败')
+})
+const finished = computed(() => !hasMore.value)
 
 // Lifecycle
 onMounted(() => {
-  loadData(true)
+  if (!ensureLoggedIn()) {
+    return
+  }
+  void refresh()
 })
 
 onShow(() => {
+  if (!ensureLoggedIn()) {
+    return
+  }
+
   // Refresh points balance
   if (store.userInfo) {
-    userApi.getUserInfo().then(res => {
+    void userApi.getUserInfo().then((res) => {
       if (res.code === 0 && res.data) {
         store.setUserInfo(res.data)
       }
@@ -87,68 +99,21 @@ onShow(() => {
   }
 })
 
-onPullDownRefresh(() => {
-  loadData(true)
+onPullDownRefresh(async () => {
+  if (!ensureLoggedIn()) {
+    uni.stopPullDownRefresh()
+    return
+  }
+
+  await refresh()
+  uni.stopPullDownRefresh()
 })
 
 onReachBottom(() => {
   if (!finished.value && !loading.value) {
-    loadData(false)
+    void loadMore()
   }
 })
-
-// Methods
-async function loadData(reset = false) {
-  if (loading.value) return
-  
-  if (reset) {
-    page.value = 1
-    finished.value = false
-  }
-  
-  loading.value = true
-  
-  try {
-    const res = await userApi.getPointsLog({
-      page: page.value,
-      pageSize: pageSize
-    })
-    
-    if (reset) {
-      uni.stopPullDownRefresh()
-    }
-    
-    if (res.code === 0 && res.data) {
-      const list = res.data.list || []
-      
-      if (reset) {
-        logs.value = list
-      } else {
-        logs.value = [...logs.value, ...list]
-      }
-      
-      const totalCount = res.data.total || 0
-      total.value = totalCount
-      
-      if (totalCount > 0) {
-        finished.value = logs.value.length >= totalCount
-      } else {
-        finished.value = list.length < pageSize
-      }
-      
-      if (!finished.value) {
-        page.value++
-      }
-    } else {
-      showToast(res.msg || '获取记录失败')
-    }
-  } catch (e) {
-    console.error('Fetch logs error:', e)
-    showToast('网络请求失败')
-  } finally {
-    loading.value = false
-  }
-}
 
 function formatDate(timestamp: number | string): string {
   if (!timestamp) return ''

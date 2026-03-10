@@ -96,109 +96,79 @@
 import { ref } from 'vue'
 import { onShow, onReachBottom, onPullDownRefresh } from '@dcloudio/uni-app'
 import { navigateTo, showToast } from '@/utils'
-import { adminApi } from '@/api'
+import { adminApi, type AdminUserListItem } from '@/api'
+import { usePagedList } from '@/composables/usePagedList'
 
-// State
 const keyword = ref('')
-const currentTab = ref(0) // 0: All, 1: Normal, 2: Banned
-const userList = ref<any[]>([])
-const page = ref(1)
-const pageSize = 10
-const total = ref(0)
-const loading = ref(false)
-const hasMore = ref(true)
+const currentTab = ref(0)
 
-// Lifecycle
-onShow(() => {
-  resetAndLoad()
+interface UserListQuery {
+  keyword: string
+  status?: number
+}
+
+const {
+  list: userList,
+  loading,
+  hasMore,
+  refresh,
+  loadMore,
+} = usePagedList<AdminUserListItem, UserListQuery>({
+  pageSize: 10,
+  initialQuery: {
+    keyword: ''
+  },
+  fetcher: (params) => adminApi.getUserList(params),
+  onError: (message) => showToast(message || '加载失败')
 })
 
-onPullDownRefresh(() => {
-  resetAndLoad().then(() => {
-    uni.stopPullDownRefresh()
-  })
+onShow(() => {
+  void refresh(buildQuery())
+})
+
+onPullDownRefresh(async () => {
+  await refresh(buildQuery())
+  uni.stopPullDownRefresh()
 })
 
 onReachBottom(() => {
   if (hasMore.value && !loading.value) {
-    loadData()
+    void loadMore()
   }
 })
 
-// Methods
+function buildQuery(): UserListQuery {
+  const query: UserListQuery = {
+    keyword: keyword.value.trim()
+  }
+
+  if (currentTab.value !== 0) {
+    query.status = currentTab.value
+  }
+
+  return query
+}
+
 function switchTab(tab: number) {
   if (currentTab.value === tab) return
   currentTab.value = tab
-  resetAndLoad()
+  void refresh(buildQuery())
 }
 
 function onSearch() {
-  resetAndLoad()
+  void refresh(buildQuery())
 }
 
 function clearSearch() {
   keyword.value = ''
-  resetAndLoad()
-}
-
-async function resetAndLoad() {
-  page.value = 1
-  // Keep list if pulling down to prevent flicker? No, clear for search/tab change.
-  // For pull refresh, usually we replace.
-  // Let's just reset here.
-  userList.value = []
-  hasMore.value = true
-  await loadData()
-}
-
-async function loadData() {
-  if (loading.value && page.value > 1) return // Allow reloading first page if already loading (e.g. pull refresh)
-  loading.value = true
-  
-  try {
-    const params: any = {
-      page: page.value,
-      pageSize: pageSize,
-      keyword: keyword.value
-    }
-    
-    if (currentTab.value !== 0) {
-      params.status = currentTab.value
-    }
-    
-    const res = await adminApi.getUserList(params)
-    if (res.code === 0) {
-      const list = res.data?.list || []
-      const totalCount = res.data?.total || 0
-      
-      if (page.value === 1) {
-        userList.value = list
-      } else {
-        userList.value = [...userList.value, ...list]
-      }
-      
-      total.value = totalCount
-      hasMore.value = userList.value.length < totalCount
-      
-      if (hasMore.value) {
-        page.value++
-      }
-    } else {
-      showToast(res.msg || '加载失败')
-    }
-  } catch (error) {
-    console.error('Fetch users error:', error)
-    showToast('加载失败')
-  } finally {
-    loading.value = false
-  }
+  void refresh(buildQuery())
 }
 
 function goDetail(id: string) {
   navigateTo(`/pages/admin/user-detail?id=${id}`)
 }
 
-function formatDate(dateStr: string | number) {
+function formatDate(dateStr: string | number | undefined) {
   if (!dateStr) return '-'
   const date = new Date(dateStr)
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`

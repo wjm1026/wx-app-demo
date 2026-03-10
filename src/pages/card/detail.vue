@@ -139,14 +139,14 @@
 <script setup lang="ts">
 import { ref, onUnmounted, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getStatusBarHeight, getNavBarHeight, navigateTo, navigateBack, showToast } from '@/utils'
+import { navigateTo, navigateBack, showToast } from '@/utils'
 import { cardApi, achievementApi, type Card } from '@/api'
 import { useStore } from '@/store'
+import { usePageLayout } from '@/composables/usePageLayout'
 
 const store = useStore()
 
-const statusBarHeight = ref(getStatusBarHeight())
-const navBarHeight = ref(getNavBarHeight())
+const { statusBarHeight, navBarHeight } = usePageLayout()
 const isFavorited = ref(false)
 const isLoading = ref(true)
 

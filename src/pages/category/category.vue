@@ -99,9 +99,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { getStatusBarHeight, getNavBarHeight, navigateTo } from '@/utils'
+import { navigateTo } from '@/utils'
 import CustomTabbar from '@/components/CustomTabbar/CustomTabbar.vue'
 import { cardApi, type Category, type Card } from '@/api'
+import { usePageLayout } from '@/composables/usePageLayout'
 
 interface CategoryWithCards extends Category {
   cards: Card[]
@@ -113,8 +114,7 @@ interface CategoryWithCards extends Category {
 const categories = ref<CategoryWithCards[]>([])
 const expandedIds = ref<string[]>([])
 const isInitialLoading = ref(true)
-const statusBarHeight = ref(getStatusBarHeight())
-const navBarHeight = ref(getNavBarHeight())
+const { statusBarHeight, navBarHeight } = usePageLayout()
 
 onShow(async () => {
   await loadCategories()

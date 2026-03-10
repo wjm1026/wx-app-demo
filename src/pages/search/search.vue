@@ -161,8 +161,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { formatNumber, getStatusBarHeight, getNavBarHeight, navigateBack, navigateTo, showToast } from '@/utils'
+import { formatNumber, navigateBack, navigateTo, showToast } from '@/utils'
 import { cardApi, type Card, type Category } from '@/api'
+import { usePageLayout } from '@/composables/usePageLayout'
 
 const HISTORY_KEY = 'SEARCH_HISTORY'
 
@@ -172,8 +173,7 @@ const isSearching = ref(false)
 const searchResults = ref<Card[]>([])
 const searchHistory = ref<string[]>([])
 const categoryMap = ref<Record<string, Category>>({})
-const statusBarHeight = ref(getStatusBarHeight())
-const navBarHeight = ref(getNavBarHeight())
+const { statusBarHeight, navBarHeight } = usePageLayout()
 
 const hotKeywords = ref(['老虎', '苹果', '汽车', '香蕉', '狮子', '飞机', '西瓜', '熊猫', '大象', '火车'])
 const emptySuggestions = ref(['动物', '水果', '交通工具'])

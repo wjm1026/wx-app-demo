@@ -104,9 +104,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { getStatusBarHeight, navigateTo, showToast } from '@/utils'
+import { navigateTo, showToast } from '@/utils'
 import { adminApi, cardApi } from '@/api'
-const statusBarHeight = ref(getStatusBarHeight())
+import { usePageLayout } from '@/composables/usePageLayout'
+
+const { statusBarHeight } = usePageLayout()
 const isAdmin = ref(false)
 
 const stats = ref({
@@ -136,7 +138,7 @@ async function checkAdmin() {
     } else {
       isAdmin.value = false
     }
-  } catch (e: any) {
+  } catch {
     isAdmin.value = false
     showToast('权限验证失败')
   }

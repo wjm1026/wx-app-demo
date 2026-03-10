@@ -157,15 +157,16 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getStatusBarHeight, showToast } from '@/utils'
-import { adminApi } from '@/api'
+import { showToast } from '@/utils'
+import { adminApi, type AdminUserDetailResult, type PointsLogItem } from '@/api'
+import { usePageLayout } from '@/composables/usePageLayout'
 
-const statusBarHeight = ref(getStatusBarHeight())
+const { statusBarHeight } = usePageLayout()
 const userId = ref('')
-const userInfo = ref<any>(null)
+const userInfo = ref<AdminUserDetailResult['user'] | null>(null)
 const favoriteCount = ref(0)
 const invitedCount = ref(0)
-const recentPoints = ref<any[]>([])
+const recentPoints = ref<PointsLogItem[]>([])
 const defaultAvatar = 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
 
 // Modal State
@@ -176,8 +177,9 @@ const adjustForm = reactive({
 })
 
 onLoad((options) => {
-  if (options && options.id) {
-    userId.value = options.id
+  const id = typeof options?.id === 'string' ? options.id : ''
+  if (id) {
+    userId.value = id
     loadUserDetail()
   } else {
     showToast('参数错误')
@@ -189,13 +191,17 @@ function goBack() {
   uni.navigateBack()
 }
 
-function formatDate(timestamp: number) {
+function formatDate(timestamp: number | string | undefined) {
   if (!timestamp) return '-'
-  const date = new Date(timestamp)
+  const date = new Date(Number(timestamp))
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
 function copyId() {
+  if (!userInfo.value?._id) {
+    return
+  }
+
   uni.setClipboardData({
     data: userInfo.value._id,
     success: () => showToast('ID已复制')

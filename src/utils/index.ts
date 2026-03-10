@@ -29,6 +29,26 @@ export function navigateBack(delta = 1) {
   uni.navigateBack({ delta })
 }
 
+export function getErrorMessage(error: unknown, fallback = '请求失败'): string {
+  if (typeof error === 'string') {
+    return error || fallback
+  }
+
+  if (!error || typeof error !== 'object') {
+    return fallback
+  }
+
+  if ('message' in error && typeof error.message === 'string' && error.message) {
+    return error.message
+  }
+
+  if ('errMsg' in error && typeof error.errMsg === 'string' && error.errMsg) {
+    return error.errMsg
+  }
+
+  return fallback
+}
+
 export function formatNumber(num: number): string {
   if (num >= 10000) {
     return (num / 10000).toFixed(1) + 'w'
@@ -50,7 +70,11 @@ export function getStatusBarHeight(): number {
 
 export function getNavBarHeight(): number {
   const statusBarHeight = getStatusBarHeight()
-  const menuButtonInfo = uni.getMenuButtonBoundingClientRect?.() || { height: 32, top: statusBarHeight + 4 }
+  const menuButtonInfo = uni.getMenuButtonBoundingClientRect?.() || {
+    height: 32,
+    top: statusBarHeight + 4
+  }
+
   return statusBarHeight + menuButtonInfo.height + (menuButtonInfo.top - statusBarHeight) * 2
 }
 
@@ -61,18 +85,20 @@ export function playAudio(src: string) {
     innerAudioContext.stop()
     innerAudioContext.destroy()
   }
-  
+
   innerAudioContext = uni.createInnerAudioContext()
   innerAudioContext.src = src
   innerAudioContext.play()
-  
+
   return innerAudioContext
 }
 
 export function stopAudio() {
-  if (innerAudioContext) {
-    innerAudioContext.stop()
-    innerAudioContext.destroy()
-    innerAudioContext = null
+  if (!innerAudioContext) {
+    return
   }
+
+  innerAudioContext.stop()
+  innerAudioContext.destroy()
+  innerAudioContext = null
 }

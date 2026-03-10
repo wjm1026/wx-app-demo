@@ -170,13 +170,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { getStatusBarHeight, navigateTo, showToast } from '@/utils'
-import { userApi, pointsApi, type UserInfo } from '@/api'
+import { getErrorMessage, navigateTo, showToast } from '@/utils'
+import { userApi, pointsApi } from '@/api'
 import { useStore } from '@/store'
 import CustomTabbar from '@/components/CustomTabbar/CustomTabbar.vue'
+import { usePageLayout } from '@/composables/usePageLayout'
 
 const store = useStore()
-const statusBarHeight = ref(getStatusBarHeight())
+const { statusBarHeight } = usePageLayout()
 const hasSigned = ref(false)
 const isLoading = ref(false)
 const headerHeight = ref(0)
@@ -205,13 +206,30 @@ const contentScrollStyle = computed(() => {
   }
 })
 
+function getNodeRect(rect: UniApp.NodeInfo | UniApp.NodeInfo[] | null | undefined) {
+  if (!rect) {
+    return null
+  }
+
+  return Array.isArray(rect) ? rect[0] || null : rect
+}
+
+function isRewardedAdCompleted(status: unknown) {
+  if (!status || typeof status !== 'object') {
+    return false
+  }
+
+  return Boolean((status as { isEnded?: boolean }).isEnded)
+}
+
 function updateHeaderHeight() {
   nextTick(() => {
     uni.createSelectorQuery()
       .select('.header')
-      .boundingClientRect((rect: any) => {
-        if (rect?.height) {
-          headerHeight.value = rect.height
+      .boundingClientRect((rect) => {
+        const nodeRect = getNodeRect(rect)
+        if (nodeRect?.height) {
+          headerHeight.value = nodeRect.height
         }
       })
       .exec()
@@ -274,8 +292,7 @@ function chooseAvatar() {
     count: 1,
     sizeType: ['compressed'],
     sourceType: ['album', 'camera'],
-    success: async (res) => {
-      const tempFilePath = res.tempFilePaths[0]
+    success: async () => {
       // 这里可以上传头像到云存储，暂时只显示提示
       showToast('头像功能开发中')
     }
@@ -335,9 +352,8 @@ async function doLogin() {
     } else {
       showToast(res.msg || '登录失败')
     }
-  } catch (e: any) {
-    console.error('登录失败:', e)
-    showToast(e.message || '登录失败，请重试')
+  } catch (error) {
+    showToast(getErrorMessage(error, '登录失败，请重试'))
   } finally {
     isLoading.value = false
   }
@@ -368,9 +384,9 @@ async function doSignIn() {
     } else {
       showToast(res.msg || '签到失败')
     }
-  } catch (e: any) {
+  } catch (error) {
     uni.hideToast()
-    showToast(e.message || '签到失败')
+    showToast(getErrorMessage(error, '签到失败'))
   }
 }
 
@@ -389,8 +405,8 @@ async function watchAd() {
     })
     
     // 监听关闭事件
-    videoAd.onClose(async (status: any) => {
-      if (status && status.isEnded) {
+    videoAd.onClose(async (status) => {
+      if (isRewardedAdCompleted(status)) {
         // 广告观看完成，发放奖励
         try {
           const res = await pointsApi.earnByAd('video')

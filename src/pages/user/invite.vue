@@ -74,17 +74,20 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { userApi } from '@/api'
-import { useStore } from '@/store'
-import { showToast } from '@/utils'
+import { userApi, type InviteInfoResult, type InviteUserInfo } from '@/api'
+import { useLoginGuard } from '@/composables/useLoginGuard'
+import { getErrorMessage, showToast } from '@/utils'
 
-const store = useStore()
+const { store, ensureLoggedIn } = useLoginGuard({
+  message: '请先登录',
+  delay: 1500
+})
 const inviteCode = ref('')
-const invitedList = ref<any[]>([])
+const invitedList = ref<InviteUserInfo[]>([])
 const loading = ref(false)
 const defaultAvatar = 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
 
-function formatDate(date: string | number) {
+function formatDate(date: string | number | undefined) {
   if (!date) return ''
   const d = new Date(date)
   const now = new Date()
@@ -101,12 +104,25 @@ function formatDate(date: string | number) {
   }
 }
 
+function extractInvitedList(data: InviteInfoResult): InviteUserInfo[] {
+  const candidates = [
+    data.list,
+    data.invitedList,
+    data.invitedUsers,
+    data.invited_users
+  ]
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      return candidate
+    }
+  }
+
+  return []
+}
+
 onShow(async () => {
-  if (!store.isLoggedIn) {
-    showToast('请先登录', 'none')
-    setTimeout(() => {
-      uni.switchTab({ url: '/pages/user/user' })
-    }, 1500)
+  if (!ensureLoggedIn()) {
     return
   }
   
@@ -122,22 +138,18 @@ async function loadInviteData() {
   loading.value = true
   try {
     const res = await userApi.getInviteInfo()
-    if (res.code === 0) {
-      if (res.data) {
-        // Handle various possible response structures gracefully
-        if (res.data.invite_code || res.data.inviteCode) {
-          inviteCode.value = res.data.invite_code || res.data.inviteCode
-        }
-        
-        const list = res.data.list || res.data.invitedList || res.data.invitedUsers || res.data.invited_users || []
-        invitedList.value = Array.isArray(list) ? list : []
-      }
-    } else {
+    if (res.code !== 0 || !res.data) {
       showToast(res.msg || '获取邀请信息失败')
+      return
     }
+
+    if (res.data.invite_code || res.data.inviteCode) {
+      inviteCode.value = res.data.invite_code || res.data.inviteCode || ''
+    }
+
+    invitedList.value = extractInvitedList(res.data)
   } catch (error) {
-    console.error('Failed to load invite info:', error)
-    showToast('网络错误，请稍后重试')
+    showToast(getErrorMessage(error, '网络错误，请稍后重试'))
   } finally {
     loading.value = false
   }

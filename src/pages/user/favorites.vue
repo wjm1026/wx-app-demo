@@ -36,79 +36,48 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
 import { onShow, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app'
-import { navigateTo, showToast } from '@/utils'
+import { navigateTo, showToast, getErrorMessage } from '@/utils'
 import { cardApi, type Card } from '@/api'
-import { useStore } from '@/store'
+import { useLoginGuard } from '@/composables/useLoginGuard'
+import { usePagedList } from '@/composables/usePagedList'
 
-const store = useStore()
-const favorites = ref<Card[]>([])
-const isLoading = ref(false)
-const currentPage = ref(1)
-const hasMore = ref(true)
-const pageSize = 20
-
-onShow(() => {
-  if (!store.isLoggedIn) {
-    showToast('请先登录')
-    setTimeout(() => {
-      // Assuming we can navigate to login or switch tab to user page where login is
-      uni.switchTab({ url: '/pages/user/user' })
-    }, 1500)
-    return
-  }
-  // Reset and reload when showing page to ensure fresh data
-  refreshData()
+const { ensureLoggedIn } = useLoginGuard()
+const {
+  list: favorites,
+  loading: isLoading,
+  currentPage,
+  hasMore,
+  refresh,
+  loadMore,
+} = usePagedList<Card>({
+  pageSize: 20,
+  fetcher: ({ page, pageSize }) => cardApi.getFavorites({ page, pageSize }),
+  onError: (message) => showToast(message || '获取收藏失败')
 })
 
-onPullDownRefresh(() => {
-  refreshData().then(() => {
+onShow(() => {
+  if (!ensureLoggedIn()) {
+    return
+  }
+  void refresh()
+})
+
+onPullDownRefresh(async () => {
+  if (!ensureLoggedIn()) {
     uni.stopPullDownRefresh()
-  })
+    return
+  }
+
+  await refresh()
+  uni.stopPullDownRefresh()
 })
 
 onReachBottom(() => {
   if (hasMore.value && !isLoading.value) {
-    loadFavorites(currentPage.value + 1)
+    void loadMore()
   }
 })
-
-async function refreshData() {
-  currentPage.value = 1
-  hasMore.value = true
-  favorites.value = [] // Optional: Clear list on refresh for clean state, or keep for better UX
-  await loadFavorites(1)
-}
-
-async function loadFavorites(page: number) {
-  if (isLoading.value) return
-  isLoading.value = true
-  
-  try {
-    const res = await cardApi.getFavorites({ page, pageSize })
-    if (res.code === 0 && res.data) {
-      const list = res.data.list || []
-      const total = res.data.total || 0
-      
-      if (page === 1) {
-        favorites.value = list
-      } else {
-        favorites.value = [...favorites.value, ...list]
-      }
-      
-      currentPage.value = page
-      hasMore.value = favorites.value.length < total
-    } else {
-      showToast(res.msg || '获取收藏失败')
-    }
-  } catch (e) {
-    console.error('获取收藏失败:', e)
-    showToast('获取收藏失败')
-  } finally {
-    isLoading.value = false
-  }
-}
 
 function goHome() {
   uni.switchTab({ url: '/pages/index/index' })
@@ -129,16 +98,14 @@ async function removeFavorite(item: Card) {
           if (apiRes.code === 0) {
             favorites.value = favorites.value.filter(f => f._id !== item._id)
             showToast('已取消收藏')
-            // If list becomes empty, reload to potentially fetch previous page data if needed, 
-            // or just let it be empty.
             if (favorites.value.length === 0 && currentPage.value > 1) {
-              refreshData()
+              void refresh()
             }
           } else {
             showToast(apiRes.msg || '操作失败')
           }
-        } catch (e) {
-          showToast('操作失败')
+        } catch (error) {
+          showToast(getErrorMessage(error, '操作失败'))
         }
       }
     }

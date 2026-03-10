@@ -88,11 +88,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { showToast } from '@/utils'
 import { achievementApi, type Achievement, type LearningProgress } from '@/api'
-import { useStore } from '@/store'
+import { useLoginGuard } from '@/composables/useLoginGuard'
 
-const store = useStore()
+const { ensureLoggedIn } = useLoginGuard()
 const isLoading = ref(true)
 
 const progress = ref<LearningProgress>({
@@ -114,16 +113,17 @@ const achievements = ref<{
 })
 
 onMounted(() => {
-  loadData()
+  if (!ensureLoggedIn()) {
+    return
+  }
+  void loadData()
 })
 
 onShow(() => {
-  if (!store.isLoggedIn) {
-    showToast('请先登录')
-    uni.switchTab({ url: '/pages/user/user' })
+  if (!ensureLoggedIn()) {
     return
   }
-  loadData()
+  void loadData()
 })
 
 async function loadData() {
