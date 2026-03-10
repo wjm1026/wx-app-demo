@@ -39,34 +39,49 @@
           
           <!-- 展开的卡片列表 -->
           <view v-if="expandedIds.includes(item._id)" class="card-grid">
-            <view 
-              v-for="card in item.cards" 
-              :key="card._id" 
-              class="card-item"
-              @click="goCardDetail(card._id)"
-            >
-              <view class="card-image-wrapper">
-                <image class="card-image" :src="card.image" mode="aspectFill" />
+            <template v-if="item.cards.length > 0">
+              <view 
+                v-for="card in item.cards" 
+                :key="card._id" 
+                class="card-item"
+                @click="goCardDetail(card._id)"
+              >
+                <view class="card-image-wrapper">
+                  <image class="card-image" :src="card.image" mode="aspectFill" />
+                </view>
+                <text class="card-name">{{ card.name }}</text>
               </view>
-              <text class="card-name">{{ card.name }}</text>
-            </view>
-            
-            <!-- 加载更多 -->
-            <view v-if="item.cards.length > 0 && item.hasMore" class="load-more" @click="loadMore(item._id)">
-              <text class="load-more-icon">+</text>
-              <text class="load-more-text">更多</text>
-            </view>
+              
+              <!-- 加载更多 -->
+              <view v-if="!item.isLoading && item.hasMore" class="load-more" @click="loadMore(item._id)">
+                <text class="load-more-icon">+</text>
+                <text class="load-more-text">更多</text>
+              </view>
+
+              <!-- 分页加载中 -->
+              <view v-if="item.isLoading" class="load-state-inline">
+                <view class="loading-spinner"></view>
+                <text class="load-state-text">正在加载更多</text>
+              </view>
+            </template>
+
+            <!-- 首次加载骨架屏 -->
+            <template v-else-if="item.isLoading">
+              <view
+                v-for="n in 4"
+                :key="`loading-${item._id}-${n}`"
+                class="card-item skeleton-card"
+              >
+                <view class="card-image-wrapper skeleton-shimmer"></view>
+                <text class="card-name skeleton-text skeleton-shimmer"></text>
+              </view>
+            </template>
           </view>
           
           <!-- 空状态 -->
           <view v-if="expandedIds.includes(item._id) && item.cards.length === 0 && !item.isLoading" class="empty-state">
             <text class="empty-icon">📭</text>
             <text class="empty-text">暂无卡片</text>
-          </view>
-          
-          <!-- 加载中状态 -->
-          <view v-if="item.isLoading" class="item-loading">
-            <text class="loading-dot">. . .</text>
           </view>
         </view>
       </view>
