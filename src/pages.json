@@ -10,7 +10,8 @@
     {
       "path": "pages/category/category",
       "style": {
-        "navigationBarTitleText": "分类"
+        "navigationBarTitleText": "分类",
+        "navigationStyle": "custom"
       }
     },
     {
@@ -23,7 +24,8 @@
     {
       "path": "pages/search/search",
       "style": {
-        "navigationBarTitleText": "搜索"
+        "navigationBarTitleText": "搜索",
+        "navigationStyle": "custom"
       }
     },
     {

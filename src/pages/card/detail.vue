@@ -7,15 +7,13 @@
           <text class="nav-icon">←</text>
         </view>
         <text class="nav-title">{{ cardData.name }}</text>
-        <view class="nav-btn" @click="toggleFavorite">
-          <text class="favorite-icon">{{ isFavorited ? '❤️' : '🤍' }}</text>
-        </view>
+        <view class="nav-spacer"></view>
       </view>
     </view>
 
     <view v-if="isLoading" class="loading-state">
-      <text class="loading-icon">⏳</text>
-      <text class="loading-text">正在加载识物详情...</text>
+      <view class="loading-spinner"></view>
+      <text class="loading-text">正在加载识物详情</text>
     </view>
 
     <scroll-view v-else scroll-y class="main-scroll" :style="{ paddingTop: navBarHeight + 'px' }">
@@ -26,18 +24,9 @@
             <image class="hero-image" :src="img" mode="aspectFill" />
           </swiper-item>
         </swiper>
-        
-        <!-- 悬浮发音按钮 -->
-        <view class="hero-actions">
-          <view class="action-fab" @click="playSound">
-            <text class="fab-icon">🔊</text>
-            <text class="fab-label">听声音</text>
-          </view>
-        </view>
-        
         <!-- 分类标签 -->
         <view class="hero-badge">
-          <text class="badge-icon">{{ heroBadgeIcon }}</text>
+          <view class="badge-dot"></view>
           <text class="badge-text">{{ heroBadgeText }}</text>
         </view>
       </view>
@@ -46,17 +35,9 @@
       <view class="name-section">
         <view class="name-main">
           <text class="name-cn">{{ cardData.name }}</text>
-          <view class="name-actions">
-            <view class="name-action" @click="playNameAudio('cn')">
-              <text class="action-flag">🇨🇳</text>
-            </view>
-          </view>
         </view>
         <view class="name-sub">
           <text class="name-en">{{ cardData.name_en }}</text>
-          <view class="name-action-small" @click="playNameAudio('en')">
-            <text class="action-flag">🇺🇸</text>
-          </view>
         </view>
         <text class="name-pinyin">[ {{ cardData.name_pinyin }} ]</text>
       </view>
@@ -65,27 +46,31 @@
       <view class="quick-actions">
         <view class="quick-btn" @click="playNameAudio('cn')">
           <view class="quick-icon-wrapper cn">
-            <text class="quick-icon">🗣️</text>
+            <text class="quick-icon">中</text>
           </view>
-          <text class="quick-label">中文</text>
+          <text class="quick-label">中文发音</text>
+          <text class="quick-sub">点击播放</text>
         </view>
         <view class="quick-btn" @click="playNameAudio('en')">
           <view class="quick-icon-wrapper en">
-            <text class="quick-icon">🔤</text>
+            <text class="quick-icon">EN</text>
           </view>
-          <text class="quick-label">英文</text>
+          <text class="quick-label">英文发音</text>
+          <text class="quick-sub">点击播放</text>
         </view>
         <view class="quick-btn" @click="playSound">
           <view class="quick-icon-wrapper sound">
-            <text class="quick-icon">🎵</text>
+            <text class="quick-icon">♪</text>
           </view>
-          <text class="quick-label">叫声</text>
+          <text class="quick-label">叫声播放</text>
+          <text class="quick-sub">音效播放</text>
         </view>
         <view class="quick-btn" @click="playVideo" v-if="cardData.video">
           <view class="quick-icon-wrapper video">
-            <text class="quick-icon">📹</text>
+            <text class="quick-icon">▶</text>
           </view>
           <text class="quick-label">视频</text>
+          <text class="quick-sub">短片观看</text>
         </view>
       </view>
 
@@ -94,7 +79,7 @@
         <!-- 小知识 -->
         <view v-if="cardData.description" class="knowledge-card">
           <view class="card-header">
-            <text class="card-title">📖 小知识</text>
+            <text class="card-title">小知识</text>
           </view>
           <text class="card-content">{{ cardData.description }}</text>
         </view>
@@ -102,22 +87,16 @@
         <!-- 趣味知识 -->
         <view v-if="cardData.fun_fact" class="fun-card">
           <view class="fun-header">
-            <text class="fun-icon">💡</text>
-            <text class="fun-title">你知道吗？</text>
+            <text class="fun-title">趣味知识</text>
           </view>
           <text class="fun-content">{{ cardData.fun_fact }}</text>
-          <view class="fun-decoration">
-            <text class="decoration-emoji">✨</text>
-            <text class="decoration-emoji">🌟</text>
-            <text class="decoration-emoji">⭐</text>
-          </view>
         </view>
       </view>
 
       <!-- 相关推荐 -->
       <view class="related-section">
         <view class="section-header">
-          <text class="section-title">🎯 相关推荐</text>
+          <text class="section-title">相关推荐</text>
         </view>
         <scroll-view scroll-x class="related-scroll" :show-scrollbar="false">
           <view class="related-list">
@@ -141,17 +120,17 @@
     <view class="bottom-bar">
       <view class="bar-left">
         <view class="bar-btn" @click="shareCard">
-          <text class="bar-icon">📤</text>
+          <text class="bar-icon">↗</text>
           <text class="bar-text">分享</text>
         </view>
-        <view class="bar-btn" @click="toggleFavorite">
-          <text class="bar-icon">{{ isFavorited ? '❤️' : '🤍' }}</text>
+        <view class="bar-btn" :class="{ active: isFavorited }" @click="toggleFavorite">
+          <text class="bar-icon">{{ isFavorited ? '★' : '☆' }}</text>
           <text class="bar-text">{{ isFavorited ? '已收藏' : '收藏' }}</text>
         </view>
       </view>
       <view class="next-btn" @click="nextCard">
         <text class="next-text">下一个</text>
-        <text class="next-arrow">→</text>
+        <text class="next-arrow">›</text>
       </view>
     </view>
   </view>
@@ -196,7 +175,6 @@ const heroImages = computed(() => {
   return Array.from(new Set(merged))
 })
 
-const heroBadgeIcon = computed(() => cardData.value.category?.icon || '📚')
 const heroBadgeText = computed(() => cardData.value.category?.name || '未分类')
 
 // 音频上下文
@@ -251,10 +229,11 @@ async function loadCardDetail(id: string) {
 async function recordLearning(cardId: string) {
   try {
     const res = await achievementApi.recordLearning(cardId)
-    if (res.code === 0 && res.data?.newAchievements?.length > 0) {
-      const achievement = res.data.newAchievements[0]
+    const newAchievements = res.data?.newAchievements || []
+    if (res.code === 0 && newAchievements.length > 0) {
+      const achievement = newAchievements[0]
       setTimeout(() => {
-        showToast(`🎉 解锁成就: ${achievement.name}`, 'success')
+        showToast(`解锁成就：${achievement.name}`, 'success')
       }, 1000)
     }
   } catch (e) {
@@ -285,9 +264,9 @@ async function toggleFavorite() {
   if (!cardData.value._id) return
   try {
     const res = await cardApi.toggleFavorite(cardData.value._id)
-    if (res.code === 0) {
-      isFavorited.value = res.data.isFavorited
-      showToast(isFavorited.value ? '已收藏 ❤️' : '已取消收藏', 'success')
+    if (res.code === 0 && res.data) {
+      isFavorited.value = !!res.data.isFavorited
+      showToast(isFavorited.value ? '已收藏' : '已取消收藏', 'success')
     } else {
       showToast(res.msg || '操作失败', 'error')
     }
@@ -322,8 +301,7 @@ function playSound() {
 
 function playVideo() {
   if (cardData.value.video) {
-    // 这里可以跳转到专门的视频播放页或者使用 uni.previewImage 预览视频
-    showToast('播放视频 📹')
+    showToast('视频功能开发中', 'none')
   }
 }
 
@@ -332,7 +310,7 @@ function goCardDetail(id: string) {
 }
 
 function shareCard() {
-  showToast('分享给好友 📤')
+  showToast('分享功能开发中', 'none')
 }
 
 function nextCard() {

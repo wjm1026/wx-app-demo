@@ -7,15 +7,14 @@
           <text class="logo-icon">🐣</text>
           <text class="nav-title">宝宝识物</text>
         </view>
-        <view class="nav-actions">
-          <view class="nav-btn" @click="goSearch">
-            <text class="nav-icon">🔍</text>
-          </view>
-        </view>
       </view>
     </view>
 
-    <scroll-view scroll-y class="main-scroll" :style="{ paddingTop: navBarHeight + 'px' }">
+    <scroll-view
+      scroll-y
+      class="main-scroll"
+      :style="{ paddingTop: navBarHeight + 'px' }"
+    >
       <!-- 欢迎横幅 -->
       <view class="welcome-banner">
         <view class="welcome-content">
@@ -52,14 +51,17 @@
           </view>
         </view>
         <view class="category-grid">
-          <view 
-            v-for="(item, index) in categories" 
-            :key="item._id" 
+          <view
+            v-for="(item, index) in categories"
+            :key="item._id"
             class="category-card"
             :class="'delay-' + index"
             @click="goCategoryDetail(item._id)"
           >
-            <view class="category-icon-wrapper" :style="{ background: item.gradient }">
+            <view
+              class="category-icon-wrapper"
+              :style="{ background: item.gradient }"
+            >
               <text class="category-emoji">{{ item.icon }}</text>
             </view>
             <text class="category-name">{{ item.name }}</text>
@@ -78,9 +80,9 @@
         </view>
         <scroll-view scroll-x class="hot-scroll" :show-scrollbar="false">
           <view class="hot-list">
-            <view 
-              v-for="card in hotCards" 
-              :key="card._id" 
+            <view
+              v-for="card in hotCards"
+              :key="card._id"
               class="hot-card"
               @click="goCardDetail(card._id)"
             >
@@ -115,9 +117,9 @@
           </view>
         </view>
         <view class="card-grid">
-          <view 
-            v-for="card in recentCards" 
-            :key="card._id" 
+          <view
+            v-for="card in recentCards"
+            :key="card._id"
             class="card-item"
             @click="goCardDetail(card._id)"
           >
@@ -130,9 +132,14 @@
               <view class="card-footer">
                 <view class="card-stat">
                   <text class="stat-icon">👀</text>
-                  <text class="stat-value">{{ formatNumber(card.view_count || 0) }}</text>
+                  <text class="stat-value">{{
+                    formatNumber(card.view_count || 0)
+                  }}</text>
                 </view>
-                <view class="card-tag" :style="{ backgroundColor: 'rgba(96, 165, 250, 0.15)' }">
+                <view
+                  class="card-tag"
+                  :style="{ backgroundColor: 'rgba(96, 165, 250, 0.15)' }"
+                >
                   {{ getCategoryName(card) }}
                 </view>
               </view>
@@ -165,9 +172,14 @@
             </view>
           </view>
           <view class="progress-bar-wrapper">
-            <view class="progress-bar" :style="{ width: progressPercent + '%' }"></view>
+            <view
+              class="progress-bar"
+              :style="{ width: progressPercent + '%' }"
+            ></view>
           </view>
-          <text class="progress-tip">再学习 {{ remainCards }} 个卡片完成今日目标 🎯</text>
+          <text class="progress-tip"
+            >再学习 {{ remainCards }} 个卡片完成今日目标 🎯</text
+          >
         </view>
       </view>
 
@@ -178,81 +190,93 @@
 </template>
 
 <script setup lang="ts">
-import { onLoad } from '@dcloudio/uni-app'
-import { ref, computed } from 'vue'
-import { formatNumber, getStatusBarHeight, getNavBarHeight, navigateTo } from '@/utils'
-import CustomTabbar from '@/components/CustomTabbar/CustomTabbar.vue'
-import { cardApi, type Category, type Card } from '@/api'
+import { onLoad } from "@dcloudio/uni-app";
+import { ref, computed } from "vue";
+import {
+  formatNumber,
+  getStatusBarHeight,
+  getNavBarHeight,
+  navigateTo,
+} from "@/utils";
+import CustomTabbar from "@/components/CustomTabbar/CustomTabbar.vue";
+import { cardApi, type Category, type Card } from "@/api";
 
-const statusBarHeight = ref(getStatusBarHeight())
-const navBarHeight = ref(getNavBarHeight())
+const statusBarHeight = ref(getStatusBarHeight());
+const navBarHeight = ref(getNavBarHeight());
 
-const categories = ref<Category[]>([])
-const hotCards = ref<Card[]>([])
-const recentCards = ref<Card[]>([])
-const isLoading = ref(false)
+const categories = ref<Category[]>([]);
+const hotCards = ref<Card[]>([]);
+const recentCards = ref<Card[]>([]);
+const isLoading = ref(false);
 
 // 加载首页真实数据
 const loadData = async () => {
-  if (isLoading.value) return
-  isLoading.value = true
+  if (isLoading.value) return;
+  isLoading.value = true;
   try {
-    const res = await cardApi.getHomeData()
+    const res = await cardApi.getHomeData();
     if (res.code === 0 && res.data) {
-      categories.value = res.data.categories || []
-      hotCards.value = res.data.hotCards || []
-      recentCards.value = res.data.recentCards || []
+      categories.value = res.data.categories || [];
+      hotCards.value = res.data.hotCards || [];
+      recentCards.value = res.data.recentCards || [];
     }
   } catch (e) {
-    console.error('加载首页数据失败:', e)
+    console.error("加载首页数据失败:", e);
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
 
 onLoad(() => {
-  loadData()
-})
+  loadData();
+});
 
 const todayStats = ref({
   learned: 5,
   streak: 3,
-  points: 25
-})
+  points: 25,
+});
 
-const dailyGoal = 10
-const remainCards = computed(() => Math.max(0, dailyGoal - todayStats.value.learned))
-const progressPercent = computed(() => Math.min(100, (todayStats.value.learned / dailyGoal) * 100))
+const dailyGoal = 10;
+const remainCards = computed(() =>
+  Math.max(0, dailyGoal - todayStats.value.learned),
+);
+const progressPercent = computed(() =>
+  Math.min(100, (todayStats.value.learned / dailyGoal) * 100),
+);
 
-const NEW_CARD_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
+const NEW_CARD_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 function isNewCard(card: Card): boolean {
-  if (!card.create_time) return false
-  return Date.now() - card.create_time < NEW_CARD_WINDOW_MS
+  if (!card.create_time) return false;
+  return Date.now() - card.create_time < NEW_CARD_WINDOW_MS;
 }
 
 function getCategoryName(card: Card): string {
-  return categories.value.find((item) => item._id === card.category_id)?.name || '未分类'
+  return (
+    categories.value.find((item) => item._id === card.category_id)?.name ||
+    "未分类"
+  );
 }
 
 function goSearch() {
-  navigateTo('/pages/search/search')
+  navigateTo("/pages/search/search");
 }
 
 function goCategory() {
-  uni.switchTab({ url: '/pages/category/category' })
+  uni.switchTab({ url: "/pages/category/category" });
 }
 
 function goCategoryDetail(id: string) {
   // TabBar页面不支持带参数跳转，通过Storage传递参数
-  uni.setStorageSync('TARGET_CATEGORY_ID', id)
+  uni.setStorageSync("TARGET_CATEGORY_ID", id);
   uni.switchTab({
-    url: '/pages/category/category'
-  })
+    url: "/pages/category/category",
+  });
 }
 
 function goCardDetail(id: string) {
-  navigateTo(`/pages/card/detail?id=${id}`)
+  navigateTo(`/pages/card/detail?id=${id}`);
 }
 </script>
 

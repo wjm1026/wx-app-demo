@@ -6,6 +6,42 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+.nav-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: $z-fixed;
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 2rpx solid rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(14px);
+}
+
+.nav-content {
+  position: relative;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 $spacing-4;
+}
+
+.nav-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  font-size: 40rpx;
+  line-height: 1;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  letter-spacing: 2rpx;
+}
+
+.page-content {
+  min-height: 100vh;
+}
+
 // 页面标题
 .page-header {
   margin: $spacing-4;
@@ -18,14 +54,14 @@
 
 .page-title {
   display: block;
-  font-size: $font-size-xl;
+  font-size: 52rpx;
   font-weight: $font-weight-bold;
   color: $color-text-primary;
   margin-bottom: $spacing-1;
 }
 
 .page-subtitle {
-  font-size: $font-size-sm;
+  font-size: $font-size-base;
   color: $color-text-secondary;
 }
 
@@ -95,13 +131,13 @@
 }
 
 .category-name {
-  font-size: $font-size-md;
+  font-size: $font-size-lg;
   font-weight: $font-weight-bold;
   color: $color-text-primary;
 }
 
 .category-count {
-  font-size: $font-size-sm;
+  font-size: $font-size-base;
   color: $color-text-tertiary;
 }
 
@@ -128,7 +164,7 @@
 }
 
 .expand-icon {
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: $color-text-tertiary;
   transition: color $duration-fast $ease-out;
 }
@@ -137,8 +173,9 @@
 .card-grid {
   display: flex;
   flex-wrap: wrap;
-  padding: 0 $spacing-4 $spacing-4;
+  padding: $spacing-3 $spacing-4 $spacing-4;
   gap: $spacing-3;
+  border-top: 2rpx solid rgba(15, 23, 42, 0.06);
   animation: bounce-in 0.4s $ease-bounce;
 }
 
@@ -167,9 +204,9 @@
 }
 
 .card-name {
-  font-size: $font-size-sm;
+  font-size: $font-size-base;
   color: $color-text-primary;
-  font-weight: $font-weight-medium;
+  font-weight: $font-weight-semibold;
 }
 
 // 加载更多
@@ -199,7 +236,7 @@
 }
 
 .load-more-text {
-  font-size: $font-size-xs;
+  font-size: $font-size-sm;
   color: $color-text-tertiary;
   margin-top: 4rpx;
 }
@@ -219,8 +256,14 @@
 }
 
 .empty-text {
-  font-size: $font-size-sm;
+  font-size: $font-size-base;
   color: $color-text-tertiary;
+}
+
+.category-section.skeleton {
+  .category-icon {
+    background: linear-gradient(135deg, #f4f7fc, #edf2fa);
+  }
 }
 
 .safe-bottom {

@@ -1,127 +1,120 @@
 @import '@/styles/design-system.scss';
 
+.page {
+  min-height: 100vh;
+  background: $color-bg-primary;
+}
+
 .loading-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 60vh;
-  gap: $spacing-4;
-  
-  .loading-icon {
-    font-size: 80rpx;
-    animation: rotate 2s linear infinite;
+  gap: $spacing-3;
+}
+
+.loading-spinner {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: $radius-full;
+  border: 6rpx solid rgba($color-primary, 0.18);
+  border-top-color: $color-primary;
+  animation: spin 0.9s linear infinite;
+}
+
+.loading-text {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
   }
-  
-  .loading-text {
-    font-size: $font-size-md;
-    color: $color-text-secondary;
+  to {
+    transform: rotate(360deg);
   }
 }
 
-@keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.page {
-  min-height: 100vh;
-  background-color: $color-bg-primary;
-}
-
-// 导航栏
 .nav-bar {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: $z-fixed;
-  background: $gradient-primary;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(16px);
+  border-bottom: 2rpx solid rgba(15, 23, 42, 0.06);
 }
 
 .nav-content {
+  position: relative;
   height: 88rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 $spacing-3;
+  padding: 0 $spacing-4;
+  padding-right: 220rpx;
 }
 
 .nav-btn {
-  @include icon-button;
-  background-color: rgba(255, 255, 255, 0.25);
-  
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: $radius-full;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 2rpx solid transparent;
+  transition: transform $duration-fast $ease-bounce,
+    background-color $duration-fast $ease-out;
+
   &:active {
-    background-color: rgba(255, 255, 255, 0.35);
-    transform: scale(0.9);
+    transform: scale(0.94);
+    background: rgba(15, 23, 42, 0.08);
   }
 }
 
 .nav-icon {
-  font-size: 40rpx;
-  color: $color-text-inverse;
-}
-
-.favorite-icon {
-  font-size: 40rpx;
+  font-size: 32rpx;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
 }
 
 .nav-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 360rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: $font-size-lg;
   font-weight: $font-weight-bold;
-  color: $color-text-inverse;
+  color: $color-text-primary;
+}
+
+.nav-spacer {
+  width: 80rpx;
+  height: 80rpx;
 }
 
 .main-scroll {
-  height: calc(100vh - 140rpx);
+  height: 100vh;
 }
 
-// 主图区域
 .hero-section {
   position: relative;
   width: 100%;
-  height: 520rpx;
+  height: 540rpx;
+  overflow: hidden;
 }
 
-.hero-swiper {
-  width: 100%;
-  height: 100%;
-}
-
+.hero-swiper,
 .hero-image {
   width: 100%;
   height: 100%;
-}
-
-.hero-actions {
-  position: absolute;
-  bottom: $spacing-4;
-  right: $spacing-4;
-}
-
-.action-fab {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: $spacing-3;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: $radius-lg;
-  box-shadow: $shadow-lg;
-  transition: transform $duration-fast $ease-bounce;
-  
-  &:active {
-    transform: scale(0.9);
-  }
-}
-
-.fab-icon {
-  font-size: 48rpx;
-}
-
-.fab-label {
-  font-size: $font-size-xs;
-  color: $color-text-secondary;
-  margin-top: 4rpx;
 }
 
 .hero-badge {
@@ -130,77 +123,53 @@
   left: $spacing-4;
   display: flex;
   align-items: center;
-  gap: $spacing-1;
+  gap: $spacing-2;
   padding: $spacing-2 $spacing-3;
-  background: rgba(0, 0, 0, 0.5);
   border-radius: $radius-full;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
 }
 
-.badge-icon {
-  font-size: 28rpx;
+.badge-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: $radius-full;
+  background: #fff;
+  opacity: 0.9;
 }
 
 .badge-text {
   font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
   color: $color-text-inverse;
 }
 
-// 名称区域
 .name-section {
-  padding: $spacing-5;
-  text-align: center;
-  background-color: $color-bg-card;
   margin: -$spacing-5 $spacing-4 $spacing-4;
+  padding: $spacing-5;
   border-radius: $radius-xl;
-  box-shadow: $shadow-lg;
+  background: $color-bg-card;
+  border: 2rpx solid rgba(15, 23, 42, 0.04);
+  box-shadow: $shadow-md;
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
 .name-main {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: $spacing-3;
-  margin-bottom: $spacing-2;
+  justify-content: flex-start;
 }
 
 .name-cn {
+  flex: 1;
   font-size: $font-size-2xl;
   font-weight: $font-weight-bold;
   color: $color-text-primary;
 }
 
-.name-actions {
-  display: flex;
-  gap: $spacing-2;
-}
-
-.name-action {
-  width: 56rpx;
-  height: 56rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: $color-bg-secondary;
-  border-radius: $radius-full;
-  transition: transform $duration-fast $ease-bounce;
-  
-  &:active {
-    transform: scale(0.9);
-  }
-}
-
-.action-flag {
-  font-size: 32rpx;
-}
-
 .name-sub {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: $spacing-2;
-  margin-bottom: $spacing-2;
+  margin-top: $spacing-2;
 }
 
 .name-en {
@@ -208,170 +177,141 @@
   color: $color-text-secondary;
 }
 
-.name-action-small {
-  width: 44rpx;
-  height: 44rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: $color-bg-secondary;
-  border-radius: $radius-full;
-  
-  .action-flag {
-    font-size: 24rpx;
-  }
-}
-
 .name-pinyin {
-  font-size: $font-size-base;
+  display: block;
+  margin-top: $spacing-1;
+  font-size: $font-size-sm;
   color: $color-text-tertiary;
 }
 
-// 快捷操作
 .quick-actions {
   display: flex;
-  justify-content: center;
-  gap: $spacing-5;
+  flex-wrap: wrap;
+  gap: $spacing-3;
   padding: 0 $spacing-4;
   margin-bottom: $spacing-5;
 }
 
 .quick-btn {
+  flex: 1;
+  min-width: 150rpx;
+  padding: $spacing-3;
+  border-radius: $radius-lg;
+  background: $color-bg-card;
+  border: 2rpx solid rgba(15, 23, 42, 0.05);
+  box-shadow: $shadow-sm;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: $spacing-2;
-  transition: transform $duration-fast $ease-bounce;
-  
+  gap: $spacing-1;
+  transition: transform $duration-fast $ease-bounce,
+    box-shadow $duration-fast $ease-out;
+
   &:active {
-    transform: scale(0.92);
+    transform: translateY(2rpx) scale(0.98);
+    box-shadow: none;
   }
 }
 
 .quick-icon-wrapper {
-  width: 100rpx;
-  height: 100rpx;
+  width: $touch-target-min;
+  height: $touch-target-min;
+  border-radius: $radius-md;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: $radius-xl;
-  box-shadow: $shadow-md;
-  
+
   &.cn {
-    background: linear-gradient(135deg, #FF6B6B, #FF8E8E);
+    background: linear-gradient(135deg, #ffe8e5, #ffd4df);
   }
-  
+
   &.en {
-    background: linear-gradient(135deg, #60A5FA, #A78BFA);
+    background: linear-gradient(135deg, #e3edff, #dce7ff);
   }
-  
+
   &.sound {
-    background: linear-gradient(135deg, #34D399, #4ECDC4);
+    background: linear-gradient(135deg, #ddf7ef, #d4f4f0);
   }
-  
+
   &.video {
-    background: linear-gradient(135deg, #FFA94D, #FFD93D);
+    background: linear-gradient(135deg, #fff0db, #ffe5bf);
   }
 }
 
 .quick-icon {
-  font-size: 44rpx;
+  font-size: 28rpx;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  letter-spacing: 1rpx;
 }
 
 .quick-label {
   font-size: $font-size-sm;
-  color: $color-text-secondary;
-  font-weight: $font-weight-medium;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
 }
 
-// 知识卡片
+.quick-sub {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
 .content-section {
   padding: 0 $spacing-4;
 }
 
-.knowledge-card {
-  background-color: $color-bg-card;
-  border-radius: $radius-lg;
-  padding: $spacing-5;
-  margin-bottom: $spacing-4;
-  box-shadow: $shadow-md;
-}
-
-.card-header {
-  margin-bottom: $spacing-3;
-}
-
-.card-title {
-  font-size: $font-size-md;
-  font-weight: $font-weight-bold;
-  color: $color-text-primary;
-}
-
-.card-content {
-  font-size: $font-size-base;
-  color: $color-text-secondary;
-  line-height: $line-height-relaxed;
-}
-
+.knowledge-card,
 .fun-card {
-  background: $gradient-secondary;
-  border-radius: $radius-xl;
-  padding: $spacing-5;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  border: 2rpx solid rgba(15, 23, 42, 0.05);
+  padding: $spacing-4;
   margin-bottom: $spacing-4;
-  box-shadow: 0 12rpx 32rpx rgba(78, 205, 196, 0.3);
-  position: relative;
-  overflow: hidden;
+  box-shadow: $shadow-sm;
 }
 
+.card-header,
 .fun-header {
-  display: flex;
-  align-items: center;
-  gap: $spacing-2;
-  margin-bottom: $spacing-3;
+  margin-bottom: $spacing-2;
 }
 
-.fun-icon {
-  font-size: 40rpx;
-}
-
+.card-title,
 .fun-title {
   font-size: $font-size-md;
   font-weight: $font-weight-bold;
-  color: $color-text-inverse;
+  color: $color-text-primary;
 }
 
+.card-content,
 .fun-content {
   font-size: $font-size-base;
-  color: rgba(255, 255, 255, 0.95);
   line-height: $line-height-relaxed;
+  color: $color-text-secondary;
 }
 
-.fun-decoration {
-  position: absolute;
-  top: -20rpx;
-  right: -20rpx;
-  display: flex;
-  gap: $spacing-2;
-  opacity: 0.3;
-}
-
-.decoration-emoji {
-  font-size: 80rpx;
-}
-
-// 相关推荐
 .related-section {
-  padding: $spacing-4;
+  padding: 0 $spacing-4 $spacing-4;
 }
 
 .section-header {
-  margin-bottom: $spacing-4;
+  margin-bottom: $spacing-3;
 }
 
 .section-title {
+  display: inline-flex;
+  align-items: center;
   font-size: $font-size-lg;
   font-weight: $font-weight-bold;
   color: $color-text-primary;
+
+  &::before {
+    content: '';
+    width: 8rpx;
+    height: 32rpx;
+    border-radius: $radius-full;
+    margin-right: $spacing-2;
+    background: $gradient-primary;
+  }
 }
 
 .related-scroll {
@@ -381,94 +321,118 @@
 
 .related-list {
   display: inline-flex;
-  gap: $spacing-4;
-  padding: $spacing-2 0;
+  gap: $spacing-3;
+  padding: $spacing-1 0;
 }
 
 .related-card {
-  width: 200rpx;
-  text-align: center;
-  transition: transform $duration-normal $ease-bounce;
-  
+  width: 210rpx;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  border: 2rpx solid rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+  transition: transform $duration-fast $ease-bounce;
+
   &:active {
-    transform: scale(0.95);
+    transform: scale(0.97);
   }
 }
 
 .related-image {
-  width: 200rpx;
+  width: 100%;
   height: 160rpx;
-  border-radius: $radius-lg;
-  box-shadow: $shadow-md;
-  margin-bottom: $spacing-2;
 }
 
 .related-name {
+  display: block;
+  padding: $spacing-2 $spacing-3;
   font-size: $font-size-sm;
   color: $color-text-primary;
   font-weight: $font-weight-medium;
 }
 
 .safe-bottom {
-  height: 180rpx;
+  height: 220rpx;
 }
 
-// 底部操作栏
 .bottom-bar {
   position: fixed;
+  left: $spacing-3;
+  right: $spacing-3;
   bottom: 0;
-  left: 0;
-  right: 0;
-  height: 140rpx;
-  background-color: $color-bg-card;
+  z-index: $z-fixed;
+  min-height: 104rpx;
+  padding: $spacing-2 $spacing-4 calc(env(safe-area-inset-bottom) + 8rpx);
+  border-radius: $radius-xl $radius-xl 0 0;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(16px);
+  border: 2rpx solid rgba(15, 23, 42, 0.08);
+  border-bottom: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 $spacing-4;
-  padding-bottom: env(safe-area-inset-bottom);
-  box-shadow: 0 -8rpx 32rpx rgba(0, 0, 0, 0.06);
+  box-shadow: 0 -8rpx 28rpx rgba(15, 23, 42, 0.1);
 }
 
 .bar-left {
   display: flex;
-  gap: $spacing-5;
+  align-items: center;
+  gap: $spacing-3;
 }
 
 .bar-btn {
+  min-width: 116rpx;
+  min-height: 68rpx;
+  padding: 0 $spacing-3;
+  border-radius: $radius-full;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 4rpx;
-  padding: $spacing-2;
-  transition: transform $duration-fast $ease-bounce;
-  
+  justify-content: center;
+  gap: 8rpx;
+  color: $color-text-secondary;
+  border: 2rpx solid transparent;
+  transition: transform $duration-fast $ease-bounce,
+    background-color $duration-fast $ease-out,
+    border-color $duration-fast $ease-out;
+
   &:active {
-    transform: scale(0.9);
+    transform: scale(0.95);
+  }
+
+  &.active {
+    color: $color-primary;
+    background: rgba($color-primary, 0.1);
+    border-color: rgba($color-primary, 0.2);
   }
 }
 
 .bar-icon {
-  font-size: 44rpx;
+  font-size: 24rpx;
+  line-height: 1;
 }
 
 .bar-text {
-  font-size: $font-size-xs;
-  color: $color-text-tertiary;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
 }
 
 .next-btn {
   @include button-primary;
-  padding: $spacing-3 $spacing-8;
+  min-width: 224rpx;
+  min-height: 80rpx;
+  padding: 0 $spacing-5;
+  gap: $spacing-1;
 }
 
 .next-text {
   font-size: $font-size-base;
-  color: $color-text-inverse;
   font-weight: $font-weight-semibold;
+  color: $color-text-inverse;
 }
 
 .next-arrow {
-  font-size: $font-size-base;
+  font-size: 34rpx;
   color: $color-text-inverse;
-  margin-left: $spacing-2;
+  line-height: 1;
 }

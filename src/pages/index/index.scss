@@ -22,8 +22,9 @@
   height: 88rpx;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   padding: 0 $spacing-4;
+  padding-right: 220rpx; // 避免与小程序右上角胶囊区域重叠
 }
 
 .nav-logo {
@@ -42,26 +43,6 @@
   font-weight: $font-weight-bold;
   color: $color-text-primary;
   letter-spacing: 2rpx;
-}
-
-.nav-actions {
-  display: flex;
-  gap: $spacing-2;
-}
-
-.nav-btn {
-  @include icon-button;
-  background: rgba($color-primary, 0.08);
-  border: 2rpx solid rgba($color-primary, 0.12);
-  
-  &:active {
-    background-color: rgba($color-primary, 0.16);
-  }
-}
-
-.nav-icon {
-  font-size: 34rpx;
-  color: $color-primary-dark;
 }
 
 .main-scroll {
