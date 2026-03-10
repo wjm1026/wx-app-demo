@@ -34,15 +34,39 @@
   pointer-events: none;
 }
 
-.deco-star {
+.deco-orb {
   position: absolute;
-  font-size: 32rpx;
-  opacity: 0.2;
+  border-radius: $radius-full;
+  opacity: 0.55;
+  filter: blur(4rpx);
   animation: float 4s ease-in-out infinite;
   
-  &.d1 { top: 20%; left: 10%; animation-delay: 0s; }
-  &.d2 { top: 40%; right: 15%; animation-delay: 1s; }
-  &.d3 { top: 60%; left: 20%; animation-delay: 2s; }
+  &.o1 {
+    width: 140rpx;
+    height: 140rpx;
+    top: 2%;
+    left: -20rpx;
+    background: radial-gradient(circle, rgba(147, 197, 253, 0.75) 0%, rgba(147, 197, 253, 0) 70%);
+    animation-delay: 0s;
+  }
+
+  &.o2 {
+    width: 110rpx;
+    height: 110rpx;
+    top: 34%;
+    right: 8%;
+    background: radial-gradient(circle, rgba(196, 181, 253, 0.75) 0%, rgba(196, 181, 253, 0) 70%);
+    animation-delay: 1s;
+  }
+
+  &.o3 {
+    width: 96rpx;
+    height: 96rpx;
+    bottom: 8%;
+    left: 18%;
+    background: radial-gradient(circle, rgba(167, 243, 208, 0.7) 0%, rgba(167, 243, 208, 0) 70%);
+    animation-delay: 2s;
+  }
 }
 
 // 用户信息
@@ -104,8 +128,9 @@
   border-radius: $radius-full;
 }
 
-.vip-icon {
-  font-size: 20rpx;
+.vip-icon-image {
+  width: 24rpx;
+  height: 24rpx;
 }
 
 .vip-text {
@@ -158,8 +183,9 @@
   &.invite { background: rgba(167, 139, 250, 0.3); }
 }
 
-.stat-icon {
-  font-size: 32rpx;
+.stat-icon-image {
+  width: 36rpx;
+  height: 36rpx;
 }
 
 .stat-value {
@@ -217,8 +243,9 @@
   gap: $spacing-3;
 }
 
-.task-icon {
-  font-size: 40rpx;
+.task-icon-image {
+  width: 40rpx;
+  height: 40rpx;
 }
 
 .task-info {
@@ -238,9 +265,10 @@
   font-weight: $font-weight-medium;
 }
 
-.task-arrow {
-  font-size: $font-size-base;
-  color: $color-text-tertiary;
+.task-arrow-image {
+  width: 28rpx;
+  height: 28rpx;
+  opacity: 0.82;
 }
 
 // 菜单区域
@@ -296,8 +324,9 @@
   &.admin { background: rgba(239, 68, 68, 0.12); }
 }
 
-.menu-icon {
-  font-size: 36rpx;
+.menu-icon-image {
+  width: 38rpx;
+  height: 38rpx;
 }
 
 .menu-title {
@@ -322,9 +351,11 @@
   }
 }
 
-.menu-arrow {
-  font-size: $font-size-base;
-  color: $color-text-tertiary;
+.menu-arrow-image {
+  width: 28rpx;
+  height: 28rpx;
+  opacity: 0.75;
+  margin-left: $spacing-1;
 }
 
 // 登录区域
@@ -346,8 +377,9 @@
   }
 }
 
-.login-icon {
-  font-size: 40rpx;
+.login-icon-image {
+  width: 40rpx;
+  height: 40rpx;
   margin-right: $spacing-2;
 }
 
@@ -363,4 +395,14 @@
 
 .safe-bottom {
   height: 160rpx;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8rpx);
+  }
 }

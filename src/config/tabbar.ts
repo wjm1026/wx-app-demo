@@ -9,19 +9,19 @@ export const TABBAR_ITEMS: TabbarItem[] = [
   {
     pagePath: '/pages/index/index',
     text: '首页',
-    icon: '/static/tabbar/home.png',
-    activeIcon: '/static/tabbar/home-active.png'
+    icon: '/static/icons/tabbar/home-line.svg',
+    activeIcon: '/static/icons/tabbar/home-solid.svg'
   },
   {
     pagePath: '/pages/category/category',
     text: '分类',
-    icon: '/static/tabbar/category.png',
-    activeIcon: '/static/tabbar/category-active.png'
+    icon: '/static/icons/tabbar/category-line.svg',
+    activeIcon: '/static/icons/tabbar/category-solid.svg'
   },
   {
     pagePath: '/pages/user/user',
     text: '我的',
-    icon: '/static/tabbar/user.png',
-    activeIcon: '/static/tabbar/user-active.png'
+    icon: '/static/icons/tabbar/user-line.svg',
+    activeIcon: '/static/icons/tabbar/user-solid.svg'
   }
 ]

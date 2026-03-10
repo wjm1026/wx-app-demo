@@ -4,9 +4,9 @@
     <view class="header" :style="{ paddingTop: statusBarHeight + 'px' }">
       <!-- 装饰背景 -->
       <view class="header-decoration">
-        <text class="deco-star d1">⭐</text>
-        <text class="deco-star d2">✨</text>
-        <text class="deco-star d3">🌟</text>
+        <view class="deco-orb o1"></view>
+        <view class="deco-orb o2"></view>
+        <view class="deco-orb o3"></view>
       </view>
       
       <!-- 用户信息 -->
@@ -19,7 +19,7 @@
           <view class="nickname-row">
             <text class="nickname">{{ userInfo.nickname || '点击登录' }}</text>
             <view v-if="userInfo.isVip" class="vip-tag">
-              <text class="vip-icon">👑</text>
+              <image class="vip-icon-image" src="/static/icons/line/crown.svg" mode="aspectFit" />
               <text class="vip-text">尊贵会员</text>
             </view>
           </view>
@@ -31,7 +31,7 @@
       <view class="stats-card">
         <view class="stat-item" @click="goPointsLog">
           <view class="stat-icon-wrapper points">
-            <text class="stat-icon">💰</text>
+            <image class="stat-icon-image" src="/static/icons/line/coins.svg" mode="aspectFit" />
           </view>
           <text class="stat-value">{{ userInfo.points }}</text>
           <text class="stat-label">积分</text>
@@ -39,7 +39,7 @@
         <view class="stat-divider"></view>
         <view class="stat-item">
           <view class="stat-icon-wrapper views">
-            <text class="stat-icon">🎫</text>
+            <image class="stat-icon-image" src="/static/icons/line/ticket.svg" mode="aspectFit" />
           </view>
           <text class="stat-value">{{ userInfo.freeViews }}</text>
           <text class="stat-label">免费次数</text>
@@ -47,7 +47,7 @@
         <view class="stat-divider"></view>
         <view class="stat-item" @click="goInvite">
           <view class="stat-icon-wrapper invite">
-            <text class="stat-icon">👥</text>
+            <image class="stat-icon-image" src="/static/icons/line/users.svg" mode="aspectFit" />
           </view>
           <text class="stat-value">{{ userInfo.inviteCount }}</text>
           <text class="stat-label">邀请人数</text>
@@ -58,23 +58,27 @@
       <view class="daily-tasks">
         <view class="task-card sign-in" :class="{ completed: hasSigned }" @click="doSignIn">
           <view class="task-content">
-            <text class="task-icon">{{ hasSigned ? '✅' : '📅' }}</text>
+            <image
+              class="task-icon-image"
+              :src="hasSigned ? '/static/icons/line/check-circle.svg' : '/static/icons/line/calendar.svg'"
+              mode="aspectFit"
+            />
             <view class="task-info">
               <text class="task-title">{{ hasSigned ? '已签到' : '每日签到' }}</text>
               <text class="task-reward">+5 积分</text>
             </view>
           </view>
-          <view class="task-arrow">→</view>
+          <image class="task-arrow-image" src="/static/icons/line/chevron-right.svg" mode="aspectFit" />
         </view>
         <view class="task-card watch-ad" @click="watchAd">
           <view class="task-content">
-            <text class="task-icon">🎬</text>
+            <image class="task-icon-image" src="/static/icons/line/video.svg" mode="aspectFit" />
             <view class="task-info">
               <text class="task-title">看视频</text>
               <text class="task-reward">+10 积分</text>
             </view>
           </view>
-          <view class="task-arrow">→</view>
+          <image class="task-arrow-image" src="/static/icons/line/chevron-right.svg" mode="aspectFit" />
         </view>
       </view>
     </view>
@@ -85,67 +89,67 @@
         <view class="menu-group">
           <view class="menu-item" @click="goFavorites">
             <view class="menu-icon-wrapper favorites">
-              <text class="menu-icon">❤️</text>
+              <image class="menu-icon-image" src="/static/icons/line/heart.svg" mode="aspectFit" />
             </view>
             <text class="menu-title">我的收藏</text>
-            <text class="menu-arrow">→</text>
+            <image class="menu-arrow-image" src="/static/icons/line/chevron-right.svg" mode="aspectFit" />
           </view>
           <view class="menu-item" @click="goAchievements">
             <view class="menu-icon-wrapper achievements">
-              <text class="menu-icon">🏆</text>
+              <image class="menu-icon-image" src="/static/icons/line/trophy.svg" mode="aspectFit" />
             </view>
             <text class="menu-title">学习成就</text>
-            <text class="menu-arrow">→</text>
+            <image class="menu-arrow-image" src="/static/icons/line/chevron-right.svg" mode="aspectFit" />
           </view>
           <view class="menu-item" @click="goInvite">
             <view class="menu-icon-wrapper invite">
-              <text class="menu-icon">🎁</text>
+              <image class="menu-icon-image" src="/static/icons/line/gift.svg" mode="aspectFit" />
             </view>
             <text class="menu-title">邀请好友</text>
             <view class="menu-badge">+100积分</view>
-            <text class="menu-arrow">→</text>
+            <image class="menu-arrow-image" src="/static/icons/line/chevron-right.svg" mode="aspectFit" />
           </view>
           <view class="menu-item" @click="goPointsLog">
             <view class="menu-icon-wrapper points">
-              <text class="menu-icon">📊</text>
+              <image class="menu-icon-image" src="/static/icons/line/bar-chart.svg" mode="aspectFit" />
             </view>
             <text class="menu-title">积分明细</text>
-            <text class="menu-arrow">→</text>
+            <image class="menu-arrow-image" src="/static/icons/line/chevron-right.svg" mode="aspectFit" />
           </view>
         </view>
 
         <view class="menu-group">
           <view class="menu-item" @click="goFeedback">
             <view class="menu-icon-wrapper feedback">
-              <text class="menu-icon">💬</text>
+              <image class="menu-icon-image" src="/static/icons/line/message.svg" mode="aspectFit" />
             </view>
             <text class="menu-title">意见反馈</text>
-            <text class="menu-arrow">→</text>
+            <image class="menu-arrow-image" src="/static/icons/line/chevron-right.svg" mode="aspectFit" />
           </view>
           <view class="menu-item" @click="goAbout">
             <view class="menu-icon-wrapper about">
-              <text class="menu-icon">ℹ️</text>
+              <image class="menu-icon-image" src="/static/icons/line/info.svg" mode="aspectFit" />
             </view>
             <text class="menu-title">关于我们</text>
-            <text class="menu-arrow">→</text>
+            <image class="menu-arrow-image" src="/static/icons/line/chevron-right.svg" mode="aspectFit" />
           </view>
           <button class="menu-item share-btn" open-type="share">
             <view class="menu-icon-wrapper share">
-              <text class="menu-icon">📤</text>
+              <image class="menu-icon-image" src="/static/icons/line/share.svg" mode="aspectFit" />
             </view>
             <text class="menu-title">分享给朋友</text>
-            <text class="menu-arrow">→</text>
+            <image class="menu-arrow-image" src="/static/icons/line/chevron-right.svg" mode="aspectFit" />
           </button>
         </view>
 
         <view v-if="store.isAdmin" class="menu-group">
           <view class="menu-item" @click="goAdmin">
             <view class="menu-icon-wrapper admin">
-              <text class="menu-icon">⚙️</text>
+              <image class="menu-icon-image" src="/static/icons/line/shield.svg" mode="aspectFit" />
             </view>
             <text class="menu-title">管理后台</text>
             <view class="menu-badge admin-badge">管理员</view>
-            <text class="menu-arrow">→</text>
+            <image class="menu-arrow-image" src="/static/icons/line/chevron-right.svg" mode="aspectFit" />
           </view>
         </view>
       </view>
@@ -153,7 +157,7 @@
       <!-- 登录按钮 -->
       <view v-if="!isLoggedIn" class="login-section">
         <view class="login-btn" @click="doLogin">
-          <text class="login-icon">💚</text>
+          <image class="login-icon-image" src="/static/icons/line/wechat.svg" mode="aspectFit" />
           <text class="login-text">微信一键登录</text>
         </view>
         <text class="login-tip">登录后可保存学习进度和收藏</text>
