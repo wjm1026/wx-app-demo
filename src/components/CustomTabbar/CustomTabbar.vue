@@ -7,18 +7,19 @@
       <!-- Tab Items -->
       <view 
         class="tab-item" 
+        :class="{ 'is-active': current === index }"
         v-for="(item, index) in list" 
         :key="item.pagePath"
         @click="switchTab(item, index)"
       >
-        <view class="icon-container" :class="{ 'is-active': current === index }">
+        <view class="icon-container">
           <image 
             class="tab-icon" 
             :src="current === index ? item.activeIcon : item.icon"
             mode="aspectFit"
           />
         </view>
-        <text class="tab-text" :class="{ 'is-active-text': current === index }">{{ item.text }}</text>
+        <text class="tab-text">{{ item.text }}</text>
       </view>
     </view>
   </view>

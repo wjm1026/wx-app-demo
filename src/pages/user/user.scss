@@ -7,9 +7,11 @@
 
 // 头部区域
 .header {
-  background: $gradient-primary;
+  background: linear-gradient(150deg, #ffffff 0%, #eef4ff 100%);
   padding-bottom: $spacing-5;
   border-radius: 0 0 $radius-2xl $radius-2xl;
+  border-bottom: 2rpx solid rgba(78, 104, 142, 0.08);
+  box-shadow: 0 10rpx 28rpx rgba(15, 23, 42, 0.08);
   position: relative;
   overflow: hidden;
 }
@@ -26,7 +28,7 @@
 .deco-star {
   position: absolute;
   font-size: 32rpx;
-  opacity: 0.3;
+  opacity: 0.2;
   animation: float 4s ease-in-out infinite;
   
   &.d1 { top: 20%; left: 10%; animation-delay: 0s; }
@@ -50,8 +52,8 @@
   width: 140rpx;
   height: 140rpx;
   border-radius: $radius-full;
-  border: 6rpx solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.15);
+  border: 6rpx solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 10rpx 24rpx rgba(15, 23, 42, 0.14);
 }
 
 .vip-badge {
@@ -81,7 +83,7 @@
 .nickname {
   font-size: $font-size-xl;
   font-weight: $font-weight-bold;
-  color: $color-text-inverse;
+  color: $color-text-primary;
 }
 
 .vip-tag {
@@ -89,7 +91,7 @@
   align-items: center;
   gap: 4rpx;
   padding: 4rpx 12rpx;
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba($color-primary, 0.12);
   border-radius: $radius-full;
 }
 
@@ -99,12 +101,12 @@
 
 .vip-text {
   font-size: 20rpx;
-  color: $color-text-inverse;
+  color: $color-primary-dark;
 }
 
 .user-id {
   font-size: $font-size-sm;
-  color: rgba(255, 255, 255, 0.8);
+  color: $color-text-secondary;
 }
 
 // 统计卡片
@@ -114,9 +116,11 @@
   justify-content: space-around;
   margin: 0 $spacing-4;
   padding: $spacing-4;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.96);
+  border: 2rpx solid rgba(78, 104, 142, 0.1);
   border-radius: $radius-lg;
   backdrop-filter: blur(10px);
+  box-shadow: $shadow-md;
 }
 
 .stat-item {
@@ -152,18 +156,18 @@
 .stat-value {
   font-size: $font-size-xl;
   font-weight: $font-weight-bold;
-  color: $color-text-inverse;
+  color: $color-text-primary;
 }
 
 .stat-label {
   font-size: $font-size-xs;
-  color: rgba(255, 255, 255, 0.85);
+  color: $color-text-secondary;
 }
 
 .stat-divider {
   width: 2rpx;
   height: 80rpx;
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(78, 104, 142, 0.16);
 }
 
 // 每日任务

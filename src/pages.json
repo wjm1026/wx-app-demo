@@ -85,17 +85,17 @@
     }
   ],
   "globalStyle": {
-    "navigationBarTextStyle": "white",
+    "navigationBarTextStyle": "black",
     "navigationBarTitleText": "宝宝识物",
-    "navigationBarBackgroundColor": "#FF6B6B",
-    "backgroundColor": "#FFF9F0",
-    "backgroundColorTop": "#FFF9F0",
-    "backgroundColorBottom": "#FFF9F0"
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#F4F6FA",
+    "backgroundColorTop": "#F4F6FA",
+    "backgroundColorBottom": "#F4F6FA"
   },
   "tabBar": {
     "custom": true,
-    "color": "#999999",
-    "selectedColor": "#FF6B6B",
+    "color": "#8D98AB",
+    "selectedColor": "#FF5D6E",
     "borderStyle": "black",
     "backgroundColor": "#FFFFFF",
     "list": [

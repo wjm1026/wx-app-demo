@@ -13,15 +13,15 @@
 // COLOR PALETTE - Playful & Childlike
 // ============================================
 
-// Primary Colors - Warm & Inviting
-$color-primary: #FF6B6B;           // Coral Red - Main brand
-$color-primary-light: #FF8E8E;     // Light coral
-$color-primary-dark: #E85555;      // Dark coral
+// Primary Colors - Warm but cleaner
+$color-primary: #FF5D6E;           // Watermelon Red
+$color-primary-light: #FF7A6A;     // Soft coral
+$color-primary-dark: #E64858;      // Deep red
 
-// Secondary Colors - Fresh & Fun
-$color-secondary: #4ECDC4;         // Turquoise
-$color-secondary-light: #6EDDD4;   // Light turquoise
-$color-secondary-dark: #3DBDB4;    // Dark turquoise
+// Secondary Colors - Calm freshness
+$color-secondary: #28B7A6;         // Jade teal
+$color-secondary-light: #45CFC0;   // Bright teal
+$color-secondary-dark: #1E9688;    // Deep teal
 
 // Accent Colors - Playful Rainbow
 $color-accent-yellow: #FFE66D;     // Sunny yellow
@@ -37,26 +37,26 @@ $color-warning: #F59E0B;           // Warning amber
 $color-error: #EF4444;             // Error red
 $color-info: #3B82F6;              // Info blue
 
-// Background Colors - Soft & Warm
-$color-bg-primary: #FFFBF5;        // Warm cream (main bg)
-$color-bg-secondary: #FFF5EB;      // Peach tint
+// Background Colors - Soft neutral
+$color-bg-primary: #F4F6FA;        // Cool gray-blue
+$color-bg-secondary: #ECF1F8;      // Secondary surface
 $color-bg-card: #FFFFFF;           // White cards
 $color-bg-overlay: rgba(0, 0, 0, 0.4);
 
 // Text Colors - High Contrast
 $color-text-primary: #1F2937;      // Near black (WCAG AAA)
-$color-text-secondary: #4B5563;    // Dark gray
-$color-text-tertiary: #9CA3AF;     // Medium gray
+$color-text-secondary: #4F5D73;    // Secondary text
+$color-text-tertiary: #93A0B4;     // Tertiary text
 $color-text-inverse: #FFFFFF;      // White text
-$color-text-placeholder: #D1D5DB;  // Light gray
+$color-text-placeholder: #B4BFCE;  // Placeholder text
 
 // Border & Shadow
-$color-border: #F3F4F6;            // Very light gray
+$color-border: #E4EAF3;            // Surface border
 $color-border-focus: $color-primary;
-$shadow-sm: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
-$shadow-md: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
-$shadow-lg: 0 16rpx 48rpx rgba(0, 0, 0, 0.12);
-$shadow-colored: 0 8rpx 24rpx rgba(255, 107, 107, 0.25);
+$shadow-sm: 0 2rpx 10rpx rgba(15, 23, 42, 0.06);
+$shadow-md: 0 8rpx 28rpx rgba(15, 23, 42, 0.1);
+$shadow-lg: 0 18rpx 48rpx rgba(15, 23, 42, 0.14);
+$shadow-colored: 0 10rpx 26rpx rgba(255, 93, 110, 0.28);
 
 // ============================================
 // TYPOGRAPHY - Friendly & Readable
@@ -153,13 +153,13 @@ $z-toast: 100;
 // GRADIENTS - Fun & Vibrant
 // ============================================
 
-$gradient-primary: linear-gradient(135deg, $color-primary, $color-primary-light);
-$gradient-secondary: linear-gradient(135deg, $color-secondary, $color-secondary-light);
-$gradient-sunset: linear-gradient(135deg, #FF6B6B, #FFA94D);
-$gradient-ocean: linear-gradient(135deg, #4ECDC4, #60A5FA);
-$gradient-candy: linear-gradient(135deg, #F472B6, #A78BFA);
-$gradient-forest: linear-gradient(135deg, #34D399, #4ECDC4);
-$gradient-rainbow: linear-gradient(135deg, #FF6B6B, #FFA94D, #FFE66D, #34D399, #60A5FA, #A78BFA);
+$gradient-primary: linear-gradient(135deg, #FF7A6A, #FF5D6E);
+$gradient-secondary: linear-gradient(135deg, #45CFC0, #31B6D8);
+$gradient-sunset: linear-gradient(135deg, #FF8E63, #FF5D6E);
+$gradient-ocean: linear-gradient(135deg, #28B7A6, #3B82F6);
+$gradient-candy: linear-gradient(135deg, #FF7DA8, #8B8DF3);
+$gradient-forest: linear-gradient(135deg, #34C88A, #28B7A6);
+$gradient-rainbow: linear-gradient(135deg, #FF7A6A, #FFB45C, #FFD85E, #34C88A, #4EA7FF, #8B8DF3);
 
 // Category-specific gradients
 $gradient-animal: linear-gradient(135deg, #FF9F7F, #FFB347);
@@ -273,7 +273,7 @@ $clay-shadow-active: inset 6rpx 6rpx 12rpx rgba(0, 0, 0, 0.08), inset -6rpx -6rp
   box-shadow: $shadow-colored;
   
   &:active {
-    box-shadow: 0 4rpx 16rpx rgba(255, 107, 107, 0.3);
+    box-shadow: 0 6rpx 18rpx rgba($color-primary, 0.35);
   }
 }
 
@@ -281,7 +281,7 @@ $clay-shadow-active: inset 6rpx 6rpx 12rpx rgba(0, 0, 0, 0.08), inset -6rpx -6rp
   @include button-base;
   background: $gradient-secondary;
   color: $color-text-inverse;
-  box-shadow: 0 8rpx 24rpx rgba(78, 205, 196, 0.25);
+  box-shadow: 0 8rpx 24rpx rgba($color-secondary, 0.3);
 }
 
 @mixin button-ghost {
