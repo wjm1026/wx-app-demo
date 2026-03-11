@@ -14,8 +14,6 @@ onHide(() => {
 </script>
 
 <style lang="scss">
-@import './styles/design-system.scss';
-
 /* 全局基础样式 */
 page {
   font-family: $font-family-base;

@@ -167,7 +167,7 @@
       <view class="safe-bottom"></view>
     </scroll-view>
 
-    <CustomTabbar :current="2" />
+    <CustomTabbar :current="2" :reserve-space="false" />
   </view>
 </template>
 

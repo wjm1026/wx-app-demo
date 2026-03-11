@@ -2,19 +2,15 @@
   <view class="page">
     <!-- 自定义导航栏 -->
     <view class="nav-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
-      <view class="nav-content">
-        <view class="nav-logo">
+      <view class="nav-content" :style="navContentStyle">
+        <view class="nav-logo" :style="navLogoStyle">
           <text class="logo-icon">🐣</text>
           <text class="nav-title">宝宝识物</text>
         </view>
       </view>
     </view>
 
-    <scroll-view
-      scroll-y
-      class="main-scroll"
-      :style="{ paddingTop: navBarHeight + 'px' }"
-    >
+    <view class="main-scroll" :style="mainScrollStyle">
       <!-- 欢迎横幅 -->
       <view class="welcome-banner">
         <view class="welcome-content">
@@ -50,7 +46,32 @@
             <text class="more-arrow">→</text>
           </view>
         </view>
-        <view class="category-grid">
+        <scroll-view
+          v-if="useCategoryBanner"
+          scroll-x
+          class="category-scroll"
+          :show-scrollbar="false"
+        >
+          <view class="category-row">
+            <view
+              v-for="(item, index) in categories"
+              :key="item._id"
+              class="category-card"
+              :class="'delay-' + index"
+              @click="goCategoryDetail(item._id)"
+            >
+              <view
+                class="category-icon-wrapper"
+                :style="{ background: item.gradient }"
+              >
+                <text class="category-emoji">{{ item.icon }}</text>
+              </view>
+              <text class="category-name">{{ item.name }}</text>
+              <text class="category-count">{{ item.card_count || 0 }}个</text>
+            </view>
+          </view>
+        </scroll-view>
+        <view v-else class="category-grid">
           <view
             v-for="(item, index) in categories"
             :key="item._id"
@@ -184,16 +205,17 @@
       </view>
 
       <view class="safe-bottom"></view>
-    </scroll-view>
-    <CustomTabbar :current="0" />
+    </view>
+    <CustomTabbar :current="0" :reserve-space="false" />
   </view>
 </template>
 
 <script setup lang="ts">
-import { onLoad } from "@dcloudio/uni-app";
-import { ref, computed } from "vue";
+import { onLoad, onReady, onShow } from "@dcloudio/uni-app";
+import { ref, computed, nextTick } from "vue";
 import {
   formatNumber,
+  getSystemInfo,
   navigateTo,
 } from "@/utils";
 import CustomTabbar from "@/components/CustomTabbar/CustomTabbar.vue";
@@ -201,6 +223,58 @@ import { cardApi, type Category, type Card } from "@/api";
 import { usePageLayout } from "@/composables/usePageLayout";
 
 const { statusBarHeight, navBarHeight } = usePageLayout();
+const menuButtonInsetPx = getMenuButtonInsetPx();
+const measuredNavBarHeight = ref(0);
+const contentTopGapPx = uni.upx2px(32);
+
+const navContentStyle = computed(() => ({
+  paddingRight: `${menuButtonInsetPx}px`,
+}));
+
+const navLogoStyle = computed(() => ({
+  maxWidth: `calc(100% - ${Math.max(menuButtonInsetPx - uni.upx2px(24), 0)}px)`,
+}));
+
+const mainScrollStyle = computed(() => ({
+  paddingTop: `${resolvedNavBarHeight.value + contentTopGapPx}px`,
+}));
+
+const resolvedNavBarHeight = computed(() =>
+  measuredNavBarHeight.value || navBarHeight.value,
+);
+
+function getMenuButtonInsetPx() {
+  const systemInfo = getSystemInfo();
+  const menuButtonInfo = uni.getMenuButtonBoundingClientRect?.();
+
+  if (!menuButtonInfo || !systemInfo.windowWidth) {
+    return uni.upx2px(220);
+  }
+
+  return Math.ceil(systemInfo.windowWidth - menuButtonInfo.left + uni.upx2px(24));
+}
+
+function getNodeRect(rect: UniApp.NodeInfo | UniApp.NodeInfo[] | null | undefined) {
+  if (!rect) {
+    return null;
+  }
+
+  return Array.isArray(rect) ? rect[0] || null : rect;
+}
+
+function updateNavBarHeight() {
+  nextTick(() => {
+    uni.createSelectorQuery()
+      .select(".nav-bar")
+      .boundingClientRect((rect) => {
+        const nodeRect = getNodeRect(rect);
+        if (nodeRect?.height) {
+          measuredNavBarHeight.value = nodeRect.height;
+        }
+      })
+      .exec();
+  });
+}
 
 const categories = ref<Category[]>([]);
 const hotCards = ref<Card[]>([]);
@@ -227,6 +301,15 @@ const loadData = async () => {
 
 onLoad(() => {
   loadData();
+  updateNavBarHeight();
+});
+
+onReady(() => {
+  updateNavBarHeight();
+});
+
+onShow(() => {
+  updateNavBarHeight();
 });
 
 const todayStats = ref({
@@ -242,6 +325,7 @@ const remainCards = computed(() =>
 const progressPercent = computed(() =>
   Math.min(100, (todayStats.value.learned / dailyGoal) * 100),
 );
+const useCategoryBanner = computed(() => categories.value.length > 4);
 
 const NEW_CARD_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 

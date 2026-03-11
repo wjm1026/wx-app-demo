@@ -1,9 +1,7 @@
-@import '@/styles/design-system.scss';
-
 .page {
-  min-height: 100vh;
+  height: 100vh;
   background-color: $color-bg-primary;
-  padding-bottom: env(safe-area-inset-bottom);
+  overflow: hidden;
 }
 
 .nav-bar {
@@ -39,12 +37,16 @@
 }
 
 .page-content {
-  min-height: 100vh;
+  width: 100%;
+}
+
+.page-content-inner {
+  width: 100%;
 }
 
 // 页面标题
 .page-header {
-  margin: $spacing-4;
+  margin: 0 $spacing-4 $spacing-4;
   padding: $spacing-5 $spacing-4;
   background: linear-gradient(145deg, #ffffff, #eef3ff);
   border-radius: $radius-lg;
@@ -339,5 +341,5 @@
 }
 
 .safe-bottom {
-  height: 120rpx;
+  height: 0;
 }

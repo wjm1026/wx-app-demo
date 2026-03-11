@@ -127,8 +127,6 @@ function formatDate(timestamp: number | string): string {
 </script>
 
 <style scoped lang="scss">
-@import '@/styles/design-system.scss';
-
 .page {
   min-height: 100vh;
   background-color: $color-bg-primary;

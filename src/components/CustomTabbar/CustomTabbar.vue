@@ -1,6 +1,6 @@
 <template>
   <view class="tabbar-wrapper">
-    <view class="tabbar-placeholder"></view>
+    <view v-if="reserveSpace" class="tabbar-placeholder"></view>
 
     <view class="tabbar-shell">
       <view
@@ -26,9 +26,15 @@
 <script setup lang="ts">
 import { TABBAR_ITEMS } from '@/config/tabbar'
 
-const props = defineProps<{
-  current: number
-}>()
+const props = withDefaults(
+  defineProps<{
+    current: number
+    reserveSpace?: boolean
+  }>(),
+  {
+    reserveSpace: true
+  }
+)
 
 const list = TABBAR_ITEMS
 

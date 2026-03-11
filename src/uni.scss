@@ -4,9 +4,11 @@
  * Design System: Playful & Childlike (童趣活泼)
  * Based on UI/UX Pro Max Skill Guidelines
  * 
- * Note: design-system.scss is imported directly in each component
- * because uni.scss path resolution differs per component location
+ * Note: design-system.scss is loaded here once so page styles can use
+ * shared tokens without per-file Sass imports.
  */
+
+@use '@/styles/design-system.scss' as *;
 
 /* 主题色 - 儿童风格 */
 $uni-color-primary: #FF6B6B;

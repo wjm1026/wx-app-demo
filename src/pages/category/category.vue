@@ -7,7 +7,8 @@
       </view>
     </view>
 
-    <view class="page-content" :style="{ paddingTop: navBarHeight + 'px' }">
+    <scroll-view :scroll-y="enableScroll" class="page-content" :style="contentScrollStyle">
+      <view class="page-content-inner">
       <!-- 页面标题 -->
       <view class="page-header">
         <text class="page-title">🎨 分类探索</text>
@@ -104,17 +105,18 @@
         </view>
       </view>
 
+      </view>
       <!-- 底部安全区 -->
-      <view class="safe-bottom"></view>
-    </view>
-    <CustomTabbar :current="1" />
+      <view class="safe-bottom" :style="safeBottomStyle"></view>
+    </scroll-view>
+    <CustomTabbar :current="1" :reserve-space="false" />
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
-import { navigateTo } from '@/utils'
+import { computed, nextTick, ref, watch } from 'vue'
+import { onReady, onShow } from '@dcloudio/uni-app'
+import { getSystemInfo, navigateTo } from '@/utils'
 import CustomTabbar from '@/components/CustomTabbar/CustomTabbar.vue'
 import { cardApi, type Category, type Card } from '@/api'
 import { usePageLayout } from '@/composables/usePageLayout'
@@ -129,10 +131,82 @@ interface CategoryWithCards extends Category {
 const categories = ref<CategoryWithCards[]>([])
 const expandedIds = ref<string[]>([])
 const isInitialLoading = ref(true)
+const enableScroll = ref(false)
 const { statusBarHeight, navBarHeight } = usePageLayout()
+const tabbarSpacerPx = getTabbarSpacerPx()
+const measuredNavBarHeight = ref(0)
+const contentTopGapPx = uni.upx2px(32)
+
+const contentScrollStyle = computed(() => ({
+  marginTop: `${resolvedNavBarHeight.value + contentTopGapPx}px`,
+  height: `calc(100vh - ${resolvedNavBarHeight.value + contentTopGapPx}px)`
+}))
+
+const resolvedNavBarHeight = computed(() =>
+  measuredNavBarHeight.value || navBarHeight.value
+)
+
+const safeBottomStyle = computed(() => ({
+  height: enableScroll.value ? `${tabbarSpacerPx}px` : '0px'
+}))
+
+function getTabbarSpacerPx() {
+  const systemInfo = getSystemInfo() as UniApp.GetSystemInfoResult & {
+    safeAreaInsets?: {
+      bottom?: number
+    }
+  }
+
+  return uni.upx2px(160) + (systemInfo.safeAreaInsets?.bottom || 0)
+}
+
+function getNodeRect(rect: UniApp.NodeInfo | UniApp.NodeInfo[] | null | undefined) {
+  if (!rect) {
+    return null
+  }
+
+  return Array.isArray(rect) ? rect[0] || null : rect
+}
+
+function updateNavBarHeight() {
+  nextTick(() => {
+    uni.createSelectorQuery()
+      .select('.nav-bar')
+      .boundingClientRect((rect) => {
+        const nodeRect = getNodeRect(rect)
+        if (nodeRect?.height) {
+          measuredNavBarHeight.value = nodeRect.height
+        }
+      })
+      .exec()
+  })
+}
+
+function updateScrollState() {
+  nextTick(() => {
+    uni.createSelectorQuery()
+      .select('.page-content')
+      .boundingClientRect()
+      .select('.page-content-inner')
+      .boundingClientRect()
+      .exec((result) => {
+        const containerRect = getNodeRect(result?.[0])
+        const innerRect = getNodeRect(result?.[1])
+        if (!containerRect?.height || !innerRect?.height) {
+          enableScroll.value = false
+          return
+        }
+
+        enableScroll.value =
+          innerRect.height + tabbarSpacerPx - containerRect.height > 2
+      })
+  })
+}
 
 onShow(async () => {
+  updateNavBarHeight()
   await loadCategories()
+  updateScrollState()
   
   try {
     const targetId = uni.getStorageSync('TARGET_CATEGORY_ID')
@@ -145,6 +219,10 @@ onShow(async () => {
   } catch (e) {
     console.error('读取分类参数失败', e)
   }
+})
+
+onReady(() => {
+  updateNavBarHeight()
 })
 
 async function loadCategories() {
@@ -174,6 +252,7 @@ async function loadCategories() {
     console.error('加载分类失败:', e)
   } finally {
     isInitialLoading.value = false
+    updateScrollState()
   }
 }
 
@@ -203,6 +282,7 @@ async function loadCards(categoryId: string) {
     console.error('加载卡片失败:', e)
   } finally {
     category.isLoading = false
+    updateScrollState()
   }
 }
 
@@ -218,6 +298,8 @@ function toggleExpand(id: string) {
       loadCards(id)
     }
   }
+
+  updateScrollState()
 }
 
 function goCardDetail(id: string) {
@@ -227,6 +309,27 @@ function goCardDetail(id: string) {
 function loadMore(categoryId: string) {
   loadCards(categoryId)
 }
+
+watch(
+  () => categories.value.map((item) => ({
+    id: item._id,
+    count: item.cards.length,
+    loading: item.isLoading,
+    hasMore: item.hasMore,
+  })),
+  () => {
+    updateScrollState()
+  },
+  { deep: true }
+)
+
+watch(
+  expandedIds,
+  () => {
+    updateScrollState()
+  },
+  { deep: true }
+)
 </script>
 
 <style src="./category.scss" scoped lang="scss"></style>
