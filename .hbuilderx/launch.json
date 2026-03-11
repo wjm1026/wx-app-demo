@@ -3,10 +3,10 @@
     "configurations" : [
         {
             "default" : {
-                "launchtype" : "local"
+                "launchtype" : "remote"
             },
             "mp-weixin" : {
-                "launchtype" : "local"
+                "launchtype" : "remote"
             },
             "provider" : "aliyun",
             "type" : "uniCloud"
