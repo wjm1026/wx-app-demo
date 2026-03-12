@@ -1,0 +1,193 @@
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-primary;
+  padding-bottom: 40rpx;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 20rpx 24rpx 0;
+  box-shadow: $shadow-sm;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background-color: $color-bg-secondary;
+  border-radius: $radius-full;
+  padding: 16rpx 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.search-icon {
+  font-size: 32rpx;
+  margin-right: 16rpx;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: $color-text-primary;
+  height: 40rpx;
+  line-height: 40rpx;
+}
+
+.clear-icon {
+  font-size: 28rpx;
+  color: $color-text-tertiary;
+  padding: 8rpx;
+}
+
+.tabs {
+  display: flex;
+  justify-content: space-around;
+  padding-bottom: 0;
+}
+
+.tab-item {
+  font-size: 30rpx;
+  color: $color-text-secondary;
+  padding: 20rpx 32rpx;
+  position: relative;
+  transition: all 0.3s;
+
+  &.active {
+    color: $color-primary;
+    font-weight: 600;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 40rpx;
+      height: 6rpx;
+      background: $color-primary;
+      border-radius: $radius-full;
+    }
+  }
+}
+
+.user-list {
+  padding: 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.user-card {
+  display: flex;
+  align-items: center;
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: 24rpx;
+  box-shadow: $shadow-sm;
+  transition: all 0.2s;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.user-avatar {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: $radius-full;
+  margin-right: 24rpx;
+  border: 2rpx solid $color-border;
+  background-color: $color-bg-secondary;
+}
+
+.user-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.info-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8rpx;
+}
+
+.user-name {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: $color-text-primary;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 60%;
+}
+
+.status-badge {
+  font-size: 22rpx;
+  padding: 4rpx 16rpx;
+  border-radius: $radius-full;
+
+  &.status-normal {
+    background-color: rgba($color-success, 0.1);
+    color: $color-success;
+  }
+
+  &.status-banned {
+    background-color: rgba($color-error, 0.1);
+    color: $color-error;
+  }
+}
+
+.info-stats {
+  font-size: 24rpx;
+  color: $color-text-secondary;
+  margin-bottom: 8rpx;
+  display: flex;
+  align-items: center;
+}
+
+.stat-divider {
+  margin: 0 12rpx;
+  color: $color-border;
+}
+
+.user-time {
+  font-size: 22rpx;
+  color: $color-text-tertiary;
+  display: block;
+}
+
+.arrow-icon {
+  font-size: 40rpx;
+  color: $color-text-tertiary;
+  margin-left: 16rpx;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 100rpx 0;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 24rpx;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: $color-text-tertiary;
+}
+
+.loading-state,
+.load-more,
+.no-more {
+  text-align: center;
+  padding: 24rpx;
+  font-size: 24rpx;
+  color: $color-text-tertiary;
+}

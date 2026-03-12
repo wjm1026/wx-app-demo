@@ -1,0 +1,238 @@
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-primary;
+}
+
+.invite-header {
+  background: linear-gradient(135deg, $color-primary, $color-primary-light);
+  padding: $spacing-6 $spacing-4;
+}
+
+.reward-card {
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-5;
+  text-align: center;
+  box-shadow: $shadow-md;
+}
+
+.reward-title {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  display: block;
+}
+
+.reward-desc {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  margin-top: $spacing-2;
+  display: block;
+}
+
+.reward-items {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: $spacing-5;
+}
+
+.reward-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.reward-value {
+  font-size: 48rpx;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+}
+
+.reward-label {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: $spacing-1;
+}
+
+.reward-divider {
+  margin: 0 $spacing-6;
+}
+
+.reward-icon {
+  font-size: 48rpx;
+}
+
+.invite-code-section {
+  padding: $spacing-4;
+}
+
+.section-title {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-3;
+  display: block;
+}
+
+.code-box {
+  display: flex;
+  align-items: center;
+  background-color: $color-bg-card;
+  border-radius: $radius-md;
+  padding: $spacing-4;
+  box-shadow: $shadow-sm;
+}
+
+.invite-code {
+  flex: 1;
+  font-size: 48rpx;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+  letter-spacing: 8rpx;
+}
+
+.copy-btn {
+  padding: $spacing-2 $spacing-4;
+  background: linear-gradient(135deg, $color-secondary, $color-secondary-light);
+  border-radius: $radius-full;
+  box-shadow: 0 4rpx 12rpx rgba($color-secondary, 0.3);
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+}
+
+.copy-text {
+  font-size: $font-size-sm;
+  color: $color-text-inverse;
+  font-weight: $font-weight-medium;
+}
+
+.share-section {
+  padding: 0 $spacing-4 $spacing-4;
+}
+
+.share-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2;
+}
+
+.share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100rpx;
+  border-radius: $radius-md;
+  border: none;
+  background-color: $color-bg-card;
+  box-shadow: $shadow-sm;
+
+  &::after {
+    border: none;
+  }
+
+  &:active {
+    background-color: #fafafa;
+  }
+}
+
+.share-btn.wechat {
+  background: linear-gradient(135deg, #07c160, #10d56a);
+}
+
+.share-btn.wechat .share-text {
+  color: $color-text-inverse;
+}
+
+.share-icon {
+  font-size: $font-size-lg;
+  margin-right: $spacing-2;
+}
+
+.share-text {
+  font-size: $font-size-base;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+}
+
+.invited-section {
+  padding: 0 $spacing-4 $spacing-4;
+}
+
+.section-header {
+  margin-bottom: $spacing-3;
+}
+
+.empty-invited {
+  background-color: $color-bg-card;
+  border-radius: $radius-md;
+  padding: $spacing-8;
+  text-align: center;
+}
+
+.empty-text {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.loading-state {
+  padding: $spacing-8;
+  text-align: center;
+}
+
+.loading-text {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.invited-list {
+  background-color: $color-bg-card;
+  border-radius: $radius-md;
+  overflow: hidden;
+  box-shadow: $shadow-sm;
+}
+
+.invited-item {
+  display: flex;
+  align-items: center;
+  padding: $spacing-3;
+  border-bottom: 1rpx solid $color-border;
+}
+
+.invited-item:last-child {
+  border-bottom: none;
+}
+
+.invited-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  margin-right: $spacing-2;
+  background-color: $color-bg-secondary;
+}
+
+.invited-info {
+  flex: 1;
+}
+
+.invited-name {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  display: block;
+}
+
+.invited-time {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: 4rpx;
+  display: block;
+}
+
+.invited-reward {
+  font-size: $font-size-sm;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+}

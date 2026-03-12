@@ -120,7 +120,7 @@
       <!-- 搜索结果 -->
       <scroll-view v-if="hasSearched && searchResults.length > 0" scroll-y class="results-scroll">
         <view class="results-header">
-          <text class="results-count">共 {{ searchResults.length }} 个结果</text>
+          <text class="results-count">共 {{ resultTotal }} 个结果</text>
           <view class="filter-btn">
             <text class="filter-text">按热度</text>
           </view>
@@ -159,138 +159,30 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
-import { formatNumber, navigateBack, navigateTo, showToast } from '@/utils'
-import { cardApi, type Card, type Category } from '@/api'
-import { usePageLayout } from '@/composables/usePageLayout'
+import { useSearchPage } from './useSearchPage'
 
-const HISTORY_KEY = 'SEARCH_HISTORY'
-
-const keyword = ref('')
-const hasSearched = ref(false)
-const isSearching = ref(false)
-const searchResults = ref<Card[]>([])
-const searchHistory = ref<string[]>([])
-const categoryMap = ref<Record<string, Category>>({})
-const { statusBarHeight, navBarHeight } = usePageLayout()
-
-const hotKeywords = ref(['老虎', '苹果', '汽车', '香蕉', '狮子', '飞机', '西瓜', '熊猫', '大象', '火车'])
-const emptySuggestions = ref(['动物', '水果', '交通工具'])
-
-const suggestions = computed(() => {
-  if (!keyword.value.trim()) return []
-  const allWords = ['老虎', '狮子', '苹果', '香蕉', '汽车', '飞机', '熊猫', '大象', '西瓜', '火车']
-  return allWords.filter(w => w.includes(keyword.value)).slice(0, 5)
-})
-
-onLoad(() => {
-  restoreHistory()
-  loadCategories()
-})
-
-async function loadCategories() {
-  try {
-    const res = await cardApi.getCategories()
-    if (res.code === 0 && res.data) {
-      const map: Record<string, Category> = {}
-      res.data.forEach((cat) => {
-        map[cat._id] = cat
-      })
-      categoryMap.value = map
-    }
-  } catch (e) {
-    console.error('加载分类失败:', e)
-  }
-}
-
-function restoreHistory() {
-  const stored = uni.getStorageSync(HISTORY_KEY)
-  if (!stored) return
-  try {
-    const list = JSON.parse(stored)
-    if (Array.isArray(list)) {
-      searchHistory.value = list
-    }
-  } catch (e) {
-    // ignore invalid cache
-  }
-}
-
-function persistHistory() {
-  uni.setStorageSync(HISTORY_KEY, JSON.stringify(searchHistory.value))
-}
-
-function onInput() {
-  hasSearched.value = false
-  searchResults.value = []
-}
-
-async function doSearch() {
-  const term = keyword.value.trim()
-  if (!term || isSearching.value) return
-
-  hasSearched.value = true
-  isSearching.value = true
-
-  // 添加到搜索历史
-  if (!searchHistory.value.includes(term)) {
-    searchHistory.value.unshift(term)
-    if (searchHistory.value.length > 10) {
-      searchHistory.value.pop()
-    }
-    persistHistory()
-  }
-
-  try {
-    const res = await cardApi.searchCards({ keyword: term, page: 1, pageSize: 50 })
-    if (res.code === 0 && res.data) {
-      searchResults.value = res.data.list || []
-    } else {
-      searchResults.value = []
-      showToast(res.msg || '搜索失败')
-    }
-  } catch (e) {
-    console.error('搜索失败:', e)
-    searchResults.value = []
-    showToast('搜索失败，请稍后重试')
-  } finally {
-    isSearching.value = false
-  }
-}
-
-function searchKeyword(word: string) {
-  keyword.value = word
-  doSearch()
-}
-
-function clearKeyword() {
-  keyword.value = ''
-  hasSearched.value = false
-  searchResults.value = []
-}
-
-function clearHistory() {
-  searchHistory.value = []
-  persistHistory()
-  showToast('已清空搜索历史')
-}
-
-function getCategoryName(card: Card) {
-  return categoryMap.value[card.category_id]?.name || '未分类'
-}
-
-function getCategoryBackground(card: Card) {
-  return categoryMap.value[card.category_id]?.gradient || 'rgba(96, 165, 250, 0.9)'
-}
-
-function goBack() {
-  navigateBack()
-}
-
-function goCardDetail(id: string) {
-  navigateTo(`/pages/card/detail?id=${id}`)
-}
+const {
+  clearHistory,
+  clearKeyword,
+  doSearch,
+  emptySuggestions,
+  formatNumber,
+  getCategoryBackground,
+  getCategoryName,
+  goBack,
+  goCardDetail,
+  hasSearched,
+  hotKeywords,
+  keyword,
+  navBarHeight,
+  onInput,
+  resultTotal,
+  searchHistory,
+  searchKeyword,
+  searchResults,
+  statusBarHeight,
+  suggestions,
+} = useSearchPage()
 </script>
 
 <style src="./search.scss" scoped lang="scss"></style>

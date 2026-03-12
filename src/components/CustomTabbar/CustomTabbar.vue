@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import { TABBAR_ITEMS } from '@/config/tabbar'
+import { useCustomTabbar } from './useCustomTabbar'
 
 const props = withDefaults(
   defineProps<{
@@ -36,14 +36,9 @@ const props = withDefaults(
   }
 )
 
-const list = TABBAR_ITEMS
-
-const switchTab = (item: { pagePath: string }, index: number) => {
-  if (props.current === index) return
-  uni.switchTab({
-    url: item.pagePath
-  })
-}
+const { list, switchTab } = useCustomTabbar({
+  getCurrent: () => props.current,
+})
 </script>
 
 <style src="./CustomTabbar.scss" lang="scss" scoped></style>
