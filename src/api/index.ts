@@ -154,7 +154,9 @@ export const cardApi = {
     getService('card-service').getFavorites(params) as Promise<ApiResponse<PagedResult<Card>>>,
   getRelatedCards: (params: { cardId: string; categoryId: string; limit?: number }) =>
     getService('card-service').getRelatedCards(params) as Promise<ApiResponse<Card[]>>,
-  initData: () => getService('card-service').initData() as Promise<ApiResponse>
+  initData: () => getService('card-service').initData() as Promise<ApiResponse>,
+  repairCardImages: () =>
+    getService('card-service').repairCardImages() as Promise<ApiResponse<{ cardCount: number; categoryCount: number }>>
 }
 
 export const pointsApi = {

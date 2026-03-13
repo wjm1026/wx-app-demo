@@ -48,7 +48,13 @@
                 @click="goCardDetail(card._id)"
               >
                 <view class="card-image-wrapper">
-                  <image class="card-image" :src="card.image" mode="aspectFill" />
+                  <CardImage
+                    class="card-image"
+                    :src="card.image"
+                    :label="card.name"
+                    :category="item.name"
+                    mode="aspectFill"
+                  />
                 </view>
                 <text class="card-name">{{ card.name }}</text>
               </view>
@@ -114,6 +120,7 @@
 </template>
 
 <script setup lang="ts">
+import CardImage from '@/components/CardImage/CardImage.vue'
 import CustomTabbar from '@/components/CustomTabbar/CustomTabbar.vue'
 import { useCategoryPage } from './useCategoryPage'
 

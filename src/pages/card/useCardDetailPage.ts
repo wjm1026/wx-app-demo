@@ -39,7 +39,9 @@ export function useCardDetailPage() {
     const cover = cardData.value.image ? [cardData.value.image] : []
     const extra = (cardData.value.images || []).filter(Boolean)
 
-    return Array.from(new Set([...cover, ...extra]))
+    return Array.from(
+      new Set([...cover, ...extra]),
+    )
   })
   const heroBadgeText = computed(
     () => cardData.value.category?.name || '未分类',

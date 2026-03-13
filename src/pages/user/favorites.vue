@@ -18,7 +18,13 @@
         class="favorite-item"
         @click="goCardDetail(item._id)"
       >
-        <image class="favorite-image" :src="item.image" mode="aspectFill" />
+        <CardImage
+          class="favorite-image"
+          :src="item.image"
+          :label="item.name"
+          :category="item.category?.name || '收藏'"
+          mode="aspectFill"
+        />
         <view class="favorite-info">
           <text class="favorite-name">{{ item.name }}</text>
           <text class="favorite-category">{{ item.category?.name || '未知分类' }}</text>
@@ -36,6 +42,7 @@
 </template>
 
 <script setup lang="ts">
+import CardImage from '@/components/CardImage/CardImage.vue'
 import { useFavoritesPage } from './useFavoritesPage'
 
 const { favorites, goCardDetail, goHome, isLoading, removeFavorite } =

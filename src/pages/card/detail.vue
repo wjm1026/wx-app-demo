@@ -21,7 +21,13 @@
       <view class="hero-section">
         <swiper class="hero-swiper" indicator-dots indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#FFFFFF">
           <swiper-item v-for="(img, index) in heroImages" :key="`${img}-${index}`">
-            <image class="hero-image" :src="img" mode="aspectFill" />
+            <CardImage
+              class="hero-image"
+              :src="img"
+              :label="cardData.name"
+              :category="heroBadgeText"
+              mode="aspectFill"
+            />
           </swiper-item>
         </swiper>
         <!-- 分类标签 -->
@@ -106,7 +112,13 @@
               class="related-card"
               @click="goCardDetail(item._id)"
             >
-              <image class="related-image" :src="item.image" mode="aspectFill" />
+              <CardImage
+                class="related-image"
+                :src="item.image"
+                :label="item.name"
+                :category="item.category?.name || heroBadgeText"
+                mode="aspectFill"
+              />
               <text class="related-name">{{ item.name }}</text>
             </view>
           </view>
@@ -137,6 +149,7 @@
 </template>
 
 <script setup lang="ts">
+import CardImage from '@/components/CardImage/CardImage.vue'
 import { useCardDetailPage } from './useCardDetailPage'
 
 const {

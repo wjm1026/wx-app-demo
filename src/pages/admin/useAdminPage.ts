@@ -169,6 +169,30 @@ export function useAdminPage() {
     })
   }
 
+  async function repairCardImages() {
+    uni.showModal({
+      title: '确认修复图片',
+      content: '将把数据库中的占位图 URL 批量回填为真实图片地址，确定继续吗？',
+      success: async (res) => {
+        if (!res.confirm) {
+          return
+        }
+
+        showToast('修复中...', 'loading')
+
+        try {
+          const result = await cardApi.repairCardImages()
+          uni.hideToast()
+          showToast(result.msg || '图片修复完成', 'success')
+          void loadStats()
+        } catch {
+          uni.hideToast()
+          showToast('图片修复失败')
+        }
+      },
+    })
+  }
+
   function goUsers() {
     navigateTo('/pages/admin/users')
   }
@@ -207,6 +231,7 @@ export function useAdminPage() {
     kpiCards,
     menuCards,
     onKpiCardClick,
+    repairCardImages,
     statusBarHeight,
     todayCards,
   }

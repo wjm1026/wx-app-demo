@@ -1,4 +1,5 @@
 const DEFAULT_TEXT_COLOR = '1F2937'
+const { buildCardImageFields } = require('./image-data')
 
 function createVoiceUrl(word, lang = 'zh') {
   if (!word) {
@@ -10,19 +11,6 @@ function createVoiceUrl(word, lang = 'zh') {
   }
 
   return `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&le=zh`
-}
-
-function createPlaceholderImage(text, background, foreground = DEFAULT_TEXT_COLOR, size = '800x800') {
-  return `https://placehold.co/${size}/${background}/${foreground}.png?text=${encodeURIComponent(text)}`
-}
-
-function createGallery(category, item) {
-  const [primaryColor, secondaryColor, tertiaryColor] = category.palette
-  return [
-    createPlaceholderImage(item.name, primaryColor, category.textColor),
-    createPlaceholderImage(`${item.name} ${item.en}`, secondaryColor, category.textColor),
-    createPlaceholderImage(category.name, tertiaryColor, category.textColor)
-  ]
 }
 
 function buildDescription(category, item) {
@@ -261,12 +249,12 @@ function createSeedData() {
 
   const categoryRecords = categories.map((category, index) => {
     const sort = (categories.length - index) * 10
-    const [coverBackground] = category.palette
+    const cover = buildCardImageFields(category.items[0]?.name).image
 
     return {
       name: category.name,
       icon: category.icon,
-      cover: createPlaceholderImage(category.name, coverBackground, category.textColor),
+      cover,
       color: category.color,
       gradient: category.gradient,
       description: category.description,
@@ -282,7 +270,7 @@ function createSeedData() {
     buildCards(categoryIds) {
       return categories.flatMap((category, categoryIndex) =>
         category.items.map((item, itemIndex) => {
-          const gallery = createGallery(category, item)
+          const { image, images } = buildCardImageFields(item.name)
           const createdOffset =
             categories
               .slice(0, categoryIndex)
@@ -295,8 +283,8 @@ function createSeedData() {
             name: item.name,
             name_en: item.en,
             name_pinyin: item.pinyin,
-            image: gallery[0],
-            images: gallery.slice(1),
+            image,
+            images,
             audio: createVoiceUrl(item.name),
             audio_en: createVoiceUrl(item.en, 'en'),
             sound: item.sound || '',

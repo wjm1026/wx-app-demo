@@ -106,6 +106,19 @@
           </view>
           <view class="quick-action-btn" @click="initData">执行</view>
         </view>
+
+        <view class="quick-action">
+          <view class="quick-action-info">
+            <view class="quick-action-icon-shell">
+              <image class="quick-action-icon" src="/static/icons/line/info.svg" mode="aspectFit" />
+            </view>
+            <view class="quick-action-text-wrap">
+              <text class="quick-action-title">修复图片</text>
+              <text class="quick-action-desc">回填卡片与分类的真实图片 URL</text>
+            </view>
+          </view>
+          <view class="quick-action-btn" @click="repairCardImages">执行</view>
+        </view>
       </view>
     </view>
 
@@ -134,6 +147,7 @@ const {
   kpiCards,
   menuCards,
   onKpiCardClick,
+  repairCardImages,
   statusBarHeight,
   todayCards,
 } = useAdminPage()

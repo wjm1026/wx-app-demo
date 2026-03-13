@@ -6,6 +6,36 @@ const categoriesCollection = db.collection('categories')
 const favoritesCollection = db.collection('favorites')
 const usersCollection = db.collection('users')
 const { createSeedData } = require('./seed-data')
+const {
+  getCardImageUpdate,
+  isLegacyPlaceholderUrl,
+  normalizeCardRecord,
+} = require('./image-data')
+
+const CATEGORY_COVER_MAP = createSeedData().categories.reduce((result, category) => {
+  result[category.name] = category.cover
+  return result
+}, {})
+
+function normalizeCategoryRecord(category) {
+  if (!category) {
+    return category
+  }
+
+  const cover =
+    category.cover && !isLegacyPlaceholderUrl(category.cover)
+      ? category.cover
+      : CATEGORY_COVER_MAP[category.name] || category.cover || ''
+
+  return {
+    ...category,
+    cover,
+  }
+}
+
+function normalizeCardList(cards = []) {
+  return cards.map((item) => normalizeCardRecord(item))
+}
 
 module.exports = {
   _before: function() {
@@ -23,7 +53,7 @@ module.exports = {
     return {
       code: 0,
       msg: 'success',
-      data: res.data
+      data: res.data.map((item) => normalizeCategoryRecord(item))
     }
   },
 
@@ -57,9 +87,9 @@ module.exports = {
       code: 0,
       msg: 'success',
       data: {
-        categories: categoriesRes.data,
-        hotCards: hotCardsRes.data,
-        recentCards: recentCardsRes.data
+        categories: categoriesRes.data.map((item) => normalizeCategoryRecord(item)),
+        hotCards: normalizeCardList(hotCardsRes.data),
+        recentCards: normalizeCardList(recentCardsRes.data)
       }
     }
   },
@@ -89,7 +119,7 @@ module.exports = {
       code: 0,
       msg: 'success',
       data: {
-        list: res.data,
+        list: normalizeCardList(res.data),
         total: countRes.total,
         page,
         pageSize
@@ -146,7 +176,7 @@ module.exports = {
       code: 0,
       msg: 'success',
       data: {
-        list: res.data,
+        list: normalizeCardList(res.data),
         total: countRes.total,
         keyword: searchKeyword,
         page,
@@ -174,14 +204,14 @@ module.exports = {
       return { code: 404, msg: '卡片不存在' }
     }
 
-    const card = res.data[0]
+    const card = normalizeCardRecord(res.data[0])
 
     // 获取分类信息
     let category = null
     if (card.category_id) {
       const categoryRes = await categoriesCollection.doc(card.category_id).get()
       if (categoryRes.data.length > 0) {
-        category = categoryRes.data[0]
+        category = normalizeCategoryRecord(categoryRes.data[0])
       }
     }
 
@@ -293,7 +323,7 @@ module.exports = {
       const card = cards.find(c => c._id === fav.card_id)
       if (!card) return null
       return {
-        ...card,
+        ...normalizeCardRecord(card),
         favorite_id: fav._id,
         favorited_at: fav.create_time
       }
@@ -328,7 +358,50 @@ module.exports = {
     return {
       code: 0,
       msg: 'success',
-      data: res.data
+      data: normalizeCardList(res.data)
+    }
+  },
+
+  async repairCardImages() {
+    const [cardsRes, categoriesRes] = await Promise.all([
+      cardsCollection.where({ _id: dbCmd.exists(true) }).limit(500).get(),
+      categoriesCollection.where({ _id: dbCmd.exists(true) }).limit(100).get()
+    ])
+
+    const cardUpdates = cardsRes.data
+      .map((card) => ({
+        id: card._id,
+        update: getCardImageUpdate(card)
+      }))
+      .filter((item) => item.update)
+
+    const categoryUpdates = categoriesRes.data
+      .map((category) => {
+        const cover = CATEGORY_COVER_MAP[category.name]
+
+        if (!cover || (category.cover && !isLegacyPlaceholderUrl(category.cover))) {
+          return null
+        }
+
+        return {
+          id: category._id,
+          update: { cover }
+        }
+      })
+      .filter(Boolean)
+
+    await Promise.all([
+      ...cardUpdates.map((item) => cardsCollection.doc(item.id).update(item.update)),
+      ...categoryUpdates.map((item) => categoriesCollection.doc(item.id).update(item.update))
+    ])
+
+    return {
+      code: 0,
+      msg: `图片修复完成，已更新 ${cardUpdates.length} 张卡片和 ${categoryUpdates.length} 个分类`,
+      data: {
+        cardCount: cardUpdates.length,
+        categoryCount: categoryUpdates.length
+      }
     }
   },
 

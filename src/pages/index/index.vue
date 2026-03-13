@@ -108,7 +108,13 @@
               @click="goCardDetail(card._id)"
             >
               <view class="hot-image-wrapper">
-                <image class="hot-image" :src="card.image" mode="aspectFill" />
+                <CardImage
+                  class="hot-image"
+                  :src="card.image"
+                  :label="card.name"
+                  :category="getCategoryName(card)"
+                  mode="aspectFill"
+                />
                 <view class="hot-badge">
                   <text class="badge-text">HOT</text>
                 </view>
@@ -145,7 +151,13 @@
             @click="goCardDetail(card._id)"
           >
             <view class="card-image-wrapper">
-              <image class="card-image" :src="card.image" mode="aspectFill" />
+              <CardImage
+                class="card-image"
+                :src="card.image"
+                :label="card.name"
+                :category="getCategoryName(card)"
+                mode="aspectFill"
+              />
               <view v-if="isNewCard(card)" class="new-badge">NEW</view>
             </view>
             <view class="card-content">
@@ -211,6 +223,7 @@
 </template>
 
 <script setup lang="ts">
+import CardImage from '@/components/CardImage/CardImage.vue'
 import CustomTabbar from '@/components/CustomTabbar/CustomTabbar.vue'
 import { useIndexPage } from './useIndexPage'
 

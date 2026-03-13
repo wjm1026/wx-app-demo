@@ -135,7 +135,13 @@
             @click="goCardDetail(item._id)"
           >
             <view class="card-image-wrapper">
-              <image class="card-image" :src="item.image" mode="aspectFill" />
+              <CardImage
+                class="card-image"
+                :src="item.image"
+                :label="item.name"
+                :category="getCategoryName(item)"
+                mode="aspectFill"
+              />
               <view class="card-category" :style="{ background: getCategoryBackground(item) }">
                 {{ getCategoryName(item) }}
               </view>
@@ -159,6 +165,7 @@
 </template>
 
 <script setup lang="ts">
+import CardImage from '@/components/CardImage/CardImage.vue'
 import { useSearchPage } from './useSearchPage'
 
 const {
