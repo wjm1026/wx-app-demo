@@ -30,8 +30,8 @@ module.exports = {
       {
         method: 'GET',
         data: {
-          appid: 'wx0a25acae1d9666ee', // 需要配置
-          secret: '299b6b8ca2a28c71489291ff5f8fe37b', // 需要配置
+          appid: 'wxb0ec6c6b3b812153', // 需要配置为当前发布小程序的 AppID
+          secret: 'b532f4416c9449591b7095e1b718b133', // 需要同步替换为当前 AppID 对应的 AppSecret
           js_code: code,
           grant_type: 'authorization_code'
         },
