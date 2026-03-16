@@ -170,13 +170,14 @@
 }
 
 .stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: $spacing-3;
+  display: flex;
+  justify-content: space-between;
   margin-bottom: $spacing-6;
 }
 
 .stat-card {
+  width: 31.6%;
+  box-sizing: border-box;
   @include card-base;
   padding: $spacing-3;
   display: flex;
@@ -212,13 +213,14 @@
 }
 
 .action-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: $spacing-3;
+  display: flex;
+  justify-content: space-between;
   margin-bottom: $spacing-6;
 }
 
 .action-btn {
+  width: 31.6%;
+  box-sizing: border-box;
   @include card-base;
   display: flex;
   flex-direction: column;

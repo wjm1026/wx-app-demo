@@ -175,15 +175,19 @@
 .card-grid {
   display: flex;
   flex-wrap: wrap;
-  padding: $spacing-3 $spacing-4 $spacing-4;
-  gap: $spacing-3;
+  padding: $spacing-3 $spacing-4 $spacing-1;
+  margin-right: #{-$spacing-3};
   border-top: 2rpx solid rgba(15, 23, 42, 0.06);
   animation: bounce-in 0.4s $ease-bounce;
   min-height: 210rpx;
 }
 
 .card-item {
-  width: calc(25% - #{$spacing-3 * 0.75});
+  flex: 0 0 25%;
+  max-width: 25%;
+  box-sizing: border-box;
+  padding-right: $spacing-3;
+  margin-bottom: $spacing-3;
   text-align: center;
   transition: transform $duration-normal $ease-bounce;
   
@@ -233,7 +237,11 @@
 
 // 加载更多
 .load-more {
-  width: calc(25% - #{$spacing-3 * 0.75});
+  flex: 0 0 25%;
+  max-width: 25%;
+  box-sizing: border-box;
+  padding-right: $spacing-3;
+  margin-bottom: $spacing-3;
   aspect-ratio: 1;
   display: flex;
   flex-direction: column;

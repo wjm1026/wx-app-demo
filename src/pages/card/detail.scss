@@ -185,14 +185,17 @@
 .quick-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: $spacing-3;
   padding: 0 $spacing-4;
-  margin-bottom: $spacing-5;
+  margin-right: #{-$spacing-3};
+  margin-bottom: $spacing-2;
 }
 
 .quick-btn {
-  flex: 1;
+  flex: 1 1 150rpx;
   min-width: 150rpx;
+  box-sizing: border-box;
+  margin-right: $spacing-3;
+  margin-bottom: $spacing-3;
   padding: $spacing-3;
   border-radius: $radius-lg;
   background: $color-bg-card;

@@ -98,12 +98,13 @@
   position: relative;
   z-index: 1;
   margin-top: $spacing-5;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: $spacing-2;
+  display: flex;
+  justify-content: space-between;
 }
 
 .kpi-card {
+  width: 31.8%;
+  box-sizing: border-box;
   min-height: 176rpx;
   border-radius: $radius-md;
   border: 1rpx solid rgba(255, 255, 255, 0.24);
@@ -210,12 +211,13 @@
 }
 
 .today-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: $spacing-2;
+  display: flex;
+  justify-content: space-between;
 }
 
 .today-card {
+  width: 48.5%;
+  box-sizing: border-box;
   border-radius: $radius-md;
   border: 2rpx solid transparent;
   padding: $spacing-3;
@@ -277,12 +279,16 @@
 }
 
 .menu-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: $spacing-2;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: #{-$spacing-2};
 }
 
 .menu-item {
+  width: 48.5%;
+  box-sizing: border-box;
+  margin-bottom: $spacing-2;
   position: relative;
   border-radius: $radius-md;
   border: 2rpx solid $color-border;

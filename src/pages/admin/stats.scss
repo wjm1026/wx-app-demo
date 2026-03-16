@@ -84,13 +84,14 @@
 }
 
 .overview-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: $spacing-3;
+  display: flex;
+  justify-content: space-between;
   margin-bottom: $spacing-2;
 }
 
 .stat-card {
+  width: 31.6%;
+  box-sizing: border-box;
   @include card-base;
   padding: $spacing-3;
   display: flex;

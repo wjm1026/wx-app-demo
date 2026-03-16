@@ -175,12 +175,16 @@
 }
 
 .achievements-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: $spacing-3;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: #{-$spacing-3};
 }
 
 .achievement-item {
+  width: 31.6%;
+  box-sizing: border-box;
+  margin-bottom: $spacing-3;
   display: flex;
   flex-direction: column;
   align-items: center;
