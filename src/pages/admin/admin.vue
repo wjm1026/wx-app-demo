@@ -1,63 +1,87 @@
 <template>
   <view class="page">
-    <view class="hero" :style="{ paddingTop: statusBarHeight + 'px' }">
-      <view class="hero-glow glow-left"></view>
-      <view class="hero-glow glow-right"></view>
+    <view class="nav-bar" :style="{ paddingTop: `${statusBarHeight}px` }">
+      <view class="nav-content">
+        <view class="nav-back" @click="goBack">
+          <image class="nav-back-icon" src="/static/icons/line/chevron-right.svg" mode="aspectFit" />
+        </view>
 
-      <view class="hero-topbar">
+        <text class="nav-title">管理后台</text>
+        <view class="nav-placeholder" :style="navPlaceholderStyle"></view>
+      </view>
+    </view>
+
+    <view class="hero-card">
+      <view class="hero-grid-pattern"></view>
+      <view class="hero-glow hero-glow-left"></view>
+      <view class="hero-glow hero-glow-right"></view>
+
+      <view class="hero-topline">
         <view class="hero-badge">
           <image class="hero-badge-icon" src="/static/icons/line/shield.svg" mode="aspectFit" />
-          <text class="hero-badge-text">管理员控制台</text>
+          <text class="hero-badge-text">数据控制中心</text>
         </view>
-        <text class="hero-meta">实时数据</text>
+        <view class="hero-chip" :class="adminStateTone">{{ heroStatusLabel }}</view>
       </view>
 
-      <view class="hero-content">
-        <text class="hero-title">管理后台</text>
-        <text class="hero-subtitle">宝宝识物 · 数据管理中心</text>
+      <view class="hero-main">
+        <view class="hero-copy">
+          <text class="hero-eyebrow">MOBILE OPS DASHBOARD</text>
+          <text class="hero-title">统一调度用户、内容与维护动作</text>
+          <text class="hero-desc">从这里查看核心指标、进入管理模块，并快速执行高频运维操作。</text>
+        </view>
+
+        <view class="hero-aside">
+          <text class="hero-aside-label">今日活跃</text>
+          <text class="hero-aside-value">{{ formatNumber(stats.todayActiveUsers) }}</text>
+          <text class="hero-aside-meta">{{ heroSnapshotLabel }}</text>
+        </view>
       </view>
 
       <view class="kpi-grid">
-        <view
-          v-for="item in kpiCards"
-          :key="item.key"
-          class="kpi-card"
-          :class="{ clickable: item.onClick }"
-          @click="onKpiCardClick(item.onClick)"
-        >
-          <view class="kpi-icon-shell">
-            <image class="kpi-icon" :src="item.icon" mode="aspectFit" />
+        <view v-for="item in kpiCards" :key="item.key" class="kpi-card" @click="item.onClick">
+          <view class="kpi-card-top">
+            <view class="kpi-icon-shell">
+              <image class="kpi-icon" :src="item.icon" mode="aspectFit" />
+            </view>
+            <image class="kpi-arrow" src="/static/icons/line/chevron-right.svg" mode="aspectFit" />
           </view>
-          <text class="kpi-value">{{ formatNumber(item.value) }}</text>
+          <text class="kpi-value">{{ item.valueLabel }}</text>
           <text class="kpi-label">{{ item.label }}</text>
+          <text class="kpi-meta">{{ item.meta }}</text>
         </view>
       </view>
     </view>
 
-    <view v-if="isAdmin" class="content">
+    <view v-if="checkingAdmin" class="loading-panel">
+      <view class="loading-card">
+        <view class="loading-spinner"></view>
+        <text class="loading-title">正在校验管理员权限</text>
+        <text class="loading-desc">稍等一下，后台数据就会同步出来。</text>
+      </view>
+    </view>
+
+    <view v-else-if="isAdmin" class="content">
       <view class="section-card">
         <view class="section-head">
           <view class="section-title-wrap">
-            <image class="section-title-icon" src="/static/icons/line/calendar.svg" mode="aspectFit" />
-            <text class="section-title">今日数据</text>
+            <image class="section-title-icon" src="/static/icons/line/bar-chart.svg" mode="aspectFit" />
+            <view class="section-title-copy">
+              <text class="section-title">运营脉冲</text>
+              <text class="section-subtitle">把有限字段整理成可读的控制面板指标</text>
+            </view>
           </view>
-          <text class="section-caption">关键趋势</text>
+          <text class="section-caption">Snapshot</text>
         </view>
 
-        <view class="today-grid">
-          <view
-            v-for="item in todayCards"
-            :key="item.key"
-            class="today-card"
-            :class="item.tone"
-          >
-            <view class="today-icon-shell">
-              <image class="today-icon" :src="item.icon" mode="aspectFit" />
+        <view class="pulse-grid">
+          <view v-for="item in pulseCards" :key="item.key" class="pulse-card" :class="item.tone">
+            <view class="pulse-icon-shell">
+              <image class="pulse-icon" :src="item.icon" mode="aspectFit" />
             </view>
-            <view class="today-info">
-              <text class="today-value">{{ formatNumber(item.value) }}</text>
-              <text class="today-label">{{ item.label }}</text>
-            </view>
+            <text class="pulse-label">{{ item.label }}</text>
+            <text class="pulse-value">{{ item.value }}</text>
+            <text class="pulse-desc">{{ item.desc }}</text>
           </view>
         </view>
       </view>
@@ -66,21 +90,29 @@
         <view class="section-head">
           <view class="section-title-wrap">
             <image class="section-title-icon" src="/static/icons/line/crown.svg" mode="aspectFit" />
-            <text class="section-title">管理功能</text>
+            <view class="section-title-copy">
+              <text class="section-title">模块入口</text>
+              <text class="section-subtitle">把高频动作和当前模块状态一起暴露出来</text>
+            </view>
           </view>
-          <text class="section-caption">核心入口</text>
+          <text class="section-caption">Modules</text>
         </view>
 
         <view class="menu-grid">
-          <view v-for="item in menuCards" :key="item.key" class="menu-item" @click="item.onClick">
-            <view class="menu-item-top">
+          <view v-for="item in menuCards" :key="item.key" class="menu-card" @click="item.onClick">
+            <view class="menu-card-head">
               <view class="menu-icon-shell" :class="item.tone">
                 <image class="menu-icon" :src="item.icon" mode="aspectFit" />
               </view>
-              <image class="menu-arrow" src="/static/icons/line/chevron-right.svg" mode="aspectFit" />
+              <text class="menu-badge" :class="{ pending: !item.available }">{{ item.badge }}</text>
             </view>
             <text class="menu-title">{{ item.title }}</text>
+            <text class="menu-metric">{{ item.metric }}</text>
             <text class="menu-desc">{{ item.desc }}</text>
+            <view class="menu-link-row">
+              <text class="menu-link-text">{{ item.available ? '进入模块' : '开发中' }}</text>
+              <image class="menu-link-icon" src="/static/icons/line/chevron-right.svg" mode="aspectFit" />
+            </view>
           </view>
         </view>
       </view>
@@ -89,35 +121,30 @@
         <view class="section-head">
           <view class="section-title-wrap">
             <image class="section-title-icon" src="/static/icons/line/info.svg" mode="aspectFit" />
-            <text class="section-title">快捷操作</text>
+            <view class="section-title-copy">
+              <text class="section-title">维护动作</text>
+              <text class="section-subtitle">把高风险与安全操作分开，让执行预期更清楚</text>
+            </view>
           </view>
-          <text class="section-caption">维护工具</text>
+          <text class="section-caption">Ops</text>
         </view>
 
-        <view class="quick-action">
-          <view class="quick-action-info">
-            <view class="quick-action-icon-shell">
-              <image class="quick-action-icon" src="/static/icons/line/check-circle.svg" mode="aspectFit" />
-            </view>
-            <view class="quick-action-text-wrap">
-              <text class="quick-action-title">初始化数据</text>
-              <text class="quick-action-desc">重建分类与卡片测试数据</text>
-            </view>
-          </view>
-          <view class="quick-action-btn" @click="initData">执行</view>
-        </view>
+        <view class="action-list">
+          <view v-for="item in maintenanceCards" :key="item.key" class="action-card" :class="item.tone">
+            <view class="action-main">
+              <view class="action-icon-shell">
+                <image class="action-icon" :src="item.icon" mode="aspectFit" />
+              </view>
 
-        <view class="quick-action">
-          <view class="quick-action-info">
-            <view class="quick-action-icon-shell">
-              <image class="quick-action-icon" src="/static/icons/line/info.svg" mode="aspectFit" />
+              <view class="action-copy">
+                <text class="action-title">{{ item.title }}</text>
+                <text class="action-desc">{{ item.desc }}</text>
+                <text class="action-note">{{ item.note }}</text>
+              </view>
             </view>
-            <view class="quick-action-text-wrap">
-              <text class="quick-action-title">修复图片</text>
-              <text class="quick-action-desc">回填卡片与分类的真实图片 URL</text>
-            </view>
+
+            <view class="action-btn" @click="item.onClick">{{ item.buttonLabel }}</view>
           </view>
-          <view class="quick-action-btn" @click="repairCardImages">执行</view>
         </view>
       </view>
     </view>
@@ -142,14 +169,17 @@ const {
   checkingAdmin,
   formatNumber,
   goBack,
-  initData,
+  heroSnapshotLabel,
+  heroStatusLabel,
   isAdmin,
   kpiCards,
+  maintenanceCards,
   menuCards,
-  onKpiCardClick,
-  repairCardImages,
+  navPlaceholderStyle,
+  pulseCards,
+  stats,
   statusBarHeight,
-  todayCards,
+  adminStateTone,
 } = useAdminPage()
 </script>
 

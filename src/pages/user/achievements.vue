@@ -1,86 +1,149 @@
 <template>
   <view class="page">
-    <view class="header">
-      <view class="progress-section">
-        <view class="progress-title">
-          <text class="progress-label">学习进度</text>
-          <text class="progress-value">{{ progress.cardsLearned }}/{{ progress.totalCards }}</text>
+    <view class="nav-bar" :style="{ paddingTop: `${statusBarHeight}px` }">
+      <view class="nav-content">
+        <view class="nav-back" @click="goBack">
+          <image class="nav-back-icon" src="/static/icons/line/chevron-right.svg" mode="aspectFit" />
         </view>
-        <view class="progress-bar">
-          <view class="progress-fill" :style="{ width: progress.progress + '%' }"></view>
-        </view>
-        <text class="progress-percent">{{ progress.progress }}%</text>
+        <text class="nav-title">学习成就</text>
+        <view class="nav-placeholder"></view>
       </view>
-      
-      <view class="stats-row">
-        <view class="stat-item">
-          <text class="stat-icon">📚</text>
-          <text class="stat-value">{{ progress.cardsLearned }}</text>
-          <text class="stat-label">已学卡片</text>
+    </view>
+
+    <view class="hero-card">
+      <view class="hero-grid-pattern"></view>
+
+      <view class="hero-topline">
+        <view class="hero-badge">
+          <image class="hero-badge-icon" src="/static/icons/line/trophy.svg" mode="aspectFit" />
+          <text class="hero-badge-text">成长旅程</text>
         </view>
-        <view class="stat-item">
-          <text class="stat-icon">🔥</text>
-          <text class="stat-value">{{ progress.signStreak }}</text>
-          <text class="stat-label">连续签到</text>
+        <text class="hero-progress">{{ progress.progress }}%</text>
+      </view>
+
+      <view class="hero-main">
+        <view class="hero-copy">
+          <text class="hero-label">学习进度</text>
+          <text class="hero-value">{{ progress.cardsLearned }}/{{ progress.totalCards }}</text>
+          <text class="hero-desc">{{ completionLabel }}</text>
         </view>
-        <view class="stat-item">
-          <text class="stat-icon">🏆</text>
-          <text class="stat-value">{{ achievements.unlockedCount }}/{{ achievements.totalCount }}</text>
-          <text class="stat-label">成就解锁</text>
+      </view>
+
+      <view class="hero-track">
+        <view class="hero-track-fill" :style="{ width: `${progress.progress}%` }"></view>
+      </view>
+
+      <view class="hero-stats">
+        <view v-for="item in summaryCards" :key="item.key" class="hero-stat" :class="item.tone">
+          <view class="hero-stat-icon-shell">
+            <image class="hero-stat-icon" :src="item.icon" mode="aspectFit" />
+          </view>
+          <text class="hero-stat-value">{{ item.value }}</text>
+          <text class="hero-stat-label">{{ item.label }}</text>
         </view>
       </view>
     </view>
 
-    <view class="content">
-      <view v-if="progress.categoryProgress.length > 0" class="section">
-        <text class="section-title">分类进度</text>
-        <view class="category-list">
-          <view 
-            v-for="cat in progress.categoryProgress" 
-            :key="cat.categoryId"
-            class="category-item"
-            :class="{ complete: cat.isComplete }"
-          >
-            <view class="category-header">
-              <text class="category-icon">{{ cat.icon }}</text>
-              <text class="category-name">{{ cat.name }}</text>
-              <text v-if="cat.isComplete" class="complete-badge">✅</text>
+    <view class="content-wrapper">
+      <view v-if="decoratedCategories.length > 0" class="section-card">
+        <view class="section-head">
+          <view class="section-title-wrap">
+            <image class="section-title-icon" src="/static/icons/line/bar-chart.svg" mode="aspectFit" />
+            <view class="section-title-copy">
+              <text class="section-title">分类进度</text>
+              <text class="section-subtitle">每个分类都是一段新的学习旅程</text>
             </view>
-            <view class="category-progress">
-              <view class="category-bar">
-                <view class="category-fill" :style="{ width: cat.progress + '%' }"></view>
+          </view>
+        </view>
+
+        <view class="category-list">
+          <view
+            v-for="item in decoratedCategories"
+            :key="item.key"
+            class="category-card"
+            :class="[item.tone, { complete: item.isComplete }]"
+          >
+            <view class="category-main">
+              <view class="category-copy">
+                <text class="category-name">{{ item.name }}</text>
+                <text class="category-status">{{ item.statusLabel }}</text>
               </view>
-              <text class="category-text">{{ cat.learned }}/{{ cat.total }}</text>
+              <text class="category-count">{{ item.progressLabel }}</text>
+            </view>
+
+            <view class="category-track">
+              <view class="category-track-fill" :style="{ width: `${item.progress}%` }"></view>
             </view>
           </view>
         </view>
       </view>
 
-      <view class="section">
-        <text class="section-title">成就徽章</text>
-        <view class="achievements-grid">
-          <view 
-            v-for="achievement in achievements.achievements" 
-            :key="achievement.id"
-            class="achievement-item"
-            :class="{ unlocked: achievement.unlocked, locked: !achievement.unlocked }"
+      <view class="section-card">
+        <view class="section-head">
+          <view class="section-title-wrap">
+            <image class="section-title-icon" src="/static/icons/line/crown.svg" mode="aspectFit" />
+            <view class="section-title-copy">
+              <text class="section-title">已解锁勋章</text>
+              <text class="section-subtitle">每一个阶段都值得被记录</text>
+            </view>
+          </view>
+        </view>
+
+        <view v-if="unlockedAchievements.length > 0" class="achievement-grid unlocked-grid">
+          <view
+            v-for="item in unlockedAchievements"
+            :key="item.id"
+            class="achievement-card unlocked"
+            :class="item.tone"
           >
-            <view class="achievement-icon-wrapper">
-              <text class="achievement-icon">{{ achievement.icon }}</text>
-              <view v-if="!achievement.unlocked" class="lock-overlay">🔒</view>
+            <view class="achievement-icon-shell">
+              <image class="achievement-icon" :src="item.iconSrc" mode="aspectFit" />
             </view>
-            <text class="achievement-name">{{ achievement.name }}</text>
-            <text class="achievement-desc">{{ achievement.description }}</text>
-            <view v-if="achievement.unlocked" class="achievement-reward">
-              <text class="reward-text">+{{ achievement.points }}积分</text>
+            <text class="achievement-name">{{ item.name }}</text>
+            <text class="achievement-desc">{{ item.description }}</text>
+            <view class="achievement-reward">{{ item.rewardLabel }}</view>
+          </view>
+        </view>
+
+        <view v-else class="empty-inline">
+          <text class="empty-inline-text">继续学习第一张卡片，这里会出现你的第一枚勋章。</text>
+        </view>
+      </view>
+
+      <view v-if="lockedAchievements.length > 0" class="section-card">
+        <view class="section-head">
+          <view class="section-title-wrap">
+            <image class="section-title-icon" src="/static/icons/line/check-circle.svg" mode="aspectFit" />
+            <view class="section-title-copy">
+              <text class="section-title">待解锁目标</text>
+              <text class="section-subtitle">快去完成这些小挑战</text>
             </view>
+          </view>
+        </view>
+
+        <view class="achievement-grid locked-grid">
+          <view
+            v-for="item in lockedAchievements"
+            :key="item.id"
+            class="achievement-card locked"
+            :class="item.tone"
+          >
+            <view class="achievement-icon-shell locked-shell">
+              <image class="achievement-icon locked-icon" :src="item.iconSrc" mode="aspectFit" />
+            </view>
+            <text class="achievement-name">{{ item.name }}</text>
+            <text class="achievement-desc">{{ item.description }}</text>
+            <text class="achievement-status">{{ item.statusLabel }}</text>
           </view>
         </view>
       </view>
     </view>
 
     <view v-if="isLoading" class="loading-overlay">
-      <text class="loading-text">加载中...</text>
+      <view class="loading-card">
+        <view class="loading-spinner"></view>
+        <text class="loading-text">正在整理你的成长记录...</text>
+      </view>
     </view>
   </view>
 </template>
@@ -88,7 +151,20 @@
 <script setup lang="ts">
 import { useAchievementsPage } from './useAchievementsPage'
 
-const { achievements, isLoading, progress } = useAchievementsPage()
+const {
+  completionLabel,
+  decoratedCategories,
+  isLoading,
+  lockedAchievements,
+  progress,
+  statusBarHeight,
+  summaryCards,
+  unlockedAchievements,
+} = useAchievementsPage()
+
+function goBack() {
+  uni.navigateBack()
+}
 </script>
 
 <style src="./achievements.scss" scoped lang="scss"></style>

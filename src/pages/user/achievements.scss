@@ -1,105 +1,324 @@
 .page {
   min-height: 100vh;
-  background-color: $color-bg-primary;
+  background:
+    radial-gradient(circle at top left, rgba($color-accent-yellow, 0.2), transparent 26%),
+    radial-gradient(circle at top right, rgba($color-accent-purple, 0.12), transparent 24%),
+    linear-gradient(180deg, #fffaf2 0%, #f6f7fb 24%, $color-bg-primary 100%);
+  padding: $spacing-4 $spacing-4 $spacing-8;
 }
 
-.header {
-  background: $gradient-primary;
-  padding: $spacing-5 $spacing-4;
-  border-radius: 0 0 $radius-2xl $radius-2xl;
+.nav-bar {
+  position: sticky;
+  top: 0;
+  z-index: $z-sticky;
+  margin: (-$spacing-4) (-$spacing-4) $spacing-4;
+  padding-left: $spacing-4;
+  padding-right: $spacing-4;
+  background: rgba(255, 250, 242, 0.92);
+  backdrop-filter: blur(18rpx);
 }
 
-.progress-section {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: $radius-lg;
-  padding: $spacing-4;
-  backdrop-filter: blur(10px);
-}
-
-.progress-title {
-  display: flex;
-  justify-content: space-between;
+.nav-content {
+  display: grid;
+  grid-template-columns: $touch-target-min 1fr $touch-target-min;
   align-items: center;
-  margin-bottom: $spacing-2;
+  min-height: 96rpx;
 }
 
-.progress-label {
-  font-size: $font-size-base;
-  color: $color-text-inverse;
-  font-weight: $font-weight-medium;
+.nav-back,
+.nav-placeholder {
+  width: $touch-target-min;
+  height: $touch-target-min;
 }
 
-.progress-value {
-  font-size: $font-size-sm;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.progress-bar {
-  height: 16rpx;
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: $radius-full;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #ffd700, #ffa500);
-  border-radius: $radius-full;
-  transition: width 0.5s ease;
-}
-
-.progress-percent {
-  display: block;
-  text-align: right;
-  font-size: $font-size-xs;
-  color: rgba(255, 255, 255, 0.8);
-  margin-top: $spacing-1;
-}
-
-.stats-row {
+.nav-back {
   display: flex;
-  justify-content: space-around;
-  margin-top: $spacing-4;
+  align-items: center;
+  justify-content: center;
+  border-radius: 24rpx;
 }
 
-.stat-item {
+.nav-back:active {
+  background: rgba($color-text-primary, 0.06);
+}
+
+.nav-back-icon {
+  width: 36rpx;
+  height: 36rpx;
+  transform: rotate(180deg);
+}
+
+.nav-title {
+  text-align: center;
+  font-size: 40rpx;
+  font-weight: $font-weight-bold;
+  letter-spacing: 1rpx;
+  color: $color-text-primary;
+}
+
+// 顶部主卡承担“成绩概览”和页面记忆点，视觉要明显比列表层更重。
+.hero-card {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: $spacing-5;
+  padding: $spacing-5;
+  border: 2rpx solid rgba(255, 255, 255, 0.08);
+  border-radius: 44rpx;
+  background:
+    radial-gradient(circle at 82% 18%, rgba($color-accent-yellow, 0.22), transparent 22%),
+    linear-gradient(140deg, #161c2d 0%, #232c45 50%, #101521 100%);
+  box-shadow:
+    0 28rpx 60rpx rgba(15, 23, 42, 0.2),
+    0 10rpx 18rpx rgba(15, 23, 42, 0.08);
+}
+
+.hero-grid-pattern {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  opacity: 0.14;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.01)),
+    linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 44rpx 44rpx;
+}
+
+.hero-topline {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-3;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 12rpx;
+  min-height: $touch-target-min;
+  padding: 10rpx 22rpx 10rpx 18rpx;
+  border-radius: $radius-full;
+  background: rgba(255, 250, 236, 0.12);
+  border: 2rpx solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.08);
+}
+
+.hero-badge-icon {
+  width: 32rpx;
+  height: 32rpx;
+}
+
+.hero-badge-text {
+  font-size: 24rpx;
+  font-weight: $font-weight-semibold;
+  letter-spacing: 1rpx;
+  color: rgba(255, 248, 230, 0.88);
+}
+
+.hero-progress {
+  font-size: 48rpx;
+  font-weight: $font-weight-bold;
+  letter-spacing: -1rpx;
+  color: #ffe9a7;
+}
+
+.hero-main {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: $spacing-4;
+  margin-top: $spacing-5;
+}
+
+.hero-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.hero-label {
+  display: block;
+  font-size: $font-size-sm;
+  letter-spacing: 2rpx;
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.hero-value {
+  display: block;
+  margin-top: $spacing-2;
+  font-size: 88rpx;
+  font-weight: $font-weight-bold;
+  line-height: 1;
+  letter-spacing: -3rpx;
+  color: $color-text-inverse;
+}
+
+.hero-desc {
+  display: block;
+  margin-top: $spacing-3;
+  font-size: 24rpx;
+  line-height: $line-height-normal;
+  color: rgba(240, 245, 255, 0.72);
+}
+
+.hero-track {
+  position: relative;
+  z-index: 1;
+  height: 18rpx;
+  margin-top: $spacing-5;
+  overflow: hidden;
+  border-radius: $radius-full;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.hero-track-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ffd66d 0%, #ffb95e 48%, #ff7a6a 100%);
+  box-shadow: 0 0 20rpx rgba($color-accent-yellow, 0.3);
+  transition: width $duration-slow $ease-out;
+}
+
+.hero-stats {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: $spacing-3;
+  margin-top: $spacing-5;
+}
+
+.hero-stat {
+  min-height: 156rpx;
+  padding: $spacing-3;
+  border-radius: 30rpx;
+  border: 2rpx solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.06);
+}
+
+.hero-stat-icon-shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 20rpx;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.hero-stat-icon {
+  width: 32rpx;
+  height: 32rpx;
+}
+
+.hero-stat-value {
+  display: block;
+  margin-top: $spacing-3;
+  font-size: 38rpx;
+  font-weight: $font-weight-bold;
+  line-height: 1.15;
+  color: $color-text-inverse;
+}
+
+.hero-stat-label {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  line-height: 1.45;
+  color: rgba(240, 245, 255, 0.72);
+}
+
+.stat-sky .hero-stat-icon-shell {
+  background: rgba($color-accent-blue, 0.2);
+}
+
+.stat-mint .hero-stat-icon-shell {
+  background: rgba($color-accent-green, 0.18);
+}
+
+.stat-gold .hero-stat-icon-shell {
+  background: rgba($color-accent-yellow, 0.2);
+}
+
+.content-wrapper {
   display: flex;
   flex-direction: column;
+  gap: $spacing-4;
+  padding-bottom: $spacing-4;
+}
+
+.section-card {
+  position: relative;
+  overflow: hidden;
+  padding: $spacing-5;
+  border-radius: 36rpx;
+  border: 2rpx solid rgba(255, 255, 255, 0.76);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow:
+    0 18rpx 40rpx rgba(15, 23, 42, 0.06),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.94);
+}
+
+.section-card::after {
+  content: '';
+  position: absolute;
+  right: -56rpx;
+  top: -48rpx;
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: 50%;
+  background: rgba($color-accent-yellow, 0.08);
+  filter: blur(4rpx);
+  pointer-events: none;
+}
+
+.section-head {
+  position: relative;
+  z-index: 1;
+  display: flex;
   align-items: center;
-  gap: $spacing-1;
+  justify-content: space-between;
+  margin-bottom: $spacing-4;
 }
 
-.stat-icon {
-  font-size: 36rpx;
+.section-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: $spacing-3;
 }
 
-.stat-value {
-  font-size: $font-size-lg;
-  font-weight: $font-weight-bold;
-  color: $color-text-inverse;
+.section-title-icon {
+  width: 44rpx;
+  height: 44rpx;
+  padding: 16rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(145deg, rgba($color-accent-yellow, 0.18), rgba($color-primary-light, 0.12));
 }
 
-.stat-label {
-  font-size: $font-size-xs;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.content {
-  padding: $spacing-4;
-}
-
-.section {
-  margin-bottom: $spacing-5;
+.section-title-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
 }
 
 .section-title {
-  font-size: $font-size-md;
-  font-weight: $font-weight-semibold;
+  font-size: 42rpx;
+  font-weight: $font-weight-bold;
+  letter-spacing: -1rpx;
   color: $color-text-primary;
-  margin-bottom: $spacing-3;
-  display: block;
-  padding-left: $spacing-2;
-  border-left: 6rpx solid $color-primary;
+}
+
+.section-subtitle {
+  font-size: 24rpx;
+  line-height: 1.45;
+  color: $color-text-secondary;
 }
 
 .category-list {
@@ -108,171 +327,296 @@
   gap: $spacing-3;
 }
 
-.category-item {
-  background: $color-bg-card;
-  border-radius: $radius-lg;
+.category-card {
+  position: relative;
+  overflow: hidden;
   padding: $spacing-4;
-  box-shadow: $shadow-sm;
-
-  &.complete {
-    background: linear-gradient(
-      135deg,
-      rgba(52, 211, 153, 0.1),
-      rgba(16, 185, 129, 0.05)
-    );
-    border: 2rpx solid rgba(52, 211, 153, 0.3);
-  }
+  border-radius: 28rpx;
+  border: 2rpx solid rgba(255, 255, 255, 0.72);
+  background: #f8fafc;
 }
 
-.category-header {
+.category-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 12rpx;
+  border-radius: 28rpx 0 0 28rpx;
+  background: rgba($color-text-primary, 0.12);
+}
+
+.category-main {
   display: flex;
-  align-items: center;
-  gap: $spacing-2;
-  margin-bottom: $spacing-2;
-}
-
-.category-icon {
-  font-size: 32rpx;
-}
-
-.category-name {
-  flex: 1;
-  font-size: $font-size-base;
-  font-weight: $font-weight-medium;
-  color: $color-text-primary;
-}
-
-.complete-badge {
-  font-size: 24rpx;
-}
-
-.category-progress {
-  display: flex;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: $spacing-3;
 }
 
-.category-bar {
-  flex: 1;
-  height: 12rpx;
-  background: $color-bg-secondary;
-  border-radius: $radius-full;
-  overflow: hidden;
+.category-copy {
+  min-width: 0;
 }
 
-.category-fill {
-  height: 100%;
-  background: $gradient-primary;
-  border-radius: $radius-full;
-  transition: width 0.3s ease;
+.category-name {
+  display: block;
+  font-size: 34rpx;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
 }
 
-.category-text {
-  font-size: $font-size-xs;
+.category-status {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 22rpx;
   color: $color-text-secondary;
-  min-width: 80rpx;
-  text-align: right;
 }
 
-.achievements-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  margin-bottom: #{-$spacing-3};
+.category-count {
+  flex-shrink: 0;
+  font-size: 24rpx;
+  font-weight: $font-weight-semibold;
+  color: $color-text-secondary;
 }
 
-.achievement-item {
-  width: 31.6%;
-  box-sizing: border-box;
-  margin-bottom: $spacing-3;
+.category-track {
+  height: 16rpx;
+  margin-top: $spacing-3;
+  overflow: hidden;
+  border-radius: $radius-full;
+  background: rgba(147, 160, 180, 0.16);
+}
+
+.category-track-fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width $duration-slow $ease-out;
+}
+
+.tone-coral {
+  background: linear-gradient(180deg, rgba($color-primary-light, 0.08), rgba(255, 255, 255, 0.92));
+}
+
+.tone-coral::before,
+.tone-coral .category-track-fill {
+  background: linear-gradient(90deg, $color-primary-light, $color-primary);
+}
+
+.tone-sky {
+  background: linear-gradient(180deg, rgba($color-accent-blue, 0.08), rgba(255, 255, 255, 0.92));
+}
+
+.tone-sky::before,
+.tone-sky .category-track-fill {
+  background: linear-gradient(90deg, $color-accent-blue, #88c8ff);
+}
+
+.tone-mint {
+  background: linear-gradient(180deg, rgba($color-accent-green, 0.08), rgba(255, 255, 255, 0.92));
+}
+
+.tone-mint::before,
+.tone-mint .category-track-fill {
+  background: linear-gradient(90deg, $color-accent-green, $color-secondary-light);
+}
+
+.tone-violet {
+  background: linear-gradient(180deg, rgba($color-accent-purple, 0.08), rgba(255, 255, 255, 0.92));
+}
+
+.tone-violet::before,
+.tone-violet .category-track-fill {
+  background: linear-gradient(90deg, $color-accent-purple, #c1a9ff);
+}
+
+.category-card.complete {
+  border-color: rgba($color-accent-yellow, 0.3);
+  box-shadow: 0 14rpx 28rpx rgba(255, 214, 109, 0.12);
+}
+
+.achievement-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $spacing-3;
+}
+
+// 成就卡需要像“勋章墙”，而不是普通列表块，所以统一做成陈列式双列卡片。
+.achievement-card {
+  position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: $spacing-4 $spacing-2;
-  background: $color-bg-card;
-  border-radius: $radius-lg;
-  box-shadow: $shadow-sm;
-  text-align: center;
-
-  &.unlocked {
-    background: linear-gradient(
-      135deg,
-      rgba(255, 215, 0, 0.15),
-      rgba(255, 165, 0, 0.05)
-    );
-    border: 2rpx solid rgba(255, 215, 0, 0.3);
-  }
-
-  &.locked {
-    opacity: 0.6;
-
-    .achievement-icon {
-      filter: grayscale(100%);
-    }
-  }
+  align-items: flex-start;
+  min-height: 272rpx;
+  padding: $spacing-4;
+  border-radius: 30rpx;
+  border: 2rpx solid rgba(255, 255, 255, 0.7);
+  background: rgba(248, 250, 252, 0.9);
+  box-shadow: 0 14rpx 26rpx rgba(15, 23, 42, 0.05);
 }
 
-.achievement-icon-wrapper {
-  position: relative;
-  width: 80rpx;
-  height: 80rpx;
+.achievement-icon-shell {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: $spacing-2;
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.9);
 }
 
 .achievement-icon {
-  font-size: 48rpx;
-}
-
-.lock-overlay {
-  position: absolute;
-  bottom: -8rpx;
-  right: -8rpx;
-  font-size: 24rpx;
+  width: 46rpx;
+  height: 46rpx;
 }
 
 .achievement-name {
-  font-size: $font-size-sm;
-  font-weight: $font-weight-semibold;
+  display: block;
+  margin-top: $spacing-3;
+  font-size: 32rpx;
+  font-weight: $font-weight-bold;
+  line-height: 1.3;
   color: $color-text-primary;
-  margin-bottom: $spacing-1;
 }
 
 .achievement-desc {
-  font-size: 20rpx;
-  color: $color-text-tertiary;
-  line-height: 1.3;
+  display: block;
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  line-height: 1.55;
+  color: $color-text-secondary;
+}
+
+.achievement-reward,
+.achievement-status {
+  margin-top: auto;
 }
 
 .achievement-reward {
-  margin-top: $spacing-2;
-  padding: 4rpx 12rpx;
-  background: rgba(255, 215, 0, 0.2);
+  display: inline-flex;
+  align-items: center;
+  min-height: 48rpx;
+  padding: 0 18rpx;
   border-radius: $radius-full;
+  font-size: 22rpx;
+  font-weight: $font-weight-semibold;
+  color: #8b5c00;
+  background: rgba($color-accent-yellow, 0.22);
 }
 
-.reward-text {
-  font-size: 20rpx;
-  color: #d97706;
+.achievement-status {
+  font-size: 22rpx;
   font-weight: $font-weight-medium;
+  color: $color-text-secondary;
+}
+
+.achievement-card.unlocked {
+  border-color: rgba(255, 255, 255, 0.88);
+}
+
+.achievement-card.locked {
+  background: linear-gradient(180deg, rgba(241, 245, 249, 0.96), rgba(248, 250, 252, 0.92));
+}
+
+.locked-shell {
+  background: rgba(31, 41, 55, 0.06);
+}
+
+.locked-icon {
+  opacity: 0.54;
+}
+
+.achievement-card.tone-gold {
+  background: linear-gradient(180deg, rgba($color-accent-yellow, 0.16), rgba(255, 255, 255, 0.94));
+}
+
+.achievement-card.tone-gold .achievement-icon-shell {
+  background: linear-gradient(145deg, rgba($color-accent-yellow, 0.26), rgba(255, 255, 255, 0.78));
+}
+
+.achievement-card.tone-violet {
+  background: linear-gradient(180deg, rgba($color-accent-purple, 0.14), rgba(255, 255, 255, 0.94));
+}
+
+.achievement-card.tone-violet .achievement-icon-shell {
+  background: linear-gradient(145deg, rgba($color-accent-purple, 0.22), rgba(255, 255, 255, 0.78));
+}
+
+.achievement-card.tone-sky {
+  background: linear-gradient(180deg, rgba($color-accent-blue, 0.14), rgba(255, 255, 255, 0.94));
+}
+
+.achievement-card.tone-sky .achievement-icon-shell {
+  background: linear-gradient(145deg, rgba($color-accent-blue, 0.22), rgba(255, 255, 255, 0.78));
+}
+
+.achievement-card.tone-mint {
+  background: linear-gradient(180deg, rgba($color-accent-green, 0.14), rgba(255, 255, 255, 0.94));
+}
+
+.achievement-card.tone-mint .achievement-icon-shell {
+  background: linear-gradient(145deg, rgba($color-accent-green, 0.22), rgba(255, 255, 255, 0.78));
+}
+
+.empty-inline {
+  padding: $spacing-4;
+  border-radius: 28rpx;
+  background: linear-gradient(145deg, rgba($color-accent-yellow, 0.12), rgba(255, 255, 255, 0.82));
+}
+
+.empty-inline-text {
+  font-size: 24rpx;
+  line-height: 1.65;
+  color: $color-text-secondary;
 }
 
 .loading-overlay {
   position: fixed;
   top: 0;
-  left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.8);
+  left: 0;
+  z-index: $z-modal;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 999;
+  padding: $spacing-4;
+  background: rgba(255, 250, 242, 0.42);
+  backdrop-filter: blur(8rpx);
+}
+
+.loading-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-3;
+  width: 100%;
+  max-width: 420rpx;
+  padding: $spacing-5;
+  border-radius: 30rpx;
+  background: rgba(23, 30, 47, 0.94);
+  box-shadow: 0 24rpx 48rpx rgba(15, 23, 42, 0.2);
+}
+
+.loading-spinner {
+  width: 56rpx;
+  height: 56rpx;
+  border: 6rpx solid rgba(255, 255, 255, 0.18);
+  border-top-color: #ffe9a7;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
 .loading-text {
-  font-size: $font-size-base;
-  color: $color-text-secondary;
+  font-size: 24rpx;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }

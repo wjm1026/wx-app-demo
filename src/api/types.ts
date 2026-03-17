@@ -56,6 +56,8 @@ export interface Card {
   is_hot: boolean
   category?: Category
   isFavorited?: boolean
+  favorite_id?: string
+  favorited_at?: number
   create_time?: number
   update_time?: number
   status?: number
@@ -185,4 +187,3 @@ export interface AchievementsResult {
   unlockedCount: number
   totalCount: number
 }
-
