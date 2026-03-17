@@ -1,3 +1,5 @@
+import { AUTH_PARAM_KEY, readStoredAuthToken } from '@/auth'
+
 // 缓存云对象实例，避免每次调用重复创建代理对象
 const serviceCache = new Map<ServiceName, ReturnType<typeof uniCloud.importObject>>()
 
@@ -14,7 +16,32 @@ const getService = <T extends ServiceName>(name: T) => {
     return cached
   }
 
-  const service = uniCloud.importObject(name)
+  const rawService = uniCloud.importObject(name)
+  const service = new Proxy(rawService, {
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver)
+      if (typeof value !== 'function') {
+        return value
+      }
+
+      return (params?: unknown) => {
+        const token = readStoredAuthToken()
+        if (!params || typeof params !== 'object' || Array.isArray(params)) {
+          const nextParams = token ? { [AUTH_PARAM_KEY]: token } : params
+          return value.call(target, nextParams)
+        }
+
+        const nextParams = token
+          ? {
+              ...params,
+              [AUTH_PARAM_KEY]: token,
+            }
+          : params
+
+        return value.call(target, nextParams)
+      }
+    },
+  })
   serviceCache.set(name, service)
   return service
 }

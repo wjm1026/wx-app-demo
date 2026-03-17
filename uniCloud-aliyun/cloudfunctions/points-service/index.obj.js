@@ -3,6 +3,7 @@ const db = uniCloud.database()
 const dbCmd = db.command
 const usersCollection = db.collection('users')
 const pointsLogCollection = db.collection('points_log')
+const { getAuthContext } = require('custom-auth')
 
 module.exports = {
   _before: function() {
@@ -11,13 +12,13 @@ module.exports = {
 
   // 看广告获得积分
   async earnByAd(params) {
-    const { uid } = this.getUniIdToken && await this.getUniIdToken() || {}
-    
-    if (!uid) {
-      return { code: 401, msg: '请先登录' }
+    const authResult = getAuthContext(params)
+    if (!authResult.ok) {
+      return authResult.response
     }
+    const { uid } = authResult.auth
 
-    const { adType } = params // 'banner' | 'video'
+    const { adType } = authResult.params // 'banner' | 'video'
     
     // 不同广告类型给不同积分
     const pointsMap = {
@@ -58,12 +59,12 @@ module.exports = {
   },
 
   // 每日签到
-  async signIn() {
-    const { uid } = this.getUniIdToken && await this.getUniIdToken() || {}
-    
-    if (!uid) {
-      return { code: 401, msg: '请先登录' }
+  async signIn(params) {
+    const authResult = getAuthContext(params)
+    if (!authResult.ok) {
+      return authResult.response
     }
+    const { uid } = authResult.auth
 
     // 检查今日是否已签到
     const today = new Date()
@@ -117,13 +118,13 @@ module.exports = {
 
   // 消费积分（解锁卡片）
   async consumePoints(params) {
-    const { uid } = this.getUniIdToken && await this.getUniIdToken() || {}
-    
-    if (!uid) {
-      return { code: 401, msg: '请先登录' }
+    const authResult = getAuthContext(params)
+    if (!authResult.ok) {
+      return authResult.response
     }
+    const { uid } = authResult.auth
 
-    const { cardId, points } = params
+    const { cardId, points } = authResult.params
 
     if (!cardId || !points || points <= 0) {
       return { code: 400, msg: '参数错误' }
@@ -166,12 +167,12 @@ module.exports = {
   },
 
   // 检查今日签到状态
-  async getSignInStatus() {
-    const { uid } = this.getUniIdToken && await this.getUniIdToken() || {}
-    
-    if (!uid) {
-      return { code: 401, msg: '请先登录' }
+  async getSignInStatus(params) {
+    const authResult = getAuthContext(params)
+    if (!authResult.ok) {
+      return authResult.response
     }
+    const { uid } = authResult.auth
 
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -196,12 +197,12 @@ module.exports = {
   },
 
   // 增加免费查看次数（看广告后）
-  async addFreeViews() {
-    const { uid } = this.getUniIdToken && await this.getUniIdToken() || {}
-    
-    if (!uid) {
-      return { code: 401, msg: '请先登录' }
+  async addFreeViews(params) {
+    const authResult = getAuthContext(params)
+    if (!authResult.ok) {
+      return authResult.response
     }
+    const { uid } = authResult.auth
 
     const addViews = 3
 
@@ -222,12 +223,12 @@ module.exports = {
   },
 
   // 消费免费查看次数
-  async consumeFreeView() {
-    const { uid } = this.getUniIdToken && await this.getUniIdToken() || {}
-    
-    if (!uid) {
-      return { code: 401, msg: '请先登录' }
+  async consumeFreeView(params) {
+    const authResult = getAuthContext(params)
+    if (!authResult.ok) {
+      return authResult.response
     }
+    const { uid } = authResult.auth
 
     const userRes = await usersCollection.doc(uid).get()
     const user = userRes.data[0]

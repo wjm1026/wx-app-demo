@@ -6,56 +6,68 @@ const cardsCollection = db.collection('cards')
 const categoriesCollection = db.collection('categories')
 const favoritesCollection = db.collection('favorites')
 const pointsLogCollection = db.collection('points_log')
+const { getAuthContext } = require('custom-auth')
 
 // 管理员openid列表（需要配置）
 const ADMIN_OPENIDS = [
   // 在这里添加管理员的openid
 ]
 
+async function resolveAdmin(params) {
+  const authResult = getAuthContext(params, { message: '未登录' })
+  if (!authResult.ok) {
+    return authResult
+  }
+
+  const { uid } = authResult.auth
+  const userRes = await usersCollection.doc(uid).get()
+  if (userRes.data.length === 0) {
+    return { ok: false, response: { code: 404, msg: '用户不存在' } }
+  }
+
+  const user = userRes.data[0]
+  if (user.role !== 'admin' && !ADMIN_OPENIDS.includes(user.openid)) {
+    return { ok: false, response: { code: 403, msg: '无管理员权限' } }
+  }
+
+  return {
+    ok: true,
+    params: authResult.params,
+    adminId: uid,
+    adminUser: user,
+  }
+}
+
 module.exports = {
-  _before: async function() {
-    // 获取客户端信息
+  _before: function() {
     this.clientInfo = this.getClientInfo()
-    
-    // 验证管理员权限
-    const tokenInfo = this.getUniIdToken && await this.getUniIdToken() || {}
-    const { uid } = tokenInfo
-    
-    if (!uid) {
-      throw new Error('未登录')
-    }
-    
-    // 查询用户角色
-    const userRes = await usersCollection.doc(uid).get()
-    if (userRes.data.length === 0) {
-      throw new Error('用户不存在')
-    }
-    
-    const user = userRes.data[0]
-    // 检查是否为管理员（通过role字段或openid白名单）
-    if (user.role !== 'admin' && !ADMIN_OPENIDS.includes(user.openid)) {
-      throw new Error('无管理员权限')
-    }
-    
-    this.adminId = uid
-    this.adminUser = user
   },
 
   // 验证管理员身份（前端调用检查）
-  async checkAdmin() {
+  async checkAdmin(params) {
+    const adminResult = await resolveAdmin(params)
+    if (!adminResult.ok) {
+      return adminResult.response
+    }
+
     return {
       code: 0,
       msg: 'success',
       data: {
         isAdmin: true,
-        nickname: this.adminUser.nickname,
-        avatar: this.adminUser.avatar
+        nickname: adminResult.adminUser.nickname,
+        avatar: adminResult.adminUser.avatar
       }
     }
   },
 
   // 获取统计数据
-  async getStats() {
+  async getStats(params) {
+    const adminResult = await resolveAdmin(params)
+    if (!adminResult.ok) {
+      return adminResult.response
+    }
+
     const [userCount, cardCount, categoryCount, todayNewUsers, todayActiveUsers] = await Promise.all([
       usersCollection.count(),
       cardsCollection.count(),
@@ -98,7 +110,12 @@ module.exports = {
 
   // 获取用户列表
   async getUserList(params = {}) {
-    const { page = 1, pageSize = 20, status, keyword } = params
+    const adminResult = await resolveAdmin(params)
+    if (!adminResult.ok) {
+      return adminResult.response
+    }
+
+    const { page = 1, pageSize = 20, status, keyword } = adminResult.params
 
     // 构建查询条件
     const where = {}
@@ -137,7 +154,12 @@ module.exports = {
 
   // 获取用户详情
   async getUserDetail(params) {
-    const { userId } = params
+    const adminResult = await resolveAdmin(params)
+    if (!adminResult.ok) {
+      return adminResult.response
+    }
+
+    const { userId } = adminResult.params
 
     if (!userId) {
       return { code: 400, msg: '缺少用户ID' }
@@ -181,7 +203,12 @@ module.exports = {
 
   // 更新用户状态（封禁/解封）
   async updateUserStatus(params) {
-    const { userId, status } = params
+    const adminResult = await resolveAdmin(params)
+    if (!adminResult.ok) {
+      return adminResult.response
+    }
+
+    const { userId, status } = adminResult.params
 
     if (!userId) {
       return { code: 400, msg: '缺少用户ID' }
@@ -206,7 +233,12 @@ module.exports = {
 
   // 给用户增加/扣除积分
   async adjustUserPoints(params) {
-    const { userId, amount, reason } = params
+    const adminResult = await resolveAdmin(params)
+    if (!adminResult.ok) {
+      return adminResult.response
+    }
+
+    const { userId, amount, reason } = adminResult.params
 
     if (!userId || !amount) {
       return { code: 400, msg: '参数不完整' }
@@ -238,7 +270,7 @@ module.exports = {
       amount,
       balance: newBalance,
       description: reason || (amount > 0 ? '管理员添加积分' : '管理员扣除积分'),
-      operator_id: this.adminId,
+      operator_id: adminResult.adminId,
       create_time: Date.now()
     })
 
@@ -251,7 +283,12 @@ module.exports = {
 
   // 设置/取消管理员
   async setUserRole(params) {
-    const { userId, role } = params
+    const adminResult = await resolveAdmin(params)
+    if (!adminResult.ok) {
+      return adminResult.response
+    }
+
+    const { userId, role } = adminResult.params
 
     if (!userId) {
       return { code: 400, msg: '缺少用户ID' }
@@ -274,7 +311,12 @@ module.exports = {
 
   // 获取卡片列表（管理用）
   async getCardList(params = {}) {
-    const { page = 1, pageSize = 20, categoryId, keyword, status } = params
+    const adminResult = await resolveAdmin(params)
+    if (!adminResult.ok) {
+      return adminResult.response
+    }
+
+    const { page = 1, pageSize = 20, categoryId, keyword, status } = adminResult.params
 
     const where = {}
     if (categoryId) {
@@ -311,7 +353,12 @@ module.exports = {
 
   // 添加/更新卡片
   async saveCard(params) {
-    const { _id, ...cardData } = params
+    const adminResult = await resolveAdmin(params)
+    if (!adminResult.ok) {
+      return adminResult.response
+    }
+
+    const { _id, ...cardData } = adminResult.params
 
     if (!cardData.name || !cardData.category_id || !cardData.image) {
       return { code: 400, msg: '卡片信息不完整' }
@@ -345,7 +392,12 @@ module.exports = {
 
   // 删除卡片
   async deleteCard(params) {
-    const { cardId } = params
+    const adminResult = await resolveAdmin(params)
+    if (!adminResult.ok) {
+      return adminResult.response
+    }
+
+    const { cardId } = adminResult.params
 
     if (!cardId) {
       return { code: 400, msg: '缺少卡片ID' }
@@ -373,7 +425,12 @@ module.exports = {
   },
 
   // 获取分类列表（管理用）
-  async getCategoryList() {
+  async getCategoryList(params) {
+    const adminResult = await resolveAdmin(params)
+    if (!adminResult.ok) {
+      return adminResult.response
+    }
+
     const res = await categoriesCollection.orderBy('sort_order', 'asc').get()
 
     return {
@@ -385,7 +442,12 @@ module.exports = {
 
   // 添加/更新分类
   async saveCategory(params) {
-    const { _id, ...categoryData } = params
+    const adminResult = await resolveAdmin(params)
+    if (!adminResult.ok) {
+      return adminResult.response
+    }
+
+    const { _id, ...categoryData } = adminResult.params
 
     if (!categoryData.name) {
       return { code: 400, msg: '分类名称不能为空' }
@@ -410,7 +472,12 @@ module.exports = {
 
   // 删除分类
   async deleteCategory(params) {
-    const { categoryId } = params
+    const adminResult = await resolveAdmin(params)
+    if (!adminResult.ok) {
+      return adminResult.response
+    }
+
+    const { categoryId } = adminResult.params
 
     if (!categoryId) {
       return { code: 400, msg: '缺少分类ID' }

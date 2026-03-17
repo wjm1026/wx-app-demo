@@ -1,4 +1,11 @@
 import { reactive } from 'vue'
+import {
+  AUTH_STORAGE_KEYS,
+  clearLegacyUniIdStorage,
+  isAuthTokenExpired,
+  readStoredAuthToken,
+  readStoredAuthTokenExpired,
+} from '@/auth'
 import type { UserInfo } from '@/api'
 
 interface AppState {
@@ -7,12 +14,6 @@ interface AppState {
   token: string
   isAdmin: boolean
 }
-
-const STORAGE_KEYS = {
-  token: 'uni_id_token',
-  tokenExpired: 'uni_id_token_expired',
-  userInfo: 'userInfo'
-} as const
 
 const state = reactive<AppState>({
   userInfo: null,
@@ -58,59 +59,73 @@ function parseStoredJson<T>(key: string): T | null {
   }
 }
 
+function syncLoginState() {
+  state.isLoggedIn = !!state.token
+}
+
 export function setUserInfo(userInfo: UserInfo | null) {
   state.userInfo = userInfo
-  state.isLoggedIn = !!userInfo || !!state.token
   state.isAdmin = userInfo?.role === 'admin'
+  syncLoginState()
 
   if (userInfo) {
-    uni.setStorageSync(STORAGE_KEYS.userInfo, JSON.stringify(userInfo))
+    uni.setStorageSync(AUTH_STORAGE_KEYS.userInfo, JSON.stringify(userInfo))
     return
   }
 
-  uni.removeStorageSync(STORAGE_KEYS.userInfo)
+  uni.removeStorageSync(AUTH_STORAGE_KEYS.userInfo)
 }
 
 export function setToken(token: string, expired?: number) {
   state.token = token
-  state.isLoggedIn = !!token || !!state.userInfo
+  syncLoginState()
 
   if (token) {
-    uni.setStorageSync(STORAGE_KEYS.token, token)
+    uni.setStorageSync(AUTH_STORAGE_KEYS.token, token)
     if (expired) {
-      uni.setStorageSync(STORAGE_KEYS.tokenExpired, expired)
+      uni.setStorageSync(AUTH_STORAGE_KEYS.tokenExpired, expired)
+    } else {
+      uni.removeStorageSync(AUTH_STORAGE_KEYS.tokenExpired)
     }
     return
   }
 
-  uni.removeStorageSync(STORAGE_KEYS.token)
-  uni.removeStorageSync(STORAGE_KEYS.tokenExpired)
+  uni.removeStorageSync(AUTH_STORAGE_KEYS.token)
+  uni.removeStorageSync(AUTH_STORAGE_KEYS.tokenExpired)
 }
 
 export function initStore() {
-  const token = uni.getStorageSync(STORAGE_KEYS.token)
-  if (typeof token === 'string' && token) {
+  clearLegacyUniIdStorage()
+
+  const token = readStoredAuthToken()
+  const tokenExpired = readStoredAuthTokenExpired()
+  if (token && !isAuthTokenExpired(tokenExpired)) {
     state.token = token
-    state.isLoggedIn = true
+  } else {
+    uni.removeStorageSync(AUTH_STORAGE_KEYS.token)
+    uni.removeStorageSync(AUTH_STORAGE_KEYS.tokenExpired)
+    uni.removeStorageSync(AUTH_STORAGE_KEYS.userInfo)
   }
 
-  const userInfo = parseStoredJson<UserInfo>(STORAGE_KEYS.userInfo)
-  if (userInfo) {
+  const userInfo = parseStoredJson<UserInfo>(AUTH_STORAGE_KEYS.userInfo)
+  if (token && !isAuthTokenExpired(tokenExpired) && userInfo) {
     state.userInfo = userInfo
-    state.isLoggedIn = true
     state.isAdmin = userInfo.role === 'admin'
   }
+
+  syncLoginState()
 }
 
 export function logout() {
   state.userInfo = null
-  state.isLoggedIn = false
   state.token = ''
   state.isAdmin = false
+  syncLoginState()
 
-  uni.removeStorageSync(STORAGE_KEYS.token)
-  uni.removeStorageSync(STORAGE_KEYS.tokenExpired)
-  uni.removeStorageSync(STORAGE_KEYS.userInfo)
+  uni.removeStorageSync(AUTH_STORAGE_KEYS.token)
+  uni.removeStorageSync(AUTH_STORAGE_KEYS.tokenExpired)
+  uni.removeStorageSync(AUTH_STORAGE_KEYS.userInfo)
+  clearLegacyUniIdStorage()
 }
 
 export function updatePoints(points: number) {
@@ -119,7 +134,7 @@ export function updatePoints(points: number) {
   }
 
   state.userInfo.points = points
-  uni.setStorageSync(STORAGE_KEYS.userInfo, JSON.stringify(state.userInfo))
+  uni.setStorageSync(AUTH_STORAGE_KEYS.userInfo, JSON.stringify(state.userInfo))
 }
 
 export function useStore() {

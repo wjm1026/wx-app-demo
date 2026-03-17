@@ -11,6 +11,7 @@ const {
   isLegacyPlaceholderUrl,
   normalizeCardRecord,
 } = require('./image-data')
+const { getAuthContext } = require('custom-auth')
 
 const CATEGORY_COVER_MAP = createSeedData().categories.reduce((result, category) => {
   result[category.name] = category.cover
@@ -187,7 +188,8 @@ module.exports = {
 
   // 获取卡片详情
   async getCardDetail(params) {
-    const { cardId } = params
+    const authResult = getAuthContext(params, { required: false })
+    const { cardId } = authResult.params
 
     if (!cardId) {
       return { code: 400, msg: '缺少卡片ID' }
@@ -217,16 +219,11 @@ module.exports = {
 
     // 检查是否已收藏（如果已登录）
     let isFavorited = false
-    try {
-      const tokenInfo = this.getUniIdToken && await this.getUniIdToken()
-      if (tokenInfo?.uid) {
-        const favoriteRes = await favoritesCollection
-          .where({ user_id: tokenInfo.uid, card_id: cardId })
-          .get()
-        isFavorited = favoriteRes.data.length > 0
-      }
-    } catch (e) {
-      // 未登录忽略
+    if (authResult.auth?.uid) {
+      const favoriteRes = await favoritesCollection
+        .where({ user_id: authResult.auth.uid, card_id: cardId })
+        .get()
+      isFavorited = favoriteRes.data.length > 0
     }
 
     return {
@@ -242,13 +239,13 @@ module.exports = {
 
   // 收藏/取消收藏
   async toggleFavorite(params) {
-    const { uid } = this.getUniIdToken && await this.getUniIdToken() || {}
-    
-    if (!uid) {
-      return { code: 401, msg: '请先登录' }
+    const authResult = getAuthContext(params)
+    if (!authResult.ok) {
+      return authResult.response
     }
+    const { uid } = authResult.auth
 
-    const { cardId } = params
+    const { cardId } = authResult.params
 
     if (!cardId) {
       return { code: 400, msg: '缺少卡片ID' }
@@ -288,13 +285,13 @@ module.exports = {
 
   // 获取收藏列表
   async getFavorites(params) {
-    const { uid } = this.getUniIdToken && await this.getUniIdToken() || {}
-    
-    if (!uid) {
-      return { code: 401, msg: '请先登录' }
+    const authResult = getAuthContext(params)
+    if (!authResult.ok) {
+      return authResult.response
     }
+    const { uid } = authResult.auth
 
-    const { page = 1, pageSize = 20 } = params || {}
+    const { page = 1, pageSize = 20 } = authResult.params || {}
 
     // 获取收藏记录 + 总数
     const [favoritesRes, totalRes] = await Promise.all([

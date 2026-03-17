@@ -3,6 +3,7 @@ const db = uniCloud.database()
 const dbCmd = db.command
 const usersCollection = db.collection('users')
 const pointsLogCollection = db.collection('points_log')
+const { createToken, getAuthContext, stripAuthParams } = require('custom-auth')
 
 // 生成邀请码
 function generateInviteCode() {
@@ -22,7 +23,7 @@ module.exports = {
 
   // 微信登录
   async loginByWeixin(params) {
-    const { code, inviteCode } = params
+    const { code, inviteCode } = stripAuthParams(params)
     
     // 调用微信接口获取openid
     const res = await uniCloud.httpclient.request(
@@ -122,34 +123,32 @@ module.exports = {
     const user = await usersCollection.doc(userId).get()
 
     // 生成token
-    const tokenRes = await uniCloud.request({
-      name: 'uni-id-co',
-      data: {
-        action: 'createToken',
-        params: { uid: userId }
-      }
-    }).catch(() => null)
+    const currentUser = user.data[0] || {}
+    const tokenRes = createToken({
+      uid: userId,
+      role: currentUser.role || 'user',
+    })
 
     return {
       code: 0,
       msg: 'success',
       data: {
         userId,
-        userInfo: user.data[0],
+        userInfo: currentUser,
         isNewUser,
-        token: tokenRes?.data?.token || '',
-        tokenExpired: tokenRes?.data?.tokenExpired || 0
+        token: tokenRes.token,
+        tokenExpired: tokenRes.tokenExpired
       }
     }
   },
 
   // 获取用户信息
-  async getUserInfo() {
-    const { uid } = this.getUniIdToken && await this.getUniIdToken() || {}
-    
-    if (!uid) {
-      return { code: 401, msg: '未登录' }
+  async getUserInfo(params) {
+    const authResult = getAuthContext(params, { message: '未登录' })
+    if (!authResult.ok) {
+      return authResult.response
     }
+    const { uid } = authResult.auth
 
     const res = await usersCollection.doc(uid).get()
     
@@ -166,13 +165,13 @@ module.exports = {
 
   // 更新用户信息
   async updateUserInfo(params) {
-    const { uid } = this.getUniIdToken && await this.getUniIdToken() || {}
-    
-    if (!uid) {
-      return { code: 401, msg: '未登录' }
+    const authResult = getAuthContext(params, { message: '未登录' })
+    if (!authResult.ok) {
+      return authResult.response
     }
+    const { uid } = authResult.auth
 
-    const { nickname, avatar, gender } = params
+    const { nickname, avatar, gender } = authResult.params
     const updateData = { update_time: Date.now() }
     
     if (nickname) updateData.nickname = nickname
@@ -185,12 +184,12 @@ module.exports = {
   },
 
   // 获取邀请信息
-  async getInviteInfo() {
-    const { uid } = this.getUniIdToken && await this.getUniIdToken() || {}
-    
-    if (!uid) {
-      return { code: 401, msg: '未登录' }
+  async getInviteInfo(params) {
+    const authResult = getAuthContext(params, { message: '未登录' })
+    if (!authResult.ok) {
+      return authResult.response
     }
+    const { uid } = authResult.auth
 
     const userRes = await usersCollection.doc(uid).get()
     const user = userRes.data[0]
@@ -216,13 +215,13 @@ module.exports = {
 
   // 获取积分流水
   async getPointsLog(params) {
-    const { uid } = this.getUniIdToken && await this.getUniIdToken() || {}
-    
-    if (!uid) {
-      return { code: 401, msg: '未登录' }
+    const authResult = getAuthContext(params, { message: '未登录' })
+    if (!authResult.ok) {
+      return authResult.response
     }
+    const { uid } = authResult.auth
 
-    const { page = 1, pageSize = 20 } = params || {}
+    const { page = 1, pageSize = 20 } = authResult.params || {}
 
     const [res, countRes] = await Promise.all([
       pointsLogCollection

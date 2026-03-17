@@ -28,7 +28,7 @@ export function useUserPage() {
   const hasSigned = ref(false)
   const isLoading = ref(false)
 
-  const isLoggedIn = computed(() => !!store.userInfo)
+  const isLoggedIn = computed(() => store.isLoggedIn)
   const userInfo = computed(() => ({
     nickname: store.userInfo?.nickname || '点击登录',
     avatar: store.userInfo?.avatar || '',
@@ -49,6 +49,11 @@ export function useUserPage() {
 
       if (res.code === 0 && res.data) {
         store.setUserInfo(res.data)
+        return
+      }
+
+      if (res.code === 401) {
+        store.logout()
       }
     } catch (error) {
       console.error('获取用户信息失败:', error)
@@ -61,6 +66,12 @@ export function useUserPage() {
 
       if (res.code === 0) {
         hasSigned.value = res.data?.hasSigned || false
+        return
+      }
+
+      if (res.code === 401) {
+        hasSigned.value = false
+        store.logout()
       }
     } catch (error) {
       console.error('获取签到状态失败:', error)
@@ -118,14 +129,19 @@ export function useUserPage() {
       const res = await userApi.loginByWeixin(loginRes.code, inviteCode)
 
       if (res.code === 0 && res.data) {
-        if (res.data.token) {
-          store.setToken(res.data.token, res.data.tokenExpired)
+        if (!res.data.token) {
+          store.logout()
+          uni.hideToast()
+          showToast('登录态创建失败，请稍后重试')
+          return
         }
 
+        store.setToken(res.data.token, res.data.tokenExpired)
         store.setUserInfo(res.data.userInfo)
         uni.removeStorageSync('INVITE_CODE')
         uni.hideToast()
         showToast(res.data.isNewUser ? '欢迎新用户！获得100积分 🎉' : '登录成功 🎉', 'success')
+        void loadUserInfo()
         void checkSignInStatus()
         return
       }
@@ -233,7 +249,7 @@ export function useUserPage() {
 
   function runWithLogin(action: () => void) {
     if (!isLoggedIn.value) {
-      void doLogin()
+      showToast('请先登录')
       return
     }
 

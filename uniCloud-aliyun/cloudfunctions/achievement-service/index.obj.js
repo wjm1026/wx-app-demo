@@ -5,6 +5,7 @@ const learningLogCollection = db.collection('learning_log')
 const achievementsCollection = db.collection('user_achievements')
 const cardsCollection = db.collection('cards')
 const categoriesCollection = db.collection('categories')
+const { getAuthContext } = require('custom-auth')
 
 const ACHIEVEMENTS = [
   { id: 'first_card', name: '初次探索', icon: '🌟', description: '学习第一张卡片', condition: { type: 'cards_learned', count: 1 }, points: 10 },
@@ -25,13 +26,13 @@ module.exports = {
   },
 
   async recordLearning(params) {
-    const { uid } = this.getUniIdToken && await this.getUniIdToken() || {}
-    
-    if (!uid) {
-      return { code: 401, msg: '请先登录' }
+    const authResult = getAuthContext(params)
+    if (!authResult.ok) {
+      return authResult.response
     }
+    const { uid } = authResult.auth
 
-    const { cardId, duration = 0 } = params
+    const { cardId, duration = 0 } = authResult.params
 
     if (!cardId) {
       return { code: 400, msg: '缺少卡片ID' }
@@ -76,12 +77,12 @@ module.exports = {
     }
   },
 
-  async getLearningProgress() {
-    const { uid } = this.getUniIdToken && await this.getUniIdToken() || {}
-    
-    if (!uid) {
-      return { code: 401, msg: '请先登录' }
+  async getLearningProgress(params) {
+    const authResult = getAuthContext(params)
+    if (!authResult.ok) {
+      return authResult.response
     }
+    const { uid } = authResult.auth
 
     const [userRes, logCount, totalCards, categoryStats] = await Promise.all([
       usersCollection.doc(uid).field({ cards_learned: true, sign_streak: true }).get(),
@@ -138,12 +139,12 @@ module.exports = {
     return result
   },
 
-  async getAchievements() {
-    const { uid } = this.getUniIdToken && await this.getUniIdToken() || {}
-    
-    if (!uid) {
-      return { code: 401, msg: '请先登录' }
+  async getAchievements(params) {
+    const authResult = getAuthContext(params)
+    if (!authResult.ok) {
+      return authResult.response
     }
+    const { uid } = authResult.auth
 
     const userAchievements = await achievementsCollection
       .where({ user_id: uid })
@@ -215,12 +216,12 @@ module.exports = {
     return newAchievements
   },
 
-  async checkAndUnlockAchievements() {
-    const { uid } = this.getUniIdToken && await this.getUniIdToken() || {}
-    
-    if (!uid) {
-      return { code: 401, msg: '请先登录' }
+  async checkAndUnlockAchievements(params) {
+    const authResult = getAuthContext(params)
+    if (!authResult.ok) {
+      return authResult.response
     }
+    const { uid } = authResult.auth
 
     const newAchievements = await this._checkAchievements(uid)
 
