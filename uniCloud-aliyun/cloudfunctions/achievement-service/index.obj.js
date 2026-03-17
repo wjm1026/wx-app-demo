@@ -20,11 +20,84 @@ const ACHIEVEMENTS = [
   { id: 'invite_10', name: '超级推广员', icon: '🚀', description: '邀请10位好友', condition: { type: 'invites', count: 10 }, points: 300 }
 ]
 
-module.exports = {
-  _before: async function() {
-    this.clientInfo = this.getClientInfo()
-  },
+async function getCategoryProgress(uid) {
+  const categories = await categoriesCollection.where({ status: 1 }).get()
+  const userLogs = await learningLogCollection.where({ user_id: uid }).get()
 
+  const learnedCardIds = new Set(userLogs.data.map(log => log.card_id))
+
+  const result = []
+  for (const cat of categories.data) {
+    const catCards = await cardsCollection
+      .where({ category_id: cat._id, status: 1 })
+      .field({ _id: true })
+      .get()
+
+    const total = catCards.data.length
+    const learned = catCards.data.filter(card => learnedCardIds.has(card._id)).length
+
+    result.push({
+      categoryId: cat._id,
+      name: cat.name,
+      icon: cat.icon,
+      total,
+      learned,
+      progress: total > 0 ? Math.round((learned / total) * 100) : 0,
+      isComplete: total > 0 && learned >= total
+    })
+  }
+
+  return result
+}
+
+async function checkAchievements(uid) {
+  const [userRes, logCount, favCount, categoryProgress, existingAchievements] = await Promise.all([
+    usersCollection.doc(uid).get(),
+    learningLogCollection.where({ user_id: uid }).count(),
+    db.collection('favorites').where({ user_id: uid }).count(),
+    getCategoryProgress(uid),
+    achievementsCollection.where({ user_id: uid }).get()
+  ])
+
+  const user = userRes.data[0] || {}
+  const unlockedIds = new Set(existingAchievements.data.map(a => a.achievement_id))
+  const newAchievements = []
+
+  const stats = {
+    cards_learned: logCount.total,
+    favorites: favCount.total,
+    invites: user.invite_count || 0,
+    sign_streak: user.sign_streak || 0,
+    category_complete: categoryProgress.filter(c => c.isComplete).length
+  }
+
+  for (const achievement of ACHIEVEMENTS) {
+    if (unlockedIds.has(achievement.id)) continue
+
+    const { type, count } = achievement.condition
+    if (stats[type] >= count) {
+      await achievementsCollection.add({
+        user_id: uid,
+        achievement_id: achievement.id,
+        unlock_time: Date.now()
+      })
+
+      await usersCollection.doc(uid).update({
+        points: dbCmd.inc(achievement.points)
+      })
+
+      newAchievements.push({
+        ...achievement,
+        unlocked: true,
+        unlockTime: Date.now()
+      })
+    }
+  }
+
+  return newAchievements
+}
+
+module.exports = {
   async recordLearning(params) {
     const authResult = getAuthContext(params)
     if (!authResult.ok) {
@@ -65,7 +138,7 @@ module.exports = {
       })
     }
 
-    const newAchievements = isNewCard ? await this._checkAchievements(uid) : []
+    const newAchievements = isNewCard ? await checkAchievements(uid) : []
 
     return {
       code: 0,
@@ -88,7 +161,7 @@ module.exports = {
       usersCollection.doc(uid).field({ cards_learned: true, sign_streak: true }).get(),
       learningLogCollection.where({ user_id: uid }).count(),
       cardsCollection.where({ status: 1 }).count(),
-      this._getCategoryProgress(uid)
+      getCategoryProgress(uid)
     ])
 
     const user = userRes.data[0] || {}
@@ -107,36 +180,6 @@ module.exports = {
         categoryProgress: categoryStats
       }
     }
-  },
-
-  async _getCategoryProgress(uid) {
-    const categories = await categoriesCollection.where({ status: 1 }).get()
-    const userLogs = await learningLogCollection.where({ user_id: uid }).get()
-    
-    const learnedCardIds = new Set(userLogs.data.map(log => log.card_id))
-    
-    const result = []
-    for (const cat of categories.data) {
-      const catCards = await cardsCollection
-        .where({ category_id: cat._id, status: 1 })
-        .field({ _id: true })
-        .get()
-      
-      const total = catCards.data.length
-      const learned = catCards.data.filter(card => learnedCardIds.has(card._id)).length
-      
-      result.push({
-        categoryId: cat._id,
-        name: cat.name,
-        icon: cat.icon,
-        total,
-        learned,
-        progress: total > 0 ? Math.round((learned / total) * 100) : 0,
-        isComplete: total > 0 && learned >= total
-      })
-    }
-    
-    return result
   },
 
   async getAchievements(params) {
@@ -169,53 +212,6 @@ module.exports = {
     }
   },
 
-  async _checkAchievements(uid) {
-    const [userRes, logCount, favCount, categoryProgress, existingAchievements] = await Promise.all([
-      usersCollection.doc(uid).get(),
-      learningLogCollection.where({ user_id: uid }).count(),
-      db.collection('favorites').where({ user_id: uid }).count(),
-      this._getCategoryProgress(uid),
-      achievementsCollection.where({ user_id: uid }).get()
-    ])
-
-    const user = userRes.data[0] || {}
-    const unlockedIds = new Set(existingAchievements.data.map(a => a.achievement_id))
-    const newAchievements = []
-
-    const stats = {
-      cards_learned: logCount.total,
-      favorites: favCount.total,
-      invites: user.invite_count || 0,
-      sign_streak: user.sign_streak || 0,
-      category_complete: categoryProgress.filter(c => c.isComplete).length
-    }
-
-    for (const achievement of ACHIEVEMENTS) {
-      if (unlockedIds.has(achievement.id)) continue
-
-      const { type, count } = achievement.condition
-      if (stats[type] >= count) {
-        await achievementsCollection.add({
-          user_id: uid,
-          achievement_id: achievement.id,
-          unlock_time: Date.now()
-        })
-
-        await usersCollection.doc(uid).update({
-          points: dbCmd.inc(achievement.points)
-        })
-
-        newAchievements.push({
-          ...achievement,
-          unlocked: true,
-          unlockTime: Date.now()
-        })
-      }
-    }
-
-    return newAchievements
-  },
-
   async checkAndUnlockAchievements(params) {
     const authResult = getAuthContext(params)
     if (!authResult.ok) {
@@ -223,7 +219,7 @@ module.exports = {
     }
     const { uid } = authResult.auth
 
-    const newAchievements = await this._checkAchievements(uid)
+    const newAchievements = await checkAchievements(uid)
 
     return {
       code: 0,

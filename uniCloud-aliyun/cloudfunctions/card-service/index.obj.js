@@ -39,10 +39,6 @@ function normalizeCardList(cards = []) {
 }
 
 module.exports = {
-  _before: function() {
-    this.clientInfo = this.getClientInfo()
-  },
-
   // 获取分类列表
   async getCategories() {
     const res = await categoriesCollection

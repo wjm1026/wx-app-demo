@@ -39,10 +39,6 @@ async function resolveAdmin(params) {
 }
 
 module.exports = {
-  _before: function() {
-    this.clientInfo = this.getClientInfo()
-  },
-
   // 验证管理员身份（前端调用检查）
   async checkAdmin(params) {
     const adminResult = await resolveAdmin(params)

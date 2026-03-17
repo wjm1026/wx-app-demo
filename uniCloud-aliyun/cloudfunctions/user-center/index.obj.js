@@ -16,11 +16,6 @@ function generateInviteCode() {
 }
 
 module.exports = {
-  _before: function() {
-    // 获取客户端信息
-    this.clientInfo = this.getClientInfo()
-  },
-
   // 微信登录
   async loginByWeixin(params) {
     const { code, inviteCode } = stripAuthParams(params)

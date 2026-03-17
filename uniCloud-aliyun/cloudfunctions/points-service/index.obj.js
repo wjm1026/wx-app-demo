@@ -6,10 +6,6 @@ const pointsLogCollection = db.collection('points_log')
 const { getAuthContext } = require('custom-auth')
 
 module.exports = {
-  _before: function() {
-    this.clientInfo = this.getClientInfo()
-  },
-
   // 看广告获得积分
   async earnByAd(params) {
     const authResult = getAuthContext(params)
