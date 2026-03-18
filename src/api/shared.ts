@@ -9,6 +9,7 @@ export type ServiceName =
 
 const serviceCache = new Map<ServiceName, ReturnType<typeof uniCloud.importObject>>()
 
+/** 获取服务 */
 export const getService = <T extends ServiceName>(name: T) => {
   const cached = serviceCache.get(name)
   if (cached) {
@@ -20,6 +21,7 @@ export const getService = <T extends ServiceName>(name: T) => {
     customUI: true,
   })
   const service = new Proxy(rawService, {
+    /** 拦截属性读取 */
     get(target, prop, receiver) {
       const value = Reflect.get(target, prop, receiver)
       if (typeof value !== 'function') {

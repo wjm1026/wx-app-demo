@@ -20,10 +20,12 @@ const {
 } = require('cloud-shared')
 const CARD_LOOKUP_CHUNK_SIZE = 100
 
+/** 构建学习日志记录ID */
 function buildLearningLogRecordId(uid, cardId) {
   return `learn:${uid}:${cardId}`
 }
 
+/** 查找学习日志记录 */
 async function findLearningLogRecord(uid, cardId) {
   const recordId = buildLearningLogRecordId(uid, cardId)
   const deterministicRes = await learningLogCollection.doc(recordId).get()
@@ -57,6 +59,7 @@ async function findLearningLogRecord(uid, cardId) {
   }
 }
 
+/** 拆分数组 */
 function chunkArray(list, chunkSize) {
   const result = []
 
@@ -67,6 +70,7 @@ function chunkArray(list, chunkSize) {
   return result
 }
 
+/** 同步成就积分日志列表 */
 async function syncAchievementPointsLogs(uid, achievementRecords, loggedAchievementIds) {
   if (!achievementRecords.length) {
     return loggedAchievementIds
@@ -104,6 +108,7 @@ async function syncAchievementPointsLogs(uid, achievementRecords, loggedAchievem
   return nextLoggedAchievementIds
 }
 
+/** 按分类获取已学习卡片列表 */
 async function getLearnedCardsByCategory(cardIds) {
   if (!cardIds.length) {
     return {
@@ -144,6 +149,7 @@ async function getLearnedCardsByCategory(cardIds) {
   }
 }
 
+/** 构建学习进度快照 */
 async function buildLearningProgressSnapshot(uid) {
   const [categoriesRes, userLogsRes] = await Promise.all([
     categoriesCollection
@@ -190,6 +196,7 @@ async function buildLearningProgressSnapshot(uid) {
   }
 }
 
+/** 获取当前连续签到天数 */
 async function getCurrentSignStreak(uid, now = Date.now()) {
   if (!uid) {
     return 0
@@ -234,6 +241,7 @@ async function getCurrentSignStreak(uid, now = Date.now()) {
   return streak
 }
 
+/** 统计分类下已学习卡片数量 */
 async function countLearnedCardsInCategory(uid, categoryId) {
   if (!uid || !categoryId) {
     return 0
@@ -283,6 +291,7 @@ async function countLearnedCardsInCategory(uid, categoryId) {
   return learnedCardIds.size
 }
 
+/** 构建学习成就统计数据 */
 async function buildLearningAchievementStats(uid, cardId, updatedUser) {
   const stats = {
     cards_learned: Number(updatedUser?.cards_learned || 0),
@@ -321,6 +330,7 @@ async function buildLearningAchievementStats(uid, cardId, updatedUser) {
   return stats
 }
 
+/** 检查学习成就列表 */
 async function checkLearningAchievements(uid, cardId, updatedUser) {
   const stats = await buildLearningAchievementStats(uid, cardId, updatedUser)
 
@@ -335,6 +345,7 @@ async function checkLearningAchievements(uid, cardId, updatedUser) {
   })
 }
 
+/** 检查成就列表 */
 async function checkAchievements(uid) {
   const [userRes, progressSnapshot, signStreak, favCount, existingAchievements, achievementPointsLogs] = await Promise.all([
     usersCollection.doc(uid).get(),
@@ -376,6 +387,7 @@ async function checkAchievements(uid) {
 }
 
 module.exports = {
+  /** 记录学习 */
   async recordLearning(params) {
     const authResult = await getAuthUserContext(params)
     if (!authResult.ok) {
@@ -462,6 +474,7 @@ module.exports = {
     }
   },
 
+  /** 获取学习进度 */
   async getLearningProgress(params) {
     const authResult = await getAuthUserContext(params)
     if (!authResult.ok) {
@@ -490,6 +503,7 @@ module.exports = {
     }
   },
 
+  /** 获取成就列表 */
   async getAchievements(params) {
     const authResult = await getAuthUserContext(params)
     if (!authResult.ok) {
@@ -520,6 +534,7 @@ module.exports = {
     }
   },
 
+  /** 检查并解锁成就列表 */
   async checkAndUnlockAchievements(params) {
     const authResult = await getAuthUserContext(params)
     if (!authResult.ok) {

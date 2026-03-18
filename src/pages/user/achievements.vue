@@ -162,6 +162,7 @@ const {
   unlockedAchievements,
 } = useAchievementsPage()
 
+/** 返回上一页 */
 function goBack() {
   uni.navigateBack()
 }

@@ -1,6 +1,7 @@
 const DEFAULT_TEXT_COLOR = '1F2937'
 const { buildCardImageFields } = require('./image-data')
 
+/** 创建语音地址 */
 function createVoiceUrl(word, lang = 'zh') {
   if (!word) {
     return ''
@@ -13,6 +14,7 @@ function createVoiceUrl(word, lang = 'zh') {
   return `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&le=zh`
 }
 
+/** 构建说明 */
 function buildDescription(category, item) {
   const templates = {
     '动物': `${item.name}是孩子常见的动物认知词汇，适合一起观察它的外形、颜色和生活环境。`,
@@ -30,6 +32,7 @@ function buildDescription(category, item) {
   return templates[category.name] || `${item.name}属于${category.name}主题，适合孩子进行基础认知和语言启蒙。`
 }
 
+/** 处理去重标签相关逻辑 */
 function uniqueTags(categoryName, item) {
   return Array.from(
     new Set([
@@ -41,6 +44,7 @@ function uniqueTags(categoryName, item) {
   )
 }
 
+/** 创建种子数据 */
 function createSeedData() {
   const now = Date.now()
 
@@ -267,6 +271,7 @@ function createSeedData() {
 
   return {
     categories: categoryRecords,
+    /** 构建卡片列表 */
     buildCards(categoryIds) {
       return categories.flatMap((category, categoryIndex) =>
         category.items.map((item, itemIndex) => {

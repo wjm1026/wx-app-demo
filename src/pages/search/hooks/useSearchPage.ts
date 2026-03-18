@@ -25,10 +25,12 @@ const DEFAULT_HOT_KEYWORDS = [
 ]
 const DEFAULT_EMPTY_SUGGESTIONS = ['动物', '水果', '交通工具']
 
+/** 创建建议候选池 */
 function createSuggestionPool(words: string[]) {
   return Array.from(new Set(words.filter(Boolean)))
 }
 
+/** 封装搜索页面逻辑 */
 export function useSearchPage() {
   const { statusBarHeight, navBarHeight } = usePageLayout()
   const keyword = ref('')
@@ -54,6 +56,7 @@ export function useSearchPage() {
     return suggestionPool.value.filter((word) => word.includes(term)).slice(0, 6)
   })
 
+  /** 恢复历史记录 */
   function restoreHistory() {
     const stored = uni.getStorageSync(HISTORY_KEY)
 
@@ -74,10 +77,12 @@ export function useSearchPage() {
     }
   }
 
+  /** 持久化保存历史记录 */
   function persistHistory() {
     uni.setStorageSync(HISTORY_KEY, JSON.stringify(searchHistory.value))
   }
 
+  /** 加载搜索元数据 */
   async function loadSearchMeta() {
     try {
       const [categoryRes, homeRes] = await Promise.all([
@@ -122,16 +127,19 @@ export function useSearchPage() {
     }
   }
 
+  /** 重置搜索状态 */
   function resetSearchState() {
     hasSearched.value = false
     searchResults.value = []
     resultTotal.value = 0
   }
 
+  /** 处理输入事件 */
   function onInput() {
     resetSearchState()
   }
 
+  /** 执行搜索 */
   async function doSearch() {
     const term = keyword.value.trim()
 
@@ -174,34 +182,41 @@ export function useSearchPage() {
     }
   }
 
+  /** 搜索关键词 */
   function searchKeyword(word: string) {
     keyword.value = word
     void doSearch()
   }
 
+  /** 清空关键词 */
   function clearKeyword() {
     keyword.value = ''
     resetSearchState()
   }
 
+  /** 清空历史记录 */
   function clearHistory() {
     searchHistory.value = []
     persistHistory()
     showToast('已清空搜索历史')
   }
 
+  /** 获取分类名称 */
   function getCategoryName(card: Card) {
     return categoryMap.value[card.category_id]?.name || '未分类'
   }
 
+  /** 获取分类背景 */
   function getCategoryBackground(card: Card) {
     return categoryMap.value[card.category_id]?.gradient || 'rgba(96, 165, 250, 0.9)'
   }
 
+  /** 返回上一页 */
   function goBack() {
     navigateBack()
   }
 
+  /** 跳转到卡片详情 */
   function goCardDetail(id: string) {
     navigateTo(`/pages/card/detail?id=${id}`)
   }

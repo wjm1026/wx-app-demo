@@ -23,6 +23,7 @@ const SIGN_IN_REWARD_POINTS = 5
 const FREE_VIEW_REWARD_COUNT = 3
 const SIGN_IN_PENDING_TIMEOUT_MS = 15 * 1000
 
+/** 构建签到查询参数 */
 function buildSignInQuery(uid) {
   const { startTime, endTime } = getDayRange()
 
@@ -33,14 +34,17 @@ function buildSignInQuery(uid) {
   }
 }
 
+/** 构建签到日志ID */
 function buildSignInLogId(uid, dayStartTime) {
   return `points:sign_in:${uid}:${dayStartTime}`
 }
 
+/** 获取上次签到日期 */
 function getLastSignInDay(user) {
   return Number(user?.last_sign_in_day || 0)
 }
 
+/** 计算下一次签到连续天数 */
 function calculateNextSignStreak(user, dayStartTime) {
   const lastSignInDay = getLastSignInDay(user)
   if (lastSignInDay === dayStartTime - DAY_IN_MS) {

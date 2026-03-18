@@ -19,6 +19,7 @@ import {
   showToast,
 } from '@/utils'
 
+/** 封装后台用户详情页面逻辑 */
 export function useAdminUserDetailPage() {
   const { statusBarHeight } = usePageLayout()
   const { runActionWithFeedback, runConfirmedAction } = useConfirmedAction()
@@ -33,10 +34,12 @@ export function useAdminUserDetailPage() {
     reason: '',
   })
 
+  /** 返回上一页 */
   function goBack() {
     navigateBack()
   }
 
+  /** 应用用户详情 */
   function applyUserDetail(detail: AdminUserDetailResult) {
     userInfo.value = detail.user
     favoriteCount.value = detail.favoriteCount || 0
@@ -44,14 +47,17 @@ export function useAdminUserDetailPage() {
     recentPoints.value = detail.recentPoints || []
   }
 
+  /** 格式化用户日期 */
   function formatUserDate(value: number | string | undefined) {
     return formatDate(value, 'ymdHm') || '-'
   }
 
+  /** 格式化指标 */
   function formatMetric(value: number | string | undefined) {
     return formatNumber(Number(value || 0))
   }
 
+  /** 复制ID */
   function copyId() {
     if (!userInfo.value?._id) {
       return
@@ -63,6 +69,7 @@ export function useAdminUserDetailPage() {
     })
   }
 
+  /** 加载用户详情 */
   async function loadUserDetail(showLoadingMask = true) {
     try {
       if (showLoadingMask) {
@@ -86,6 +93,7 @@ export function useAdminUserDetailPage() {
     }
   }
 
+  /** 切换用户状态 */
   async function toggleUserStatus() {
     if (!userInfo.value) {
       return
@@ -112,6 +120,7 @@ export function useAdminUserDetailPage() {
     })
   }
 
+  /** 切换用户角色 */
   async function toggleUserRole() {
     if (!userInfo.value) {
       return
@@ -138,16 +147,19 @@ export function useAdminUserDetailPage() {
     })
   }
 
+  /** 打开积分弹窗 */
   function openPointsModal() {
     adjustForm.amount = ''
     adjustForm.reason = ''
     showPointsModal.value = true
   }
 
+  /** 关闭积分弹窗 */
   function closePointsModal() {
     showPointsModal.value = false
   }
 
+  /** 提交积分调整 */
   async function submitPointsAdjust() {
     if (!adjustForm.amount) {
       showToast('请输入变动数量')

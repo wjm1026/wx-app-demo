@@ -9,6 +9,7 @@ const CONTENT_TOP_GAP_PX = uni.upx2px(32)
 const NEW_CARD_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 const DAILY_GOAL = 10
 
+/** 获取菜单按钮留白像素值 */
 function getMenuButtonInsetPx() {
   const systemInfo = getSystemInfo()
   const menuButtonInfo = uni.getMenuButtonBoundingClientRect?.()
@@ -20,6 +21,7 @@ function getMenuButtonInsetPx() {
   return Math.ceil(systemInfo.windowWidth - menuButtonInfo.left + uni.upx2px(24))
 }
 
+/** 封装首页页面逻辑 */
 export function useIndexPage() {
   const { statusBarHeight, navBarHeight } = usePageLayout()
   const { height: measuredNavBarHeight, measureHeight: updateNavBarHeight } =
@@ -56,6 +58,7 @@ export function useIndexPage() {
   )
   const useCategoryBanner = computed(() => categories.value.length > 4)
 
+  /** 加载数据 */
   async function loadData() {
     if (isLoading.value) {
       return
@@ -78,6 +81,7 @@ export function useIndexPage() {
     }
   }
 
+  /** 判断新卡片是否满足条件 */
   function isNewCard(card: Card): boolean {
     if (!card.create_time) {
       return false
@@ -86,6 +90,7 @@ export function useIndexPage() {
     return Date.now() - card.create_time < NEW_CARD_WINDOW_MS
   }
 
+  /** 获取分类名称 */
   function getCategoryName(card: Card): string {
     return (
       categories.value.find((item) => item._id === card.category_id)?.name ||
@@ -93,14 +98,17 @@ export function useIndexPage() {
     )
   }
 
+  /** 跳转到搜索 */
   function goSearch() {
     navigateTo('/pages/search/search')
   }
 
+  /** 跳转到分类 */
   function goCategory() {
     uni.switchTab({ url: '/pages/category/category' })
   }
 
+  /** 跳转到分类详情 */
   function goCategoryDetail(id: string) {
     uni.setStorageSync('TARGET_CATEGORY_ID', id)
     uni.switchTab({
@@ -108,6 +116,7 @@ export function useIndexPage() {
     })
   }
 
+  /** 跳转到卡片详情 */
   function goCardDetail(id: string) {
     navigateTo(`/pages/card/detail?id=${id}`)
   }

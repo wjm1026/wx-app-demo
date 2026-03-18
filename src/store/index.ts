@@ -41,6 +41,7 @@ const store = {
   updatePoints
 }
 
+/** 解析存储JSON */
 function parseStoredJson<T>(key: string): T | null {
   const raw = uni.getStorageSync(key)
   if (!raw) {
@@ -59,10 +60,12 @@ function parseStoredJson<T>(key: string): T | null {
   }
 }
 
+/** 同步登录状态 */
 function syncLoginState() {
   state.isLoggedIn = !!state.token
 }
 
+/** 设置用户信息 */
 export function setUserInfo(userInfo: UserInfo | null) {
   state.userInfo = userInfo
   state.isAdmin = userInfo?.role === 'admin'
@@ -76,6 +79,7 @@ export function setUserInfo(userInfo: UserInfo | null) {
   uni.removeStorageSync(AUTH_STORAGE_KEYS.userInfo)
 }
 
+/** 设置令牌 */
 export function setToken(token: string, expired?: number) {
   state.token = token
   syncLoginState()
@@ -94,6 +98,7 @@ export function setToken(token: string, expired?: number) {
   uni.removeStorageSync(AUTH_STORAGE_KEYS.tokenExpired)
 }
 
+/** 初始化状态仓库 */
 export function initStore() {
   clearLegacyUniIdStorage()
 
@@ -116,6 +121,7 @@ export function initStore() {
   syncLoginState()
 }
 
+/** 退出登录 */
 export function logout() {
   state.userInfo = null
   state.token = ''
@@ -128,6 +134,7 @@ export function logout() {
   clearLegacyUniIdStorage()
 }
 
+/** 更新积分 */
 export function updatePoints(points: number) {
   if (!state.userInfo) {
     return
@@ -137,6 +144,7 @@ export function updatePoints(points: number) {
   uni.setStorageSync(AUTH_STORAGE_KEYS.userInfo, JSON.stringify(state.userInfo))
 }
 
+/** 封装状态仓库逻辑 */
 export function useStore() {
   return store
 }

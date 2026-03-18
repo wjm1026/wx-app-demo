@@ -11,6 +11,7 @@ const AUTH_PARAM_KEY = '__authToken'
 const FALLBACK_SECRET = 'wx-app-demo-custom-auth-secret-20260317-rotate-before-production'
 const FALLBACK_EXPIRES_IN_SECONDS = 7 * 24 * 60 * 60
 
+/** 加载认证配置 */
 function loadAuthConfig() {
   if (!configCenter) {
     return {}
@@ -34,10 +35,12 @@ const AUTH_SECRET =
   authConfig.secret ||
   FALLBACK_SECRET
 
+/** 获取用户列表集合 */
 function getUsersCollection() {
   return uniCloud.database().collection('users')
 }
 
+/** 将输入内容转换为Base64地址 */
 function toBase64Url(input) {
   return Buffer.from(input)
     .toString('base64')
@@ -46,6 +49,7 @@ function toBase64Url(input) {
     .replace(/=+$/g, '')
 }
 
+/** 将Base64地址还原为原始内容 */
 function fromBase64Url(input) {
   const normalized = String(input || '')
     .replace(/-/g, '+')
@@ -54,6 +58,7 @@ function fromBase64Url(input) {
   return Buffer.from(padded, 'base64')
 }
 
+/** 创建签名 */
 function createSignature(unsignedToken) {
   return crypto
     .createHmac('sha256', AUTH_SECRET)
@@ -64,6 +69,7 @@ function createSignature(unsignedToken) {
     .replace(/=+$/g, '')
 }
 
+/** 移除认证参数 */
 function stripAuthParams(params) {
   if (!params || typeof params !== 'object' || Array.isArray(params)) {
     return {}
@@ -73,6 +79,7 @@ function stripAuthParams(params) {
   return rest
 }
 
+/** 提取令牌 */
 function extractToken(params) {
   if (!params || typeof params !== 'object' || Array.isArray(params)) {
     return ''
@@ -82,6 +89,7 @@ function extractToken(params) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
+/** 创建令牌 */
 function createToken(payload, options = {}) {
   const now = Math.floor(Date.now() / 1000)
   const expiresInSeconds = options.expiresInSeconds || DEFAULT_EXPIRES_IN_SECONDS
@@ -106,6 +114,7 @@ function createToken(payload, options = {}) {
   }
 }
 
+/** 验证令牌 */
 function verifyToken(token) {
   if (!token) {
     return { valid: false, reason: 'missing-token' }
@@ -145,6 +154,7 @@ function verifyToken(token) {
   }
 }
 
+/** 获取认证上下文 */
 function getAuthContext(params, options = {}) {
   const { required = true, message = '请先登录' } = options
   const cleanedParams = stripAuthParams(params)
@@ -182,6 +192,7 @@ function getAuthContext(params, options = {}) {
   }
 }
 
+/** 获取认证用户上下文 */
 async function getAuthUserContext(params, options = {}) {
   const {
     required = true,

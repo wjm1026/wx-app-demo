@@ -16,10 +16,12 @@ import {
 
 const FAVORITE_TONES = ['tone-coral', 'tone-mint', 'tone-violet', 'tone-sky'] as const
 
+/** 获取分类标签 */
 function getCategoryLabel(item: Card) {
   return item.category?.name || '待整理'
 }
 
+/** 封装收藏列表页面逻辑 */
 export function useFavoritesPage() {
   const { statusBarHeight } = usePageLayout()
   const { runConfirmedAction } = useConfirmedAction()
@@ -94,18 +96,22 @@ export function useFavoritesPage() {
     return '把喜欢的卡片留在这里，方便反复学习'
   })
 
+  /** 跳转到首页 */
   function goHome() {
     switchTab('/pages/index/index')
   }
 
+  /** 跳转到卡片详情 */
   function goCardDetail(id: string) {
     navigateTo(`/pages/card/detail?id=${id}`)
   }
 
+  /** 返回上一页 */
   function goBack() {
     navigateBack()
   }
 
+  /** 移除收藏 */
   async function removeFavorite(item: Card) {
     await runConfirmedAction({
       title: '移出收藏',

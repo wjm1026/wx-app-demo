@@ -30,11 +30,13 @@ function generateInviteCode() {
   return code
 }
 
+/** 构建确定性用户ID */
 function buildDeterministicUserId(openid) {
   const digest = crypto.createHash('sha1').update(String(openid || '')).digest('hex')
   return `user:wx:${digest}`
 }
 
+/** 从种子构建邀请码 */
 function buildInviteCodeFromSeed(seed) {
   const digest = crypto.createHash('sha1').update(String(seed || '')).digest()
   let code = ''
@@ -46,15 +48,18 @@ function buildInviteCodeFromSeed(seed) {
   return code
 }
 
+/** 规范化邀请码 */
 function normalizeInviteCode(value) {
   return typeof value === 'string' ? value.trim().toUpperCase() : ''
 }
 
+/** 获取邀请绑定截止时间 */
 function getInviteBindDeadline(user) {
   const createTime = Number(user?.create_time || 0)
   return createTime > 0 ? createTime + INVITE_BIND_WINDOW_MS : 0
 }
 
+/** 判断是否可以绑定邀请码 */
 function canBindInviteCode(user, now = Date.now()) {
   if (!user || user.inviter_id) {
     return false
@@ -68,6 +73,7 @@ function canBindInviteCode(user, now = Date.now()) {
   return now <= deadline
 }
 
+/** 创建唯一邀请码 */
 async function createUniqueInviteCode(seed) {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const inviteCode = buildInviteCodeFromSeed(`${seed}:${attempt}`)
@@ -85,6 +91,7 @@ async function createUniqueInviteCode(seed) {
   return generateInviteCode()
 }
 
+/** 构建新用户 */
 async function buildNewUser(openid, unionid, inviter) {
   const now = Date.now()
   const points = REGISTRATION_REWARD + (inviter ? INVITEE_REWARD : 0)
@@ -112,6 +119,7 @@ async function buildNewUser(openid, unionid, inviter) {
   }
 }
 
+/** 按编码查找邀请人 */
 async function findInviterByCode(inviteCode) {
   if (!inviteCode) {
     return null
@@ -121,12 +129,14 @@ async function findInviterByCode(inviteCode) {
   return inviterRes.data[0] || null
 }
 
+/** 解析邀请人奖励 */
 function resolveInviterReward(taskConfigs) {
   const shareTask = getInviteTaskConfigByKey(taskConfigs, 'share-friend')
   const reward = Number(shareTask?.points)
   return Number.isFinite(reward) ? reward : 100
 }
 
+/** 检查邀请成就列表 */
 async function checkInviteAchievements(uid, inviteCount) {
   return unlockAchievementsForStats({
     uid,
@@ -141,6 +151,7 @@ async function checkInviteAchievements(uid, inviteCount) {
   })
 }
 
+/** 为邀请人发放注册 */
 async function rewardInviterForRegistration(inviter, inviteeId, inviterReward) {
   if (!inviter) {
     return
@@ -168,6 +179,7 @@ async function rewardInviterForRegistration(inviter, inviteeId, inviterReward) {
   await checkInviteAchievements(inviter._id, updatedInviter?.invite_count)
 }
 
+/** 记录注册礼包 */
 async function recordRegistrationGift(userId, points) {
   await appendPointsLog(pointsLogCollection, {
     user_id: userId,
@@ -178,6 +190,7 @@ async function recordRegistrationGift(userId, points) {
   })
 }
 
+/** 更新现有用户 */
 async function touchExistingUser(userId, existingUser = {}) {
   const updateData = {
     last_login_time: Date.now(),

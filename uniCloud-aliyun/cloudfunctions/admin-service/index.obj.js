@@ -25,6 +25,7 @@ const ADMIN_OPENIDS = [
 
 const LEARNING_LOG_RESET_CONFIRM_TEXT = 'RESET_LEARNING_LOG'
 
+/** 解析后台 */
 async function resolveAdmin(params) {
   const authResult = await getAuthUserContext(params, { message: '未登录' })
   if (!authResult.ok) {
@@ -45,6 +46,7 @@ async function resolveAdmin(params) {
   }
 }
 
+/** 构建用户列表查询条件 */
 function buildUserListWhere(params) {
   const { status, keyword } = params
   const where = {}
@@ -67,6 +69,7 @@ function buildUserListWhere(params) {
   return where
 }
 
+/** 规范化用户记录 */
 function normalizeUserRecord(user) {
   if (!user || typeof user !== 'object') {
     return user
@@ -79,6 +82,7 @@ function normalizeUserRecord(user) {
   }
 }
 
+/** 构建卡片列表查询条件 */
 function buildCardListWhere(params) {
   const { categoryId, keyword, status } = params
   const where = {}
@@ -98,6 +102,7 @@ function buildCardListWhere(params) {
   return where
 }
 
+/** 持久化保存邀请任务配置 */
 async function persistInviteTaskConfigs(taskConfigs) {
   const nextConfigs = mergeInviteTaskConfigs(taskConfigs)
   const existingRes = await inviteTaskConfigsCollection.get()

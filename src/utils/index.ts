@@ -13,6 +13,7 @@ export const INVITE_CODE_STORAGE_KEY = 'INVITE_CODE'
 // 登录后补填邀请码只开放给注册后短时间内、且尚未绑定邀请人的新用户。
 export const INVITE_BIND_WINDOW_MS = 24 * 60 * 60 * 1000
 
+/** 显示提示 */
 export function showToast(title: string, icon: ToastIcon = 'none', duration = 2000) {
   const mappedIcon: UniApp.ShowToastOptions['icon'] = icon === 'error' ? 'none' : icon
   uni.showToast({
@@ -22,22 +23,27 @@ export function showToast(title: string, icon: ToastIcon = 'none', duration = 20
   })
 }
 
+/** 显示加载 */
 export function showLoading(title = '加载中...') {
   uni.showLoading({ title, mask: true })
 }
 
+/** 隐藏加载 */
 export function hideLoading() {
   uni.hideLoading()
 }
 
+/** 执行页面跳转 */
 export function navigateTo(url: string) {
   uni.navigateTo({ url })
 }
 
+/** 切换标签 */
 export function switchTab(url: string) {
   uni.switchTab({ url })
 }
 
+/** 导航返回 */
 export function navigateBack(delta = 1) {
   uni.navigateBack({ delta })
 }
@@ -51,6 +57,7 @@ export function normalizeInviteCode(value: unknown): string {
   return value.trim().toUpperCase()
 }
 
+/** 构建邀请分享路径 */
 export function buildInviteSharePath(inviteCode?: string) {
   const normalized = normalizeInviteCode(inviteCode)
 
@@ -61,10 +68,12 @@ export function buildInviteSharePath(inviteCode?: string) {
   return `/pages/user/invite?inviteCode=${encodeURIComponent(normalized)}`
 }
 
+/** 获取存储邀请码 */
 export function getStoredInviteCode() {
   return normalizeInviteCode(uni.getStorageSync(INVITE_CODE_STORAGE_KEY))
 }
 
+/** 处理状态仓库邀请码相关逻辑 */
 export function storeInviteCode(inviteCode: unknown) {
   const normalized = normalizeInviteCode(inviteCode)
 
@@ -76,6 +85,7 @@ export function storeInviteCode(inviteCode: unknown) {
   return normalized
 }
 
+/** 判断邀请绑定窗口开启状态是否满足条件 */
 export function isInviteBindingWindowOpen(
   user?: { create_time?: number | null; inviter_id?: string | null } | null,
 ) {
@@ -91,6 +101,7 @@ export function isInviteBindingWindowOpen(
   return Date.now() - createTime <= INVITE_BIND_WINDOW_MS
 }
 
+/** 清空存储邀请码 */
 export function clearStoredInviteCode() {
   uni.removeStorageSync(INVITE_CODE_STORAGE_KEY)
 }
@@ -106,6 +117,7 @@ export function storeInviteCodeFromQuery(
   return storeInviteCode(query.inviteCode || query.invite_code)
 }
 
+/** 获取错误信息 */
 export function getErrorMessage(error: unknown, fallback = '请求失败'): string {
   if (typeof error === 'string') {
     return error || fallback
@@ -139,6 +151,7 @@ export function assertApiSuccess<T extends ApiLikeResponse>(
   return response
 }
 
+/** 格式化数值 */
 export function formatNumber(num: number): string {
   if (num >= 10000) {
     return (num / 10000).toFixed(1) + 'w'
@@ -149,10 +162,12 @@ export function formatNumber(num: number): string {
   return String(num)
 }
 
+/** 获取系统信息 */
 export function getSystemInfo() {
   return uni.getSystemInfoSync()
 }
 
+/** 获取安全区底部 */
 export function getSafeAreaBottom(): number {
   const systemInfo = getSystemInfo() as UniApp.GetSystemInfoResult & {
     safeAreaInsets?: {
@@ -163,11 +178,13 @@ export function getSafeAreaBottom(): number {
   return systemInfo.safeAreaInsets?.bottom || 0
 }
 
+/** 获取状态栏高度 */
 export function getStatusBarHeight(): number {
   const systemInfo = getSystemInfo()
   return systemInfo.statusBarHeight || 20
 }
 
+/** 获取导航栏高度 */
 export function getNavBarHeight(): number {
   const statusBarHeight = getStatusBarHeight()
   const menuButtonInfo = uni.getMenuButtonBoundingClientRect?.() || {
@@ -178,6 +195,7 @@ export function getNavBarHeight(): number {
   return statusBarHeight + menuButtonInfo.height + (menuButtonInfo.top - statusBarHeight) * 2
 }
 
+/** 解析节点矩形信息 */
 export function resolveNodeRect(
   rect: UniApp.NodeInfo | UniApp.NodeInfo[] | null | undefined,
 ): UniApp.NodeInfo | null {
@@ -188,6 +206,7 @@ export function resolveNodeRect(
   return Array.isArray(rect) ? rect[0] || null : rect
 }
 
+/** 解析日期值 */
 function parseDateValue(value: DateValue): Date | null {
   if (value === null || value === undefined || value === '') {
     return null
@@ -204,10 +223,12 @@ function parseDateValue(value: DateValue): Date | null {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
+/** 补零日期部分值 */
 function padDatePart(value: number): string {
   return String(value).padStart(2, '0')
 }
 
+/** 格式化日期 */
 export function formatDate(
   value: DateValue,
   mode: 'ymd' | 'ymdHm' | 'mdHm' = 'ymdHm',
@@ -235,6 +256,7 @@ export function formatDate(
   return `${year}-${month}-${day} ${hour}:${minute}`
 }
 
+/** 格式化相对日期 */
 export function formatRelativeDate(value: DateValue): string {
   const date = parseDateValue(value)
 
@@ -263,6 +285,7 @@ export function formatRelativeDate(value: DateValue): string {
 
 let innerAudioContext: UniApp.InnerAudioContext | null = null
 
+/** 播放音频 */
 export function playAudio(src: string) {
   if (innerAudioContext) {
     innerAudioContext.stop()
@@ -276,6 +299,7 @@ export function playAudio(src: string) {
   return innerAudioContext
 }
 
+/** 停止音频 */
 export function stopAudio() {
   if (!innerAudioContext) {
     return

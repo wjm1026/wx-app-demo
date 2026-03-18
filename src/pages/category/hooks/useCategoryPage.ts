@@ -18,6 +18,7 @@ interface CategoryWithCards extends Category {
 
 const CONTENT_TOP_GAP_PX = uni.upx2px(32)
 
+/** 封装分类页面逻辑 */
 export function useCategoryPage() {
   const { statusBarHeight, navBarHeight } = usePageLayout()
   const { height: measuredNavBarHeight, measureHeight: updateNavBarHeight } =
@@ -40,6 +41,7 @@ export function useCategoryPage() {
     height: enableScroll.value ? `${tabbarSpacerPx}px` : '0px',
   }))
 
+  /** 更新滚动状态 */
   function updateScrollState() {
     nextTick(() => {
       uni
@@ -63,6 +65,7 @@ export function useCategoryPage() {
     })
   }
 
+  /** 加载分类列表 */
   async function loadCategories() {
     isInitialLoading.value = true
 
@@ -95,6 +98,7 @@ export function useCategoryPage() {
     }
   }
 
+  /** 加载卡片列表 */
   async function loadCards(categoryId: string) {
     const category = categories.value.find((item) => item._id === categoryId)
 
@@ -127,6 +131,7 @@ export function useCategoryPage() {
     }
   }
 
+  /** 切换展开 */
   function toggleExpand(id: string) {
     const index = expandedIds.value.indexOf(id)
 
@@ -144,10 +149,12 @@ export function useCategoryPage() {
     updateScrollState()
   }
 
+  /** 跳转到卡片详情 */
   function goCardDetail(id: string) {
     navigateTo(`/pages/card/detail?id=${id}`)
   }
 
+  /** 加载更多 */
   function loadMore(categoryId: string) {
     void loadCards(categoryId)
   }

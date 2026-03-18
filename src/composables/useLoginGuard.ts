@@ -8,10 +8,12 @@ interface LoginGuardOptions {
   delay?: number
 }
 
+/** 封装登录守卫逻辑 */
 export function useLoginGuard(baseOptions: LoginGuardOptions = {}) {
   const store = useStore()
   const isLoggedIn = computed(() => store.isLoggedIn)
 
+  /** 确保用户已登录 */
   function ensureLoggedIn(overrideOptions: LoginGuardOptions = {}) {
     if (isLoggedIn.value) {
       return true

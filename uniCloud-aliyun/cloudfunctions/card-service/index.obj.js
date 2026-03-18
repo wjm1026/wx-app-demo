@@ -21,6 +21,7 @@ const CATEGORY_COVER_MAP = createSeedData().categories.reduce((result, category)
   return result
 }, {})
 
+/** 规范化分类记录 */
 function normalizeCategoryRecord(category) {
   if (!category) {
     return category
@@ -37,14 +38,17 @@ function normalizeCategoryRecord(category) {
   }
 }
 
+/** 规范化卡片列表 */
 function normalizeCardList(cards = []) {
   return cards.map((item) => normalizeCardRecord(item))
 }
 
+/** 构建收藏记录ID */
 function buildFavoriteRecordId(uid, cardId) {
   return `favorite:${uid}:${cardId}`
 }
 
+/** 查找收藏记录ID 列表 */
 async function findFavoriteRecordIds(uid, cardId) {
   const recordIds = new Set()
   const deterministicId = buildFavoriteRecordId(uid, cardId)
@@ -66,6 +70,7 @@ async function findFavoriteRecordIds(uid, cardId) {
   return Array.from(recordIds)
 }
 
+/** 同步卡片收藏数量 */
 async function syncCardFavoriteCount(cardId) {
   const countRes = await favoritesCollection.where({ card_id: cardId }).count()
   await cardsCollection.doc(cardId).update({
@@ -424,6 +429,7 @@ module.exports = {
     }
   },
 
+  /** 修复卡片图片 */
   async repairCardImages() {
     const [cardsRes, categoriesRes] = await Promise.all([
       cardsCollection.where({ _id: dbCmd.exists(true) }).limit(500).get(),

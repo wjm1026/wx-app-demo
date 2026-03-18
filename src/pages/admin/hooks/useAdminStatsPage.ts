@@ -75,6 +75,7 @@ const POINT_TYPE_META: Record<string, { label: string; icon: string; tone: strin
   },
 }
 
+/** 规范化统计数据 */
 function normalizeStats(data?: AdminStatsResult): StatsData {
   return {
     userCount: data?.userCount || 0,
@@ -86,6 +87,7 @@ function normalizeStats(data?: AdminStatsResult): StatsData {
   }
 }
 
+/** 将输入内容转换为百分比 */
 function toPercent(part: number, total: number) {
   if (!total) {
     return 0
@@ -94,10 +96,12 @@ function toPercent(part: number, total: number) {
   return Math.round((part / total) * 100)
 }
 
+/** 格式化数值 */
 function formatNumber(num: number): string {
   return (num || 0).toLocaleString()
 }
 
+/** 格式化带符号数值 */
 function formatSignedNumber(num: number): string {
   const absolute = formatNumber(Math.abs(num))
 
@@ -112,6 +116,7 @@ function formatSignedNumber(num: number): string {
   return absolute
 }
 
+/** 获取积分类型元数据 */
 function getPointTypeMeta(type: string) {
   return POINT_TYPE_META[type] || {
     label: '其他变动',
@@ -120,6 +125,7 @@ function getPointTypeMeta(type: string) {
   }
 }
 
+/** 封装后台统计数据页面逻辑 */
 export function useAdminStatsPage() {
   const { statusBarHeight } = usePageLayout()
   const loading = ref(false)
@@ -256,6 +262,7 @@ export function useAdminStatsPage() {
       }),
   )
 
+  /** 加载统计数据 */
   async function loadStats() {
     if (loading.value) {
       return
@@ -277,6 +284,7 @@ export function useAdminStatsPage() {
     }
   }
 
+  /** 返回上一页 */
   function goBack() {
     navigateBack()
   }

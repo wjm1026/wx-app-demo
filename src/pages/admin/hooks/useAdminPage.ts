@@ -19,6 +19,7 @@ interface AdminStats {
   todayActiveUsers: number
 }
 
+/** 规范化统计数据 */
 function normalizeStats(data?: AdminStatsResult): AdminStats {
   return {
     userCount: data?.userCount || 0,
@@ -29,6 +30,7 @@ function normalizeStats(data?: AdminStatsResult): AdminStats {
   }
 }
 
+/** 将输入内容转换为百分比 */
 function toPercent(part: number, total: number) {
   if (!total) {
     return 0
@@ -37,6 +39,7 @@ function toPercent(part: number, total: number) {
   return Math.round((part / total) * 100)
 }
 
+/** 将输入内容转换为平均值 */
 function toAverage(total: number, count: number) {
   if (!count) {
     return '0.0'
@@ -45,6 +48,7 @@ function toAverage(total: number, count: number) {
   return (total / count).toFixed(1)
 }
 
+/** 获取菜单按钮留白像素值 */
 function getMenuButtonInsetPx() {
   const systemInfo = getSystemInfo()
   const menuButtonInfo = uni.getMenuButtonBoundingClientRect?.()
@@ -56,6 +60,7 @@ function getMenuButtonInsetPx() {
   return Math.ceil(systemInfo.windowWidth - menuButtonInfo.left + uni.upx2px(24))
 }
 
+/** 封装后台页面逻辑 */
 export function useAdminPage() {
   const { statusBarHeight } = usePageLayout()
   const { runConfirmedAction } = useConfirmedAction()
@@ -64,6 +69,7 @@ export function useAdminPage() {
   const checkingAdmin = ref(true)
   const stats = ref<AdminStats>(normalizeStats())
 
+  /** 格式化数值 */
   function formatNumber(value: number) {
     return (value || 0).toLocaleString()
   }
@@ -231,6 +237,7 @@ export function useAdminPage() {
     },
   ])
 
+  /** 加载统计数据 */
   async function loadStats() {
     try {
       const res = assertApiSuccess(await adminApi.getStats(), '加载统计数据失败')
@@ -240,6 +247,7 @@ export function useAdminPage() {
     }
   }
 
+  /** 检查后台 */
   async function checkAdmin() {
     checkingAdmin.value = true
 
@@ -283,6 +291,7 @@ export function useAdminPage() {
     })
   }
 
+  /** 初始化数据 */
   async function initData() {
     await runCardMaintenanceAction({
       title: '确认初始化',
@@ -294,6 +303,7 @@ export function useAdminPage() {
     })
   }
 
+  /** 修复卡片图片 */
   async function repairCardImages() {
     await runCardMaintenanceAction({
       title: '确认修复图片',
@@ -305,6 +315,7 @@ export function useAdminPage() {
     })
   }
 
+  /** 清空学习日志 */
   async function clearLearningLog() {
     await runCardMaintenanceAction({
       title: '确认清空学习记录',
@@ -316,26 +327,32 @@ export function useAdminPage() {
     })
   }
 
+  /** 跳转到用户列表 */
   function goUsers() {
     navigateTo('/pages/admin/users')
   }
 
+  /** 跳转到统计数据 */
   function goStats() {
     navigateTo('/pages/admin/stats')
   }
 
+  /** 跳转到任务列表 */
   function goTasks() {
     navigateTo('/pages/admin/tasks')
   }
 
+  /** 跳转到分类列表 */
   function goCategories() {
     showToast('分类管理开发中')
   }
 
+  /** 跳转到卡片列表 */
   function goCards() {
     showToast('卡片管理开发中')
   }
 
+  /** 返回上一页 */
   function goBack() {
     navigateBack()
   }

@@ -32,6 +32,7 @@ import {
 
 const LOGIN_REDIRECT_DELAY_MS = 700
 
+/** 封装邀请页面逻辑 */
 export function useInvitePage() {
   const { statusBarHeight } = usePageLayout()
   const { store, isLoggedIn } = useLoginGuard()
@@ -118,6 +119,7 @@ export function useInvitePage() {
     }),
   )
 
+  /** 加载邀请数据 */
   async function loadInviteData() {
     loading.value = true
 
@@ -157,6 +159,7 @@ export function useInvitePage() {
     }
   }
 
+  /** 加载任务配置 */
   async function loadTaskConfigs() {
     try {
       const res = await userApi.getInviteTaskConfigs()
@@ -169,10 +172,12 @@ export function useInvitePage() {
     }
   }
 
+  /** 返回上一页 */
   function goBack() {
     navigateBack()
   }
 
+  /** 跳转到登录 */
   function goLogin() {
     showToast('登录后开始任务')
     setTimeout(() => {
@@ -180,6 +185,7 @@ export function useInvitePage() {
     }, LOGIN_REDIRECT_DELAY_MS)
   }
 
+  /** 确保任务准备就绪 */
   function ensureTaskReady() {
     if (!isLoggedIn.value) {
       goLogin()
@@ -194,6 +200,7 @@ export function useInvitePage() {
     return true
   }
 
+  /** 复制文本 */
   function copyText(data: string, successTitle: string, onSuccess?: () => void) {
     uni.setClipboardData({
       data,
@@ -204,6 +211,7 @@ export function useInvitePage() {
     })
   }
 
+  /** 复制编码 */
   function copyCode() {
     if (!displayInviteCode.value) {
       showToast('当前还没有可复制的口令')
@@ -277,6 +285,7 @@ export function useInvitePage() {
     }
   }
 
+  /** 在准备就绪时执行任务 */
   function runMissionWhenReady(action: () => void) {
     if (!ensureTaskReady()) {
       return
@@ -285,6 +294,7 @@ export function useInvitePage() {
     action()
   }
 
+  /** 处理朋友圈任务 */
   function handleMomentsTask() {
     runMissionWhenReady(() => {
       copyText(
@@ -302,6 +312,7 @@ export function useInvitePage() {
     })
   }
 
+  /** 处理平台任务 */
   function handlePlatformTask(
     platform: '抖音' | '小红书',
     successTitle: string,
@@ -317,6 +328,7 @@ export function useInvitePage() {
     })
   }
 
+  /** 处理任务 */
   function handleMission(key: MissionKey) {
     if (key === 'share-friend') {
       ensureTaskReady()

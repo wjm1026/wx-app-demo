@@ -21,11 +21,13 @@ interface RefreshOptions {
   replaceQuery?: boolean
 }
 
+/** 封装分页列表逻辑 */
 export function usePagedList<T, Q extends object = Record<string, never>>(
   options: UsePagedListOptions<T, Q>,
 ) {
   const pageSize = options.pageSize ?? 20
 
+  /** 规范化查询参数 */
   function normalizeQuery(value: Partial<Q> | Q) {
     return Object.fromEntries(
       Object.entries(value).filter(([, item]) => item !== undefined),
@@ -41,6 +43,7 @@ export function usePagedList<T, Q extends object = Record<string, never>>(
     normalizeQuery(options.initialQuery ? { ...options.initialQuery } : ({} as Q)),
   ) as Ref<Q>
 
+  /** 更新查询参数 */
   function updateQuery(next: Partial<Q>) {
     query.value = normalizeQuery({
       ...query.value,
@@ -48,10 +51,12 @@ export function usePagedList<T, Q extends object = Record<string, never>>(
     } as Q)
   }
 
+  /** 替换查询参数 */
   function replaceQuery(next: Q) {
     query.value = normalizeQuery(next)
   }
 
+  /** 发起请求 */
   async function request(reset = false): Promise<boolean> {
     if (loading.value) {
       return false
@@ -95,6 +100,7 @@ export function usePagedList<T, Q extends object = Record<string, never>>(
     }
   }
 
+  /** 刷新 */
   async function refresh(nextQuery?: Partial<Q> | Q, refreshOptions?: RefreshOptions) {
     if (nextQuery) {
       if (refreshOptions?.replaceQuery) {
@@ -110,6 +116,7 @@ export function usePagedList<T, Q extends object = Record<string, never>>(
     return request(true)
   }
 
+  /** 加载更多 */
   function loadMore() {
     return request(false)
   }

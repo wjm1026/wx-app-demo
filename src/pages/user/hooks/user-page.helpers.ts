@@ -25,6 +25,7 @@ export interface UserPageViewModel {
   isVip: boolean
 }
 
+/** 判断激励广告完成状态是否满足条件 */
 export function isRewardedAdCompleted(status: unknown) {
   if (!status || typeof status !== 'object') {
     return false
@@ -33,10 +34,12 @@ export function isRewardedAdCompleted(status: unknown) {
   return Boolean((status as { isEnded?: boolean }).isEnded)
 }
 
+/** 判断未授权编码是否满足条件 */
 export function isUnauthorizedCode(code?: number) {
   return code === 401 || code === 404
 }
 
+/** 构建用户页面视图模型 */
 export function buildUserPageViewModel(
   userInfo?: UserInfo | null,
 ): UserPageViewModel {
@@ -51,10 +54,12 @@ export function buildUserPageViewModel(
   }
 }
 
+/** 构建登录成功信息 */
 export function buildLoginSuccessMessage(isNewUser?: boolean) {
   return isNewUser ? '欢迎新用户！获得100积分 🎉' : '登录成功 🎉'
 }
 
+/** 构建用户分享参数 */
 export function buildUserSharePayload(inviteCode?: string) {
   return {
     title: inviteCode

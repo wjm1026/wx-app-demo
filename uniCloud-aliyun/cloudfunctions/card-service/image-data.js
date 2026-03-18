@@ -81,10 +81,12 @@ const REAL_CARD_IMAGE_MAP = {
   汤圆: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Pumpkin_tangyuan_%28%E6%B1%A4%E5%9C%86%29_with_red_bean_baste_and_black_sesame_fillings.jpg/500px-Pumpkin_tangyuan_%28%E6%B1%A4%E5%9C%86%29_with_red_bean_baste_and_black_sesame_fillings.jpg',
 }
 
+/** 判断旧占位图地址是否满足条件 */
 function isLegacyPlaceholderUrl(url = '') {
   return /placehold\.co/i.test(url)
 }
 
+/** 解析卡片图片地址 */
 function resolveCardImageUrl(name = '', url = '') {
   const normalizedName = String(name).trim()
 
@@ -95,6 +97,7 @@ function resolveCardImageUrl(name = '', url = '') {
   return REAL_CARD_IMAGE_MAP[normalizedName] || url || ''
 }
 
+/** 构建卡片图片字段 */
 function buildCardImageFields(name = '') {
   const image = resolveCardImageUrl(name)
 
@@ -104,6 +107,7 @@ function buildCardImageFields(name = '') {
   }
 }
 
+/** 规范化卡片记录 */
 function normalizeCardRecord(card) {
   if (!card) {
     return card
@@ -126,6 +130,7 @@ function normalizeCardRecord(card) {
   }
 }
 
+/** 获取卡片图片更新信息 */
 function getCardImageUpdate(card) {
   const normalized = normalizeCardRecord(card)
 

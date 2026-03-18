@@ -26,6 +26,7 @@ const EMPTY_CARD: Card = {
   category_id: '',
 }
 
+/** 封装卡片详情页面逻辑 */
 export function useCardDetailPage() {
   const store = useStore()
   const { statusBarHeight, navBarHeight } = usePageLayout()
@@ -54,6 +55,7 @@ export function useCardDetailPage() {
     audioContext.src = ''
   })
 
+  /** 加载卡片详情 */
   async function loadCardDetail(id: string) {
     isLoading.value = true
 
@@ -84,6 +86,7 @@ export function useCardDetailPage() {
     }
   }
 
+  /** 记录学习 */
   async function recordLearning(cardId: string) {
     try {
       const res = await achievementApi.recordLearning(cardId)
@@ -99,6 +102,7 @@ export function useCardDetailPage() {
     }
   }
 
+  /** 加载相关推荐卡片 */
   async function loadRelatedCards(cardId: string, categoryId: string) {
     try {
       const res = await cardApi.getRelatedCards({ cardId, categoryId, limit: 6 })
@@ -111,10 +115,12 @@ export function useCardDetailPage() {
     }
   }
 
+  /** 返回上一页 */
   function goBack() {
     navigateBack()
   }
 
+  /** 切换收藏 */
   async function toggleFavorite() {
     if (!store.isLoggedIn) {
       showToast('请先登录', 'none')
@@ -140,6 +146,7 @@ export function useCardDetailPage() {
     }
   }
 
+  /** 播放音频 */
   function playAudio(url: string | undefined, label: string) {
     if (!url) {
       showToast(`暂无${label}`, 'none')
@@ -151,6 +158,7 @@ export function useCardDetailPage() {
     audioContext.play()
   }
 
+  /** 播放名称音频 */
   function playNameAudio(lang: 'cn' | 'en') {
     if (lang === 'cn') {
       playAudio(cardData.value.audio, '中文发音')
@@ -160,24 +168,29 @@ export function useCardDetailPage() {
     playAudio(cardData.value.audio_en, '英文发音')
   }
 
+  /** 播放发音 */
   function playSound() {
     playAudio(cardData.value.sound, '音效')
   }
 
+  /** 播放视频 */
   function playVideo() {
     if (cardData.value.video) {
       showToast('视频功能开发中', 'none')
     }
   }
 
+  /** 跳转到卡片详情 */
   function goCardDetail(id: string) {
     navigateTo(`/pages/card/detail?id=${id}`)
   }
 
+  /** 分享卡片 */
   function shareCard() {
     showToast('分享功能开发中', 'none')
   }
 
+  /** 处理下一个卡片相关逻辑 */
   function nextCard() {
     if (relatedCards.value.length > 0) {
       goCardDetail(relatedCards.value[0]._id)

@@ -27,6 +27,7 @@ const TAB_OPTIONS = [
   { value: 2, label: '封禁', note: '受限账号' },
 ] as const
 
+/** 封装后台用户列表页面逻辑 */
 export function useAdminUsersPage() {
   const { statusBarHeight } = usePageLayout()
   const keyword = ref('')
@@ -90,6 +91,7 @@ export function useAdminUsersPage() {
     return '等第一批用户进入系统后，这里会自动出现完整列表。'
   })
 
+  /** 构建查询参数 */
   function buildQuery(): UserListQuery {
     return {
       keyword: normalizedKeyword.value,
@@ -97,14 +99,17 @@ export function useAdminUsersPage() {
     }
   }
 
+  /** 刷新列表 */
   async function refreshList() {
     return refresh(buildQuery(), { replaceQuery: true })
   }
 
+  /** 返回上一页 */
   function goBack() {
     navigateBack()
   }
 
+  /** 切换标签 */
   function switchTab(tab: number) {
     if (currentTab.value === tab) {
       return
@@ -114,33 +119,40 @@ export function useAdminUsersPage() {
     void refreshList()
   }
 
+  /** 处理搜索事件 */
   function onSearch() {
     void refreshList()
   }
 
+  /** 清空搜索 */
   function clearSearch() {
     keyword.value = ''
     void refreshList()
   }
 
+  /** 重置筛选条件 */
   function resetFilters() {
     keyword.value = ''
     currentTab.value = 0
     void refreshList()
   }
 
+  /** 跳转到详情 */
   function goDetail(id: string) {
     navigateTo(`/pages/admin/user-detail?id=${id}`)
   }
 
+  /** 格式化用户日期 */
   function formatUserDate(value: string | number | undefined) {
     return formatDate(value, 'ymdHm') || '-'
   }
 
+  /** 格式化指标 */
   function formatMetric(value: number | undefined) {
     return formatNumber(Number(value || 0))
   }
 
+  /** 格式化关键词标签 */
   function formatKeywordLabel(value: string) {
     if (value.length <= 10) {
       return value

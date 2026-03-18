@@ -44,6 +44,7 @@ export interface DecoratedInviteUser {
   rewardLabel: string
 }
 
+/** 提取邀请用户列表 */
 export function extractInvitedList(data: InviteInfoResult): InviteUserInfo[] {
   const candidates = [
     data.list,
@@ -61,10 +62,12 @@ export function extractInvitedList(data: InviteInfoResult): InviteUserInfo[] {
   return []
 }
 
+/** 解析邀请时间 */
 function resolveInviteTime(item: InviteUserInfo) {
   return item.create_time || item.created_at || item.time
 }
 
+/** 构建任务文案 */
 export function buildMissionCopy(
   platform: '朋友圈' | '抖音' | '小红书',
   inviteCode: string,
@@ -77,6 +80,7 @@ export function buildMissionCopy(
   ].join('\n')
 }
 
+/** 校验手动邀请码 */
 export function validateManualInviteCode(rawValue: string) {
   const normalized = rawValue.trim().toUpperCase()
 
@@ -91,10 +95,12 @@ export function validateManualInviteCode(rawValue: string) {
   return { normalized, errorMessage: '' }
 }
 
+/** 获取启用任务配置 */
 function getEnabledTaskConfigs(taskConfigs: InviteTaskConfig[]) {
   return taskConfigs.filter((item) => item.enabled)
 }
 
+/** 解析分享任务奖励 */
 export function resolveShareTaskReward(taskConfigs: InviteTaskConfig[]) {
   const shareTask =
     taskConfigs.find((item) => item.key === 'share-friend') ||
@@ -103,6 +109,7 @@ export function resolveShareTaskReward(taskConfigs: InviteTaskConfig[]) {
   return Number(shareTask?.points || 0)
 }
 
+/** 构建邀请摘要卡片列表 */
 export function buildInviteSummaryCards(
   invitedCount: number,
   taskConfigs: InviteTaskConfig[],
@@ -138,6 +145,7 @@ export function buildInviteSummaryCards(
   ]
 }
 
+/** 构建任务卡片列表 */
 export function buildMissionCards(options: {
   isLoggedIn: boolean
   hasInviteCode: boolean
@@ -165,6 +173,7 @@ export function buildMissionCards(options: {
   })
 }
 
+/** 加工邀请用户列表 */
 export function decorateInvitedList(
   invitedList: InviteUserInfo[],
   shareReward: number,
@@ -183,6 +192,7 @@ export function decorateInvitedList(
   })
 }
 
+/** 构建转化提示 */
 export function buildConversionHint(options: {
   isLoggedIn: boolean
   invitedCount: number

@@ -32,6 +32,7 @@ const hasFailed = ref(false)
 
 const resolvedSrc = computed(() => (hasFailed.value ? '' : props.src))
 
+/** 处理错误 */
 function handleError() {
   hasFailed.value = true
 }

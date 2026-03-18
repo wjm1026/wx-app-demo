@@ -305,10 +305,12 @@ const actionCards = computed(() => {
   ]
 })
 
+/** 获取日志标题 */
 function getLogTitle(log: PointsLogItem) {
   return log.reason || log.description || '积分变动'
 }
 
+/** 获取日志金额样式类 */
 function getLogAmountClass(value: number) {
   if (value > 0) {
     return 'plus'
@@ -321,6 +323,7 @@ function getLogAmountClass(value: number) {
   return 'neutral'
 }
 
+/** 格式化带符号金额 */
 function formatSignedAmount(value: number) {
   const amount = Number(value || 0)
   return `${amount > 0 ? '+' : ''}${formatMetric(amount)}`

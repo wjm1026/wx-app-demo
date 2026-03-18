@@ -76,6 +76,7 @@ export const INVITE_TASK_METAS: Record<InviteTaskKey, InviteTaskMeta> = {
   },
 }
 
+/** 判断邀请任务键名是否满足条件 */
 function isInviteTaskKey(value: unknown): value is InviteTaskKey {
   return (
     typeof value === 'string' &&
@@ -83,6 +84,7 @@ function isInviteTaskKey(value: unknown): value is InviteTaskKey {
   )
 }
 
+/** 限制整数 */
 function clampInteger(value: unknown, fallback: number, min = 0) {
   const parsed = Number.parseInt(String(value ?? ''), 10)
 
@@ -93,6 +95,7 @@ function clampInteger(value: unknown, fallback: number, min = 0) {
   return Math.max(min, parsed)
 }
 
+/** 规范化文本 */
 function normalizeText(value: unknown, fallback: string) {
   if (typeof value !== 'string') {
     return fallback
@@ -102,14 +105,17 @@ function normalizeText(value: unknown, fallback: string) {
   return nextValue || fallback
 }
 
+/** 获取默认邀请任务配置 */
 export function getDefaultInviteTaskConfigs(): InviteTaskConfig[] {
   return DEFAULT_INVITE_TASK_CONFIGS.map((item) => ({ ...item }))
 }
 
+/** 获取邀请任务元数据 */
 export function getInviteTaskMeta(key: InviteTaskKey) {
   return INVITE_TASK_METAS[key]
 }
 
+/** 规范化邀请任务配置 */
 export function normalizeInviteTaskConfig(
   rawConfig: Partial<InviteTaskConfig> | null | undefined,
   fallbackConfig: InviteTaskConfig,
@@ -135,6 +141,7 @@ export function normalizeInviteTaskConfig(
   }
 }
 
+/** 合并邀请任务配置 */
 export function mergeInviteTaskConfigs(
   rawConfigs: Array<Partial<InviteTaskConfig>> | null | undefined,
 ): InviteTaskConfig[] {

@@ -56,6 +56,7 @@ const LOG_VISUAL_MAP: Record<string, LogVisualMeta> = {
   },
 }
 
+/** 获取日志视觉元数据 */
 function getLogVisualMeta(item: PointsLogItem): LogVisualMeta {
   return (
     LOG_VISUAL_MAP[item.type] || {
@@ -67,6 +68,7 @@ function getLogVisualMeta(item: PointsLogItem): LogVisualMeta {
   )
 }
 
+/** 封装积分日志页面逻辑 */
 export function usePointsLogPage() {
   const { store, ensureLoggedIn } = useLoginGuard()
   const { statusBarHeight } = usePageLayout()
@@ -144,6 +146,7 @@ export function usePointsLogPage() {
     return '最近获得和使用的积分都会展示在这里'
   })
 
+  /** 刷新用户积分 */
   async function refreshUserPoints() {
     if (!store.userInfo) {
       return
@@ -156,14 +159,17 @@ export function usePointsLogPage() {
     }
   }
 
+  /** 格式化日志日期 */
   function formatLogDate(value: number | string) {
     return formatDate(value, 'mdHm')
   }
 
+  /** 返回上一页 */
   function goBack() {
     navigateBack()
   }
 
+  /** 同步页面数据 */
   async function syncPageData() {
     await Promise.all([refresh(), refreshUserPoints()])
   }

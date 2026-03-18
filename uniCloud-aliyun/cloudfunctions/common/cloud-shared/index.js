@@ -134,10 +134,12 @@ const DEFAULT_INVITE_TASK_CONFIGS = Object.freeze([
   },
 ])
 
+/** 判断邀请任务键名是否满足条件 */
 function isInviteTaskKey(value) {
   return INVITE_TASK_KEYS.includes(value)
 }
 
+/** 规范化邀请任务文本 */
 function normalizeInviteTaskText(value, fallback) {
   if (typeof value !== 'string') {
     return fallback
@@ -147,6 +149,7 @@ function normalizeInviteTaskText(value, fallback) {
   return nextValue || fallback
 }
 
+/** 规范化邀请任务数值 */
 function normalizeInviteTaskNumber(value, fallback, min = 0) {
   const parsed = Number.parseInt(String(value ?? ''), 10)
 
@@ -157,10 +160,12 @@ function normalizeInviteTaskNumber(value, fallback, min = 0) {
   return Math.max(min, parsed)
 }
 
+/** 获取默认邀请任务配置 */
 function getDefaultInviteTaskConfigs() {
   return DEFAULT_INVITE_TASK_CONFIGS.map((item) => ({ ...item }))
 }
 
+/** 规范化邀请任务配置 */
 function normalizeInviteTaskConfig(rawConfig, fallbackConfig) {
   const source = rawConfig && typeof rawConfig === 'object' ? rawConfig : {}
   const key = isInviteTaskKey(source.key) ? source.key : fallbackConfig.key
@@ -187,6 +192,7 @@ function normalizeInviteTaskConfig(rawConfig, fallbackConfig) {
   }
 }
 
+/** 合并邀请任务配置 */
 function mergeInviteTaskConfigs(rawConfigs = []) {
   const configMap = new Map()
 
@@ -203,15 +209,18 @@ function mergeInviteTaskConfigs(rawConfigs = []) {
     .sort((left, right) => left.sortOrder - right.sortOrder)
 }
 
+/** 加载邀请任务配置 */
 async function loadInviteTaskConfigs(collection) {
   const res = await collection.get()
   return mergeInviteTaskConfigs(res.data || [])
 }
 
+/** 按键名获取邀请任务配置 */
 function getInviteTaskConfigByKey(taskConfigs, key) {
   return (taskConfigs || []).find((item) => item.key === key) || null
 }
 
+/** 获取日期范围 */
 function getDayRange(now = Date.now()) {
   const startDate = new Date(now)
   startDate.setHours(0, 0, 0, 0)
@@ -224,6 +233,7 @@ function getDayRange(now = Date.now()) {
   }
 }
 
+/** 追加积分日志 */
 async function appendPointsLog(pointsLogCollection, record, now = Date.now()) {
   return pointsLogCollection.add({
     ...record,
@@ -232,14 +242,17 @@ async function appendPointsLog(pointsLogCollection, record, now = Date.now()) {
   })
 }
 
+/** 构建成就记录ID */
 function buildAchievementRecordId(uid, achievementId) {
   return `achievement:${uid}:${achievementId}`
 }
 
+/** 构建成就积分日志ID */
 function buildAchievementPointsLogId(uid, achievementId) {
   return `points:achievement:${uid}:${achievementId}`
 }
 
+/** 从积分日志ID解析成就ID */
 function parseAchievementIdFromPointsLogId(pointsLogId) {
   if (typeof pointsLogId !== 'string') {
     return ''
@@ -254,10 +267,12 @@ function parseAchievementIdFromPointsLogId(pointsLogId) {
   return parts[parts.length - 1] || ''
 }
 
+/** 构建成就积分说明 */
 function buildAchievementPointsDescription(achievementName) {
   return `解锁成就奖励：${achievementName}`
 }
 
+/** 获取错误信息 */
 function getErrorMessage(error) {
   if (!error) {
     return ''
@@ -270,6 +285,7 @@ function getErrorMessage(error) {
   return typeof error === 'string' ? error : JSON.stringify(error)
 }
 
+/** 判断重复记录错误是否满足条件 */
 function isDuplicateRecordError(error) {
   const rawCode = Number(error?.code ?? error?.errCode ?? error?.errno ?? 0)
   const message = getErrorMessage(error).toLowerCase()
@@ -282,10 +298,12 @@ function isDuplicateRecordError(error) {
   )
 }
 
+/** 按ID获取成就 */
 function getAchievementById(achievementId) {
   return ACHIEVEMENTS.find((item) => item.id === achievementId) || null
 }
 
+/** 按类型列表获取成就列表 */
 function getAchievementsByTypes(types = []) {
   if (!Array.isArray(types) || types.length === 0) {
     return [...ACHIEVEMENTS]
@@ -295,6 +313,7 @@ function getAchievementsByTypes(types = []) {
   return ACHIEVEMENTS.filter((item) => typeSet.has(item.condition.type))
 }
 
+/** 构建已记录成就IDSet */
 function buildLoggedAchievementIdSet(pointsLogs = []) {
   const loggedAchievementIds = new Set()
 
@@ -310,6 +329,7 @@ function buildLoggedAchievementIdSet(pointsLogs = []) {
   return loggedAchievementIds
 }
 
+/** 追加成就积分日志 */
 async function appendAchievementPointsLog(pointsLogCollection, options = {}) {
   const {
     uid,
@@ -344,6 +364,7 @@ async function appendAchievementPointsLog(pointsLogCollection, options = {}) {
   }
 }
 
+/** 根据统计数据解锁成就列表 */
 async function unlockAchievementsForStats(options = {}) {
   const {
     uid,
@@ -473,11 +494,13 @@ async function incrementUserFields(
   return usersCollection.doc(userId).update(updateData)
 }
 
+/** 按ID获取用户 */
 async function getUserById(usersCollection, userId) {
   const userRes = await usersCollection.doc(userId).get()
   return userRes.data[0] || null
 }
 
+/** 递增用户字段并获取用户 */
 async function incrementUserFieldsAndGetUser(
   usersCollection,
   dbCmd,
@@ -489,6 +512,7 @@ async function incrementUserFieldsAndGetUser(
   return getUserById(usersCollection, userId)
 }
 
+/** 构建分页数据 */
 function buildPagedData(list, total, page, pageSize, extra = {}) {
   return {
     list,

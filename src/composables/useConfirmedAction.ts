@@ -27,6 +27,7 @@ function confirmAction(title: string, content: string) {
   })
 }
 
+/** 封装确认操作逻辑 */
 export function useConfirmedAction() {
   // 对于不需要确认弹窗、但仍需要统一 loading / toast 反馈的动作，复用这一层即可。
   async function runActionWithFeedback<TResult>({

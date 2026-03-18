@@ -2,6 +2,7 @@ import { onLaunch, onShow } from '@dcloudio/uni-app'
 import { appStore, initStore } from '@/store'
 import { isInviteBindingWindowOpen, storeInviteCodeFromQuery } from '@/utils'
 
+/** 从查询参数同步邀请码 */
 function syncInviteCodeFromQuery(query?: Record<string, unknown> | null) {
   // 已登录账号只有在“尚未绑定邀请人且仍处于补绑窗口”时，才继续接收入站邀请码。
   if (appStore.isLoggedIn && !isInviteBindingWindowOpen(appStore.userInfo)) {
@@ -11,6 +12,7 @@ function syncInviteCodeFromQuery(query?: Record<string, unknown> | null) {
   storeInviteCodeFromQuery(query)
 }
 
+/** 封装应用生命周期逻辑 */
 export function useAppLifecycle() {
   onLaunch((options) => {
     initStore()

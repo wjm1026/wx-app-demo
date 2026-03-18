@@ -39,6 +39,7 @@ const EMPTY_ACHIEVEMENTS: AchievementsResult = {
   totalCount: 0,
 }
 
+/** 封装成就列表页面逻辑 */
 export function useAchievementsPage() {
   const { statusBarHeight } = usePageLayout()
   const { ensureLoggedIn } = useLoginGuard()
@@ -110,6 +111,7 @@ export function useAchievementsPage() {
     decoratedAchievements.value.filter((item) => !item.unlocked),
   )
 
+  /** 加载数据 */
   async function loadData() {
     isLoading.value = true
 

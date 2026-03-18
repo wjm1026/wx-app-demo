@@ -35,6 +35,7 @@ type UserProfilePatch = {
 
 const PROFILE_NICKNAME_MAX_LENGTH = 20
 
+/** 封装用户页面逻辑 */
 export function useUserPage() {
   const store = useStore()
   const { statusBarHeight } = usePageLayout()
@@ -68,6 +69,7 @@ export function useUserPage() {
     return true
   }
 
+  /** 加载用户信息 */
   async function loadUserInfo() {
     try {
       const res = await userApi.getUserInfo()
@@ -83,6 +85,7 @@ export function useUserPage() {
     }
   }
 
+  /** 检查签到状态 */
   async function checkSignInStatus() {
     try {
       const res = await pointsApi.getSignInStatus()
@@ -98,6 +101,7 @@ export function useUserPage() {
     }
   }
 
+  /** 刷新已登录状态 */
   async function refreshAuthenticatedState() {
     await Promise.all([loadUserInfo(), checkSignInStatus()])
   }
@@ -114,6 +118,7 @@ export function useUserPage() {
     void refreshAuthenticatedState()
   }
 
+  /** 在需要时触发登录 */
   function triggerLoginIfNeeded() {
     if (isLoggedIn.value) {
       return false
@@ -123,6 +128,7 @@ export function useUserPage() {
     return true
   }
 
+  /** 应用本地用户信息补丁 */
   function applyLocalUserInfoPatch(patch: UserProfilePatch) {
     if (!store.userInfo) {
       return
@@ -134,6 +140,7 @@ export function useUserPage() {
     })
   }
 
+  /** 规范化昵称 */
   function normalizeNickname(value: unknown) {
     if (typeof value !== 'string') {
       return ''
@@ -142,11 +149,13 @@ export function useUserPage() {
     return value.trim().slice(0, PROFILE_NICKNAME_MAX_LENGTH)
   }
 
+  /** 提取文件扩展名 */
   function extractFileExtension(filePath: string) {
     const matched = filePath.match(/\.([0-9a-zA-Z]+)(?:$|\?)/)
     return matched?.[1]?.toLowerCase() || 'png'
   }
 
+  /** 提取输入内容值 */
   function extractInputValue(event: unknown) {
     if (!event || typeof event !== 'object') {
       return ''
@@ -156,6 +165,7 @@ export function useUserPage() {
     return typeof detail?.value === 'string' ? detail.value : ''
   }
 
+  /** 提取头像文件路径 */
   function extractAvatarFilePath(event: unknown) {
     if (!event || typeof event !== 'object') {
       return ''
@@ -165,10 +175,12 @@ export function useUserPage() {
     return typeof detail?.avatarUrl === 'string' ? detail.avatarUrl : ''
   }
 
+  /** 判断已取消操作是否满足条件 */
   function isCancelledAction(error: unknown) {
     return getErrorMessage(error).toLowerCase().includes('cancel')
   }
 
+  /** 提交用户资料补丁 */
   async function commitUserProfilePatch(
     patch: UserProfilePatch,
     messages: { success: string; failure: string },
@@ -197,6 +209,7 @@ export function useUserPage() {
     }
   }
 
+  /** 处理选择头像文件相关逻辑 */
   async function selectAvatarFile() {
     const res = await new Promise<UniApp.ChooseImageSuccessCallbackResult>(
       (resolve, reject) => {
@@ -213,6 +226,7 @@ export function useUserPage() {
     return res.tempFilePaths?.[0] || ''
   }
 
+  /** 上传头像 */
   async function uploadAvatar(filePath: string) {
     const extension = extractFileExtension(filePath)
     const cloudPath = `user-avatar-${store.userInfo?._id || 'guest'}-${Date.now()}.${extension}`
@@ -224,6 +238,7 @@ export function useUserPage() {
     return result.fileID
   }
 
+  /** 从路径更新头像 */
   async function updateAvatarFromPath(filePath: string) {
     try {
       if (!filePath) {
@@ -255,6 +270,7 @@ export function useUserPage() {
     }
   }
 
+  /** 选择头像 */
   async function chooseAvatar() {
     if (triggerLoginIfNeeded() || isUpdatingProfile.value) {
       return
@@ -271,6 +287,7 @@ export function useUserPage() {
     }
   }
 
+  /** 处理选择头像 */
   async function handleChooseAvatar(event: unknown) {
     if (triggerLoginIfNeeded() || isUpdatingProfile.value) {
       return
@@ -279,6 +296,7 @@ export function useUserPage() {
     await updateAvatarFromPath(extractAvatarFilePath(event))
   }
 
+  /** 保存昵称 */
   async function saveNickname(nextNickname: unknown) {
     const currentNickname = store.userInfo?.nickname || ''
     const nickname = normalizeNickname(nextNickname)
@@ -322,6 +340,7 @@ export function useUserPage() {
     }
   }
 
+  /** 处理昵称提交 */
   async function handleNicknameSubmit(event?: unknown) {
     if (triggerLoginIfNeeded()) {
       return
@@ -331,6 +350,7 @@ export function useUserPage() {
     await saveNickname(nextNickname)
   }
 
+  /** 处理编辑昵称 */
   async function editNickname() {
     if (triggerLoginIfNeeded() || isUpdatingProfile.value) {
       return
@@ -387,6 +407,7 @@ export function useUserPage() {
     return true
   }
 
+  /** 执行登录 */
   async function doLogin() {
     if (isLoading.value) {
       return
@@ -426,6 +447,7 @@ export function useUserPage() {
     }
   }
 
+  /** 执行签到 */
   async function doSignIn() {
     if (triggerLoginIfNeeded()) {
       return
@@ -455,6 +477,7 @@ export function useUserPage() {
     }
   }
 
+  /** 从广告发放积分 */
   async function rewardPointsFromAd() {
     const res = await pointsApi.earnByAd('video')
 
@@ -476,6 +499,7 @@ export function useUserPage() {
     }
   }
 
+  /** 处理激励广告关闭 */
   function handleRewardedAdClose(status: unknown) {
     if (isRewardedAdCompleted(status)) {
       void rewardPointsFromAdSafely()
@@ -495,6 +519,7 @@ export function useUserPage() {
     }, MOCK_REWARDED_AD_DURATION_MS)
   }
 
+  /** 处理观看广告 */
   async function watchAd() {
     if (triggerLoginIfNeeded()) {
       return
@@ -521,6 +546,7 @@ export function useUserPage() {
     // #endif
   }
 
+  /** 登录后执行 */
   function runWithLogin(action: () => void) {
     if (!isLoggedIn.value) {
       showToast('请先登录')
@@ -535,22 +561,27 @@ export function useUserPage() {
     runWithLogin(() => navigateTo(PROTECTED_USER_PAGE_ROUTES[page]))
   }
 
+  /** 跳转到收藏列表 */
   function goFavorites() {
     goProtectedPage('favorites')
   }
 
+  /** 跳转到成就列表 */
   function goAchievements() {
     goProtectedPage('achievements')
   }
 
+  /** 跳转到邀请 */
   function goInvite() {
     goProtectedPage('invite')
   }
 
+  /** 跳转到积分日志 */
   function goPointsLog() {
     goProtectedPage('pointsLog')
   }
 
+  /** 跳转到反馈 */
   function goFeedback() {
     if (!uni.openCustomerServiceChat) {
       showToast('客服功能开发中')
@@ -560,17 +591,21 @@ export function useUserPage() {
     uni.openCustomerServiceChat({
       extInfo: { url: '' },
       corpId: '',
+      /** 处理成功回调 */
       success() { },
+      /** 处理失败回调 */
       fail() {
         showToast('客服功能开发中')
       },
     })
   }
 
+  /** 跳转到关于页 */
   function goAbout() {
     showToast('关于页面开发中')
   }
 
+  /** 跳转到后台 */
   function goAdmin() {
     goProtectedPage('admin')
   }

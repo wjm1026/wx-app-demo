@@ -19,10 +19,12 @@ type InviteTaskTextField =
 type InviteTaskNumberField = 'points' | 'sortOrder'
 type ValueEvent = Event | { detail?: { value?: unknown } }
 
+/** 克隆任务配置 */
 function cloneTaskConfigs(taskConfigs: InviteTaskConfig[]) {
   return mergeInviteTaskConfigs(taskConfigs)
 }
 
+/** 封装后台任务列表页面逻辑 */
 export function useAdminTasksPage() {
   const { statusBarHeight } = usePageLayout()
   const loading = ref(true)
@@ -38,20 +40,24 @@ export function useAdminTasksPage() {
     () => JSON.stringify(taskForms.value) !== lastSavedSnapshot.value,
   )
 
+  /** 返回上一页 */
   function goBack() {
     navigateBack()
   }
 
+  /** 记录快照 */
   function rememberSnapshot(taskConfigs: InviteTaskConfig[]) {
     lastSavedSnapshot.value = JSON.stringify(taskConfigs)
   }
 
+  /** 应用任务配置 */
   function applyTaskConfigs(taskConfigs: InviteTaskConfig[]) {
     const nextConfigs = cloneTaskConfigs(taskConfigs)
     taskForms.value = nextConfigs
     rememberSnapshot(nextConfigs)
   }
 
+  /** 加载任务配置 */
   async function loadTaskConfigs() {
     loading.value = true
 
@@ -73,6 +79,7 @@ export function useAdminTasksPage() {
     }
   }
 
+  /** 按补丁更新任务 */
   function patchTask(index: number, patch: Partial<InviteTaskConfig>) {
     taskForms.value = taskForms.value.map((item, itemIndex) =>
       itemIndex === index
@@ -84,6 +91,7 @@ export function useAdminTasksPage() {
     )
   }
 
+  /** 更新任务字段 */
   function updateTaskField(
     index: number,
     field: InviteTaskTextField,
@@ -92,6 +100,7 @@ export function useAdminTasksPage() {
     patchTask(index, { [field]: value } as Partial<InviteTaskConfig>)
   }
 
+  /** 更新任务数值字段 */
   function updateTaskNumberField(
     index: number,
     field: InviteTaskNumberField,
@@ -104,10 +113,12 @@ export function useAdminTasksPage() {
     } as Partial<InviteTaskConfig>)
   }
 
+  /** 更新任务启用 */
   function updateTaskEnabled(index: number, value: boolean) {
     patchTask(index, { enabled: value })
   }
 
+  /** 读取事件值 */
   function readEventValue(event: ValueEvent) {
     if (event && typeof event === 'object' && 'detail' in event) {
       return event.detail?.value
@@ -116,6 +127,7 @@ export function useAdminTasksPage() {
     return undefined
   }
 
+  /** 处理任务字段输入内容 */
   function handleTaskFieldInput(
     index: number,
     field: InviteTaskTextField,
@@ -124,6 +136,7 @@ export function useAdminTasksPage() {
     updateTaskField(index, field, String(readEventValue(event) ?? ''))
   }
 
+  /** 处理任务数值输入内容 */
   function handleTaskNumberInput(
     index: number,
     field: InviteTaskNumberField,
@@ -132,15 +145,18 @@ export function useAdminTasksPage() {
     updateTaskNumberField(index, field, String(readEventValue(event) ?? ''))
   }
 
+  /** 处理任务启用状态变更 */
   function handleTaskEnabledChange(index: number, event: ValueEvent) {
     updateTaskEnabled(index, Boolean(readEventValue(event)))
   }
 
+  /** 恢复默认配置 */
   function restoreDefaults() {
     taskForms.value = getDefaultInviteTaskConfigs()
     showToast('已恢复默认配置，记得保存', 'success')
   }
 
+  /** 保存任务配置 */
   async function saveTaskConfigs() {
     if (saving.value) {
       return
@@ -178,6 +194,7 @@ export function useAdminTasksPage() {
     }
   }
 
+  /** 按键名获取任务元数据 */
   function getTaskMetaByKey(key: InviteTaskKey) {
     return getInviteTaskMeta(key)
   }
