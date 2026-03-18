@@ -122,7 +122,7 @@
 <script setup lang="ts">
 import CardImage from '@/components/CardImage/CardImage.vue'
 import CustomTabbar from '@/components/CustomTabbar/CustomTabbar.vue'
-import { useCategoryPage } from './useCategoryPage'
+import { useCategoryPage } from './hooks/useCategoryPage'
 
 const {
   categories,
@@ -138,4 +138,4 @@ const {
 } = useCategoryPage()
 </script>
 
-<style src="./category.scss" scoped lang="scss"></style>
+<style src="./styles/category.scss" scoped lang="scss"></style>

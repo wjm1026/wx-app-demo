@@ -93,7 +93,7 @@
 </template>
 
 <script setup lang="ts">
-import { useAdminUsersPage } from './useAdminUsersPage'
+import { useAdminUsersPage } from './hooks/useAdminUsersPage'
 
 const {
   clearSearch,
@@ -109,4 +109,4 @@ const {
 } = useAdminUsersPage()
 </script>
 
-<style src="./users.scss" scoped lang="scss"></style>
+<style src="./styles/users.scss" scoped lang="scss"></style>

@@ -285,7 +285,7 @@
 
 <script setup lang="ts">
 import CustomTabbar from "@/components/CustomTabbar/CustomTabbar.vue";
-import { useUserPage } from "./useUserPage";
+import { useUserPage } from "./hooks/useUserPage";
 
 const {
   chooseAvatar,
@@ -309,4 +309,4 @@ const {
 } = useUserPage();
 </script>
 
-<style src="./user.scss" scoped lang="scss"></style>
+<style src="./styles/user.scss" scoped lang="scss"></style>

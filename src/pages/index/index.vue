@@ -225,7 +225,7 @@
 <script setup lang="ts">
 import CardImage from '@/components/CardImage/CardImage.vue'
 import CustomTabbar from '@/components/CustomTabbar/CustomTabbar.vue'
-import { useIndexPage } from './useIndexPage'
+import { useIndexPage } from './hooks/useIndexPage'
 
 const {
   categories,
@@ -249,4 +249,4 @@ const {
 } = useIndexPage()
 </script>
 
-<style src="./index.scss" scoped lang="scss"></style>
+<style src="./styles/index.scss" scoped lang="scss"></style>

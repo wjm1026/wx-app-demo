@@ -155,7 +155,7 @@
 </template>
 
 <script setup lang="ts">
-import { useAdminUserDetailPage } from './useAdminUserDetailPage'
+import { useAdminUserDetailPage } from './hooks/useAdminUserDetailPage'
 
 const {
   adjustForm,
@@ -177,4 +177,4 @@ const {
 } = useAdminUserDetailPage()
 </script>
 
-<style src="./user-detail.scss" scoped lang="scss"></style>
+<style src="./styles/user-detail.scss" scoped lang="scss"></style>

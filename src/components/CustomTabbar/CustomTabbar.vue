@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import { useCustomTabbar } from './useCustomTabbar'
+import { useCustomTabbar } from './hooks/useCustomTabbar'
 
 const props = withDefaults(
   defineProps<{
@@ -41,4 +41,4 @@ const { list, switchTab } = useCustomTabbar({
 })
 </script>
 
-<style src="./CustomTabbar.scss" lang="scss" scoped></style>
+<style src="./styles/CustomTabbar.scss" lang="scss" scoped></style>

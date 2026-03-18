@@ -166,7 +166,7 @@
 
 <script setup lang="ts">
 import CardImage from '@/components/CardImage/CardImage.vue'
-import { useSearchPage } from './useSearchPage'
+import { useSearchPage } from './hooks/useSearchPage'
 
 const {
   clearHistory,
@@ -192,4 +192,4 @@ const {
 } = useSearchPage()
 </script>
 
-<style src="./search.scss" scoped lang="scss"></style>
+<style src="./styles/search.scss" scoped lang="scss"></style>

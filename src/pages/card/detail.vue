@@ -150,7 +150,7 @@
 
 <script setup lang="ts">
 import CardImage from '@/components/CardImage/CardImage.vue'
-import { useCardDetailPage } from './useCardDetailPage'
+import { useCardDetailPage } from './hooks/useCardDetailPage'
 
 const {
   cardData,
@@ -172,4 +172,4 @@ const {
 } = useCardDetailPage()
 </script>
 
-<style src="./detail.scss" scoped lang="scss"></style>
+<style src="./styles/detail.scss" scoped lang="scss"></style>

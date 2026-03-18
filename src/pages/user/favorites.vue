@@ -131,7 +131,7 @@
 
 <script setup lang="ts">
 import CardImage from '@/components/CardImage/CardImage.vue'
-import { useFavoritesPage } from './useFavoritesPage'
+import { useFavoritesPage } from './hooks/useFavoritesPage'
 
 const {
   decoratedFavorites,
@@ -147,4 +147,4 @@ const {
 } = useFavoritesPage()
 </script>
 
-<style src="./favorites.scss" scoped lang="scss"></style>
+<style src="./styles/favorites.scss" scoped lang="scss"></style>

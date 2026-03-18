@@ -147,7 +147,7 @@
 </template>
 
 <script setup lang="ts">
-import { useInvitePage } from './useInvitePage'
+import { useInvitePage } from './hooks/useInvitePage'
 
 const {
   copyCode,
@@ -162,4 +162,4 @@ const {
 } = useInvitePage()
 </script>
 
-<style src="./invite.scss" scoped lang="scss"></style>
+<style src="./styles/invite.scss" scoped lang="scss"></style>

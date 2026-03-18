@@ -163,7 +163,7 @@
 </template>
 
 <script setup lang="ts">
-import { useAdminPage } from './useAdminPage'
+import { useAdminPage } from './hooks/useAdminPage'
 
 const {
   checkingAdmin,
@@ -183,4 +183,4 @@ const {
 } = useAdminPage()
 </script>
 
-<style src="./admin.scss" scoped lang="scss"></style>
+<style src="./styles/admin.scss" scoped lang="scss"></style>

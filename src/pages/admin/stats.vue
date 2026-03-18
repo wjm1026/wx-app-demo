@@ -126,7 +126,7 @@
 </template>
 
 <script setup lang="ts">
-import { useAdminStatsPage } from './useAdminStatsPage'
+import { useAdminStatsPage } from './hooks/useAdminStatsPage'
 
 const {
   formatNumber,
@@ -139,4 +139,4 @@ const {
 } = useAdminStatsPage()
 </script>
 
-<style src="./stats.scss" scoped lang="scss"></style>
+<style src="./styles/stats.scss" scoped lang="scss"></style>

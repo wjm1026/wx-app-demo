@@ -149,7 +149,7 @@
 </template>
 
 <script setup lang="ts">
-import { useAchievementsPage } from './useAchievementsPage'
+import { useAchievementsPage } from './hooks/useAchievementsPage'
 
 const {
   completionLabel,
@@ -167,4 +167,4 @@ function goBack() {
 }
 </script>
 
-<style src="./achievements.scss" scoped lang="scss"></style>
+<style src="./styles/achievements.scss" scoped lang="scss"></style>

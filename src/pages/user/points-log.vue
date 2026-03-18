@@ -110,9 +110,9 @@
 </template>
 
 <script setup lang="ts">
-import { usePointsLogPage } from './usePointsLogPage'
+import { usePointsLogPage } from './hooks/usePointsLogPage'
 
 const { decoratedLogs, finished, goBack, loading, logs, sectionHint, statusBarHeight, store, summaryCards } = usePointsLogPage()
 </script>
 
-<style src="./points-log.scss" scoped lang="scss"></style>
+<style src="./styles/points-log.scss" scoped lang="scss"></style>
