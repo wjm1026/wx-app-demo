@@ -3,11 +3,15 @@ const db = uniCloud.database()
 const dbCmd = db.command
 const usersCollection = db.collection('users')
 const pointsLogCollection = db.collection('points_log')
+const achievementsCollection = db.collection('user_achievements')
 const { getAuthUserContext } = require('custom-auth')
 const {
+  DAY_IN_MS,
   appendPointsLog,
   getDayRange,
   incrementUserFieldsAndGetUser,
+  isDuplicateRecordError,
+  unlockAchievementsForStats,
 } = require('cloud-shared')
 
 const AD_REWARD_POINTS = {
@@ -17,6 +21,7 @@ const AD_REWARD_POINTS = {
 
 const SIGN_IN_REWARD_POINTS = 5
 const FREE_VIEW_REWARD_COUNT = 3
+const SIGN_IN_PENDING_TIMEOUT_MS = 15 * 1000
 
 function buildSignInQuery(uid) {
   const { startTime, endTime } = getDayRange()
@@ -26,6 +31,23 @@ function buildSignInQuery(uid) {
     type: 'sign_in',
     create_time: dbCmd.gte(startTime).and(dbCmd.lt(endTime)),
   }
+}
+
+function buildSignInLogId(uid, dayStartTime) {
+  return `points:sign_in:${uid}:${dayStartTime}`
+}
+
+function getLastSignInDay(user) {
+  return Number(user?.last_sign_in_day || 0)
+}
+
+function calculateNextSignStreak(user, dayStartTime) {
+  const lastSignInDay = getLastSignInDay(user)
+  if (lastSignInDay === dayStartTime - DAY_IN_MS) {
+    return Number(user?.sign_streak || 0) + 1
+  }
+
+  return 1
 }
 
 // 积分发放和扣减都走同一条更新链路，保证余额计算和流水描述不会越改越散。
@@ -89,19 +111,98 @@ module.exports = {
       return authResult.response
     }
     const { uid } = authResult.auth
+    let currentUser = authResult.user || {}
 
-    // 检查今日是否已签到
-    const signedRes = await pointsLogCollection.where(buildSignInQuery(uid)).get()
-
-    if (signedRes.data.length > 0) {
+    const { startTime } = getDayRange()
+    if (getLastSignInDay(currentUser) === startTime) {
       return { code: 400, msg: '今日已签到' }
     }
 
-    const newBalance = await applyPointsChange({
+    const signInLogId = buildSignInLogId(uid, startTime)
+    const todaySignInLogsRes = await pointsLogCollection
+      .where(buildSignInQuery(uid))
+      .field({ _id: true, balance: true, create_time: true })
+      .limit(5)
+      .get()
+    const todaySignInLogs = todaySignInLogsRes.data || []
+    const deterministicTodayLog = todaySignInLogs.find((item) => item?._id === signInLogId) || null
+
+    if (todaySignInLogs.length > 0 && !deterministicTodayLog) {
+      return { code: 400, msg: '今日已签到' }
+    }
+
+    if (deterministicTodayLog) {
+      if (typeof deterministicTodayLog.balance === 'number') {
+        return { code: 400, msg: '今日已签到' }
+      }
+
+      const pendingTime = Number(deterministicTodayLog.create_time || 0)
+      if (pendingTime && Date.now() - pendingTime < SIGN_IN_PENDING_TIMEOUT_MS) {
+        return { code: 409, msg: '签到处理中，请稍后重试' }
+      }
+    }
+
+    try {
+      await appendPointsLog(pointsLogCollection, {
+        _id: signInLogId,
+        user_id: uid,
+        type: 'sign_in',
+        amount: SIGN_IN_REWARD_POINTS,
+        description: '每日签到奖励',
+        related_id: String(startTime),
+      })
+    } catch (error) {
+      if (!isDuplicateRecordError(error)) {
+        throw error
+      }
+
+      const [latestUserRes, signInLogRes] = await Promise.all([
+        usersCollection.doc(uid).field({ sign_streak: true, last_sign_in_day: true }).get(),
+        pointsLogCollection.doc(signInLogId).get(),
+      ])
+      const latestUser = latestUserRes.data[0] || {}
+      const signInLog = signInLogRes.data[0] || {}
+
+      if (getLastSignInDay(latestUser) === startTime) {
+        return { code: 400, msg: '今日已签到' }
+      }
+
+      const pendingTime = Number(signInLog?.create_time || 0)
+      if (pendingTime && Date.now() - pendingTime < SIGN_IN_PENDING_TIMEOUT_MS) {
+        return { code: 409, msg: '签到处理中，请稍后重试' }
+      }
+
+      currentUser = latestUser
+    }
+
+    const nextSignStreak = calculateNextSignStreak(currentUser, startTime)
+    const updatedUser = await incrementUserFieldsAndGetUser(
+      usersCollection,
+      dbCmd,
       uid,
-      amount: SIGN_IN_REWARD_POINTS,
-      type: 'sign_in',
-      description: '每日签到奖励',
+      {
+        points: SIGN_IN_REWARD_POINTS,
+      },
+      {
+        last_sign_in_day: startTime,
+        sign_streak: nextSignStreak,
+      },
+    )
+    const nextBalance = Number(updatedUser?.points || 0)
+
+    await pointsLogCollection.doc(signInLogId).update({
+      balance: nextBalance,
+    })
+    const newAchievements = await unlockAchievementsForStats({
+      uid,
+      stats: {
+        sign_streak: nextSignStreak,
+      },
+      types: ['sign_streak'],
+      usersCollection,
+      achievementsCollection,
+      pointsLogCollection,
+      dbCmd,
     })
 
     return {
@@ -109,7 +210,9 @@ module.exports = {
       msg: `签到成功，获得${SIGN_IN_REWARD_POINTS}积分`,
       data: {
         earnPoints: SIGN_IN_REWARD_POINTS,
-        balance: newBalance,
+        balance: nextBalance,
+        signStreak: nextSignStreak,
+        newAchievements,
       },
     }
   },
@@ -161,14 +264,21 @@ module.exports = {
       return authResult.response
     }
     const { uid } = authResult.auth
+    const user = authResult.user || {}
 
-    const signedRes = await pointsLogCollection.where(buildSignInQuery(uid)).get()
+    const { startTime } = getDayRange()
+    let hasSigned = getLastSignInDay(user) === startTime
+
+    if (!hasSigned) {
+      const signedRes = await pointsLogCollection.where(buildSignInQuery(uid)).limit(1).get()
+      hasSigned = signedRes.data.length > 0
+    }
 
     return {
       code: 0,
       msg: 'success',
       data: {
-        hasSigned: signedRes.data.length > 0,
+        hasSigned,
       },
     }
   },

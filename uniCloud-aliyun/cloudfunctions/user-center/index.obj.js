@@ -1,28 +1,48 @@
 // 用户中心云对象
+const crypto = require('crypto')
 const db = uniCloud.database()
 const dbCmd = db.command
 const usersCollection = db.collection('users')
 const inviteTaskConfigsCollection = db.collection('invite_task_configs')
 const pointsLogCollection = db.collection('points_log')
+const achievementsCollection = db.collection('user_achievements')
 const { createToken, getAuthUserContext, stripAuthParams } = require('custom-auth')
 const {
   appendPointsLog,
   buildPagedData,
   getInviteTaskConfigByKey,
   incrementUserFieldsAndGetUser,
+  isDuplicateRecordError,
   loadInviteTaskConfigs,
+  unlockAchievementsForStats,
 } = require('cloud-shared')
 const INVITE_BIND_WINDOW_MS = 24 * 60 * 60 * 1000
 const REGISTRATION_REWARD = 100
 const INVITEE_REWARD = 50
+const INVITE_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 
 // 生成邀请码
 function generateInviteCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
   let code = ''
   for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length))
+    code += INVITE_CODE_CHARS.charAt(Math.floor(Math.random() * INVITE_CODE_CHARS.length))
   }
+  return code
+}
+
+function buildDeterministicUserId(openid) {
+  const digest = crypto.createHash('sha1').update(String(openid || '')).digest('hex')
+  return `user:wx:${digest}`
+}
+
+function buildInviteCodeFromSeed(seed) {
+  const digest = crypto.createHash('sha1').update(String(seed || '')).digest()
+  let code = ''
+
+  for (let i = 0; i < 6; i += 1) {
+    code += INVITE_CODE_CHARS[digest[i] % INVITE_CODE_CHARS.length]
+  }
+
   return code
 }
 
@@ -48,11 +68,31 @@ function canBindInviteCode(user, now = Date.now()) {
   return now <= deadline
 }
 
-function buildNewUser(openid, unionid, inviter) {
+async function createUniqueInviteCode(seed) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const inviteCode = buildInviteCodeFromSeed(`${seed}:${attempt}`)
+    const existingRes = await usersCollection
+      .where({ invite_code: inviteCode })
+      .field({ _id: true })
+      .limit(1)
+      .get()
+
+    if (existingRes.data.length === 0) {
+      return inviteCode
+    }
+  }
+
+  return generateInviteCode()
+}
+
+async function buildNewUser(openid, unionid, inviter) {
   const now = Date.now()
   const points = REGISTRATION_REWARD + (inviter ? INVITEE_REWARD : 0)
+  const userId = buildDeterministicUserId(openid)
+  const inviteCode = await createUniqueInviteCode(userId)
 
   return {
+    _id: userId,
     openid,
     unionid: unionid || '',
     nickname: '宝宝' + Math.floor(Math.random() * 10000),
@@ -60,8 +100,9 @@ function buildNewUser(openid, unionid, inviter) {
     gender: 0,
     points,
     free_views: 10,
-    invite_code: generateInviteCode(),
+    invite_code: inviteCode,
     invite_count: 0,
+    last_sign_in_day: 0,
     is_vip: false,
     role: 'user',
     status: 1,
@@ -84,6 +125,20 @@ function resolveInviterReward(taskConfigs) {
   const shareTask = getInviteTaskConfigByKey(taskConfigs, 'share-friend')
   const reward = Number(shareTask?.points)
   return Number.isFinite(reward) ? reward : 100
+}
+
+async function checkInviteAchievements(uid, inviteCount) {
+  return unlockAchievementsForStats({
+    uid,
+    stats: {
+      invites: Number(inviteCount || 0),
+    },
+    types: ['invites'],
+    usersCollection,
+    achievementsCollection,
+    pointsLogCollection,
+    dbCmd,
+  })
 }
 
 async function rewardInviterForRegistration(inviter, inviteeId, inviterReward) {
@@ -109,6 +164,8 @@ async function rewardInviterForRegistration(inviter, inviteeId, inviterReward) {
     description: '邀请新用户奖励',
     related_id: inviteeId,
   })
+
+  await checkInviteAchievements(inviter._id, updatedInviter?.invite_count)
 }
 
 async function recordRegistrationGift(userId, points) {
@@ -119,6 +176,22 @@ async function recordRegistrationGift(userId, points) {
     balance: points,
     description: '新用户注册奖励',
   })
+}
+
+async function touchExistingUser(userId, existingUser = {}) {
+  const updateData = {
+    last_login_time: Date.now(),
+  }
+
+  if (typeof existingUser.status !== 'number') {
+    updateData.status = 1
+  }
+
+  if (!existingUser.role) {
+    updateData.role = 'user'
+  }
+
+  await usersCollection.doc(userId).update(updateData)
 }
 
 module.exports = {
@@ -162,31 +235,35 @@ module.exports = {
       const taskConfigs = await loadInviteTaskConfigs(inviteTaskConfigsCollection)
       const inviterReward = resolveInviterReward(taskConfigs)
       const inviter = await findInviterByCode(normalizedInviteCode)
-      const newUser = buildNewUser(openid, unionid, inviter)
+      const newUser = await buildNewUser(openid, unionid, inviter)
 
-      const addRes = await usersCollection.add(newUser)
-      userId = addRes.id
+      try {
+        const addRes = await usersCollection.add(newUser)
+        userId = addRes.id || newUser._id
 
-      await rewardInviterForRegistration(inviter, userId, inviterReward)
-      await recordRegistrationGift(userId, newUser.points)
+        await rewardInviterForRegistration(inviter, userId, inviterReward)
+        await recordRegistrationGift(userId, newUser.points)
+      } catch (error) {
+        if (!isDuplicateRecordError(error)) {
+          throw error
+        }
+
+        const existingUserRes = await usersCollection.doc(newUser._id).get()
+        const existingUser = existingUserRes.data[0] || null
+
+        if (!existingUser) {
+          throw error
+        }
+
+        userId = existingUser._id
+        isNewUser = false
+        await touchExistingUser(userId, existingUser)
+      }
     } else {
       // 老用户更新登录时间
       const existingUser = userRes.data[0] || {}
       userId = existingUser._id
-
-      const updateData = {
-        last_login_time: Date.now(),
-      }
-
-      if (typeof existingUser.status !== 'number') {
-        updateData.status = 1
-      }
-
-      if (!existingUser.role) {
-        updateData.role = 'user'
-      }
-
-      await usersCollection.doc(userId).update(updateData)
+      await touchExistingUser(userId, existingUser)
     }
 
     // 获取用户信息
@@ -320,6 +397,8 @@ module.exports = {
       description: '邀请新用户奖励',
       related_id: uid,
     })
+
+    await checkInviteAchievements(inviter._id, updatedInviter?.invite_count)
 
     return {
       code: 0,

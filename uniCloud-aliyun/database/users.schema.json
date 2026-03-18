@@ -58,6 +58,12 @@
       "defaultValue": 0,
       "minimum": 0
     },
+    "last_sign_in_day": {
+      "bsonType": "int",
+      "description": "最近一次签到所在自然日零点时间戳",
+      "defaultValue": 0,
+      "minimum": 0
+    },
     "invite_code": {
       "bsonType": "string",
       "description": "我的邀请码"

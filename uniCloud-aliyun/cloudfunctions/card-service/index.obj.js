@@ -4,6 +4,8 @@ const dbCmd = db.command
 const cardsCollection = db.collection('cards')
 const categoriesCollection = db.collection('categories')
 const favoritesCollection = db.collection('favorites')
+const pointsLogCollection = db.collection('points_log')
+const achievementsCollection = db.collection('user_achievements')
 const usersCollection = db.collection('users')
 const { createSeedData } = require('./seed-data')
 const {
@@ -12,6 +14,7 @@ const {
   normalizeCardRecord,
 } = require('./image-data')
 const { getAuthUserContext } = require('custom-auth')
+const { isDuplicateRecordError, unlockAchievementsForStats } = require('cloud-shared')
 
 const CATEGORY_COVER_MAP = createSeedData().categories.reduce((result, category) => {
   result[category.name] = category.cover
@@ -36,6 +39,38 @@ function normalizeCategoryRecord(category) {
 
 function normalizeCardList(cards = []) {
   return cards.map((item) => normalizeCardRecord(item))
+}
+
+function buildFavoriteRecordId(uid, cardId) {
+  return `favorite:${uid}:${cardId}`
+}
+
+async function findFavoriteRecordIds(uid, cardId) {
+  const recordIds = new Set()
+  const deterministicId = buildFavoriteRecordId(uid, cardId)
+  const [deterministicRes, legacyRes] = await Promise.all([
+    favoritesCollection.doc(deterministicId).get(),
+    favoritesCollection.where({ user_id: uid, card_id: cardId }).field({ _id: true }).get(),
+  ])
+
+  if (deterministicRes.data[0]?._id) {
+    recordIds.add(deterministicRes.data[0]._id)
+  }
+
+  for (const item of legacyRes.data || []) {
+    if (item?._id) {
+      recordIds.add(item._id)
+    }
+  }
+
+  return Array.from(recordIds)
+}
+
+async function syncCardFavoriteCount(cardId) {
+  const countRes = await favoritesCollection.where({ card_id: cardId }).count()
+  await cardsCollection.doc(cardId).update({
+    favorite_count: Number(countRes.total || 0),
+  })
 }
 
 module.exports = {
@@ -254,28 +289,62 @@ module.exports = {
     }
 
     // 检查是否已收藏
-    const existRes = await favoritesCollection
-      .where({ user_id: uid, card_id: cardId })
-      .get()
+    const favoriteRecordIds = await findFavoriteRecordIds(uid, cardId)
 
-    if (existRes.data.length > 0) {
+    if (favoriteRecordIds.length > 0) {
       // 取消收藏
-      await favoritesCollection.doc(existRes.data[0]._id).remove()
-      await cardsCollection.doc(cardId).update({
-        favorite_count: dbCmd.inc(-1)
-      })
+      await Promise.all(
+        favoriteRecordIds.map((favoriteId) =>
+          favoritesCollection
+            .doc(favoriteId)
+            .remove()
+            .catch((error) => {
+              console.warn('[card-service] favorite remove skipped', {
+                uid,
+                cardId,
+                favoriteId,
+                message: error?.message || String(error),
+              })
+            }),
+        ),
+      )
+      await syncCardFavoriteCount(cardId)
       return { code: 0, msg: '已取消收藏', data: { isFavorited: false } }
     } else {
       // 添加收藏
-      await favoritesCollection.add({
-        user_id: uid,
-        card_id: cardId,
-        create_time: Date.now()
+      try {
+        await favoritesCollection.add({
+          _id: buildFavoriteRecordId(uid, cardId),
+          user_id: uid,
+          card_id: cardId,
+          create_time: Date.now()
+        })
+      } catch (error) {
+        if (!isDuplicateRecordError(error)) {
+          throw error
+        }
+      }
+      await syncCardFavoriteCount(cardId)
+      const favoriteCountRes = await favoritesCollection.where({ user_id: uid }).count()
+      const newAchievements = await unlockAchievementsForStats({
+        uid,
+        stats: {
+          favorites: favoriteCountRes.total,
+        },
+        types: ['favorites'],
+        usersCollection,
+        achievementsCollection,
+        pointsLogCollection,
+        dbCmd,
       })
-      await cardsCollection.doc(cardId).update({
-        favorite_count: dbCmd.inc(1)
-      })
-      return { code: 0, msg: '收藏成功', data: { isFavorited: true } }
+      return {
+        code: 0,
+        msg: '收藏成功',
+        data: {
+          isFavorited: true,
+          newAchievements,
+        },
+      }
     }
   },
 

@@ -4,7 +4,7 @@ import {
   onReachBottom,
   onShow,
 } from '@dcloudio/uni-app'
-import { achievementApi, userApi, type PointsLogItem } from '@/api'
+import { userApi, type PointsLogItem } from '@/api'
 import { useLoginGuard } from '@/composables/useLoginGuard'
 import { usePageLayout } from '@/composables/usePageLayout'
 import { usePagedList } from '@/composables/usePagedList'
@@ -164,16 +164,7 @@ export function usePointsLogPage() {
     navigateBack()
   }
 
-  async function syncAchievementPointsLogs() {
-    try {
-      await achievementApi.getAchievements()
-    } catch (error) {
-      console.error('同步成就积分流水失败:', error)
-    }
-  }
-
   async function syncPageData() {
-    await syncAchievementPointsLogs()
     await Promise.all([refresh(), refreshUserPoints()])
   }
 
@@ -191,8 +182,7 @@ export function usePointsLogPage() {
       return
     }
 
-    await syncAchievementPointsLogs()
-    await refresh()
+    await Promise.all([refresh(), refreshUserPoints()])
     uni.stopPullDownRefresh()
   })
 

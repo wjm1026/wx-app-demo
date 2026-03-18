@@ -5,6 +5,88 @@ const INVITE_TASK_KEYS = [
   'douyin',
   'xiaohongshu',
 ]
+const ACHIEVEMENTS = Object.freeze([
+  Object.freeze({
+    id: 'first_card',
+    name: '初次探索',
+    icon: '🌟',
+    description: '学习第一张卡片',
+    condition: { type: 'cards_learned', count: 1 },
+    points: 10,
+  }),
+  Object.freeze({
+    id: 'cards_10',
+    name: '小小学霸',
+    icon: '📚',
+    description: '学习10张卡片',
+    condition: { type: 'cards_learned', count: 10 },
+    points: 50,
+  }),
+  Object.freeze({
+    id: 'cards_50',
+    name: '知识达人',
+    icon: '🎓',
+    description: '学习50张卡片',
+    condition: { type: 'cards_learned', count: 50 },
+    points: 100,
+  }),
+  Object.freeze({
+    id: 'cards_100',
+    name: '学习大师',
+    icon: '👑',
+    description: '学习100张卡片',
+    condition: { type: 'cards_learned', count: 100 },
+    points: 200,
+  }),
+  Object.freeze({
+    id: 'category_complete',
+    name: '分类专家',
+    icon: '🏆',
+    description: '完成一个分类的所有卡片',
+    condition: { type: 'category_complete', count: 1 },
+    points: 80,
+  }),
+  Object.freeze({
+    id: 'sign_7',
+    name: '坚持一周',
+    icon: '📅',
+    description: '连续签到7天',
+    condition: { type: 'sign_streak', count: 7 },
+    points: 70,
+  }),
+  Object.freeze({
+    id: 'sign_30',
+    name: '月度达人',
+    icon: '🌙',
+    description: '连续签到30天',
+    condition: { type: 'sign_streak', count: 30 },
+    points: 300,
+  }),
+  Object.freeze({
+    id: 'favorites_10',
+    name: '收藏家',
+    icon: '❤️',
+    description: '收藏10张卡片',
+    condition: { type: 'favorites', count: 10 },
+    points: 30,
+  }),
+  Object.freeze({
+    id: 'invite_3',
+    name: '小小推广员',
+    icon: '🎁',
+    description: '邀请3位好友',
+    condition: { type: 'invites', count: 3 },
+    points: 100,
+  }),
+  Object.freeze({
+    id: 'invite_10',
+    name: '超级推广员',
+    icon: '🚀',
+    description: '邀请10位好友',
+    condition: { type: 'invites', count: 10 },
+    points: 300,
+  }),
+])
 const DEFAULT_INVITE_TASK_CONFIGS = Object.freeze([
   {
     key: 'share-friend',
@@ -150,6 +232,219 @@ async function appendPointsLog(pointsLogCollection, record, now = Date.now()) {
   })
 }
 
+function buildAchievementRecordId(uid, achievementId) {
+  return `achievement:${uid}:${achievementId}`
+}
+
+function buildAchievementPointsLogId(uid, achievementId) {
+  return `points:achievement:${uid}:${achievementId}`
+}
+
+function parseAchievementIdFromPointsLogId(pointsLogId) {
+  if (typeof pointsLogId !== 'string') {
+    return ''
+  }
+
+  const prefix = 'points:achievement:'
+  if (!pointsLogId.startsWith(prefix)) {
+    return ''
+  }
+
+  const parts = pointsLogId.split(':')
+  return parts[parts.length - 1] || ''
+}
+
+function buildAchievementPointsDescription(achievementName) {
+  return `解锁成就奖励：${achievementName}`
+}
+
+function getErrorMessage(error) {
+  if (!error) {
+    return ''
+  }
+
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return typeof error === 'string' ? error : JSON.stringify(error)
+}
+
+function isDuplicateRecordError(error) {
+  const rawCode = Number(error?.code ?? error?.errCode ?? error?.errno ?? 0)
+  const message = getErrorMessage(error).toLowerCase()
+
+  return (
+    rawCode === 11000 ||
+    message.includes('duplicate') ||
+    message.includes('e11000') ||
+    message.includes('already exists')
+  )
+}
+
+function getAchievementById(achievementId) {
+  return ACHIEVEMENTS.find((item) => item.id === achievementId) || null
+}
+
+function getAchievementsByTypes(types = []) {
+  if (!Array.isArray(types) || types.length === 0) {
+    return [...ACHIEVEMENTS]
+  }
+
+  const typeSet = new Set(types)
+  return ACHIEVEMENTS.filter((item) => typeSet.has(item.condition.type))
+}
+
+function buildLoggedAchievementIdSet(pointsLogs = []) {
+  const loggedAchievementIds = new Set()
+
+  for (const pointsLog of pointsLogs) {
+    const achievementId =
+      pointsLog?.related_id || parseAchievementIdFromPointsLogId(pointsLog?._id)
+
+    if (achievementId) {
+      loggedAchievementIds.add(achievementId)
+    }
+  }
+
+  return loggedAchievementIds
+}
+
+async function appendAchievementPointsLog(pointsLogCollection, options = {}) {
+  const {
+    uid,
+    achievement,
+    amount,
+    unlockTime,
+    balance,
+  } = options
+  const rewardAmount = Number(
+    typeof amount === 'number' ? amount : achievement?.points || 0,
+  )
+
+  try {
+    await appendPointsLog(pointsLogCollection, {
+      _id: buildAchievementPointsLogId(uid, achievement.id),
+      user_id: uid,
+      type: 'achievement',
+      amount: rewardAmount,
+      ...(typeof balance === 'number' ? { balance } : {}),
+      description: buildAchievementPointsDescription(achievement.name),
+      related_id: achievement.id,
+      create_time: typeof unlockTime === 'number' ? unlockTime : Date.now(),
+    })
+
+    return true
+  } catch (error) {
+    if (isDuplicateRecordError(error)) {
+      return false
+    }
+
+    throw error
+  }
+}
+
+async function unlockAchievementsForStats(options = {}) {
+  const {
+    uid,
+    stats = {},
+    types = [],
+    usersCollection,
+    achievementsCollection,
+    pointsLogCollection,
+    dbCmd,
+  } = options
+
+  if (
+    !uid ||
+    !usersCollection ||
+    !achievementsCollection ||
+    !pointsLogCollection ||
+    !dbCmd
+  ) {
+    return []
+  }
+
+  const relevantAchievements = getAchievementsByTypes(types)
+  if (relevantAchievements.length === 0) {
+    return []
+  }
+
+  const achievementIds = relevantAchievements.map((item) => item.id)
+  const existingAchievementsRes = await achievementsCollection
+    .where({
+      user_id: uid,
+      achievement_id: dbCmd.in(achievementIds),
+    })
+    .field({ achievement_id: true })
+    .get()
+  const unlockedIds = new Set(
+    (existingAchievementsRes.data || []).map((item) => item.achievement_id),
+  )
+  const newAchievements = []
+
+  for (const achievement of relevantAchievements) {
+    if (unlockedIds.has(achievement.id)) {
+      continue
+    }
+
+    const statValue = Number(stats[achievement.condition.type] || 0)
+    if (statValue < Number(achievement.condition.count || 0)) {
+      continue
+    }
+
+    const unlockTime = Date.now()
+    let created = false
+
+    try {
+      await achievementsCollection.add({
+        _id: buildAchievementRecordId(uid, achievement.id),
+        user_id: uid,
+        achievement_id: achievement.id,
+        points: achievement.points,
+        unlock_time: unlockTime,
+        create_time: unlockTime,
+      })
+      created = true
+    } catch (error) {
+      if (isDuplicateRecordError(error)) {
+        unlockedIds.add(achievement.id)
+        continue
+      }
+
+      throw error
+    }
+
+    if (!created) {
+      continue
+    }
+
+    const updatedUser = await incrementUserFieldsAndGetUser(
+      usersCollection,
+      dbCmd,
+      uid,
+      { points: achievement.points },
+    )
+    const nextBalance = Number(updatedUser?.points || 0)
+
+    await appendAchievementPointsLog(pointsLogCollection, {
+      uid,
+      achievement,
+      unlockTime,
+      balance: nextBalance,
+    })
+
+    unlockedIds.add(achievement.id)
+    newAchievements.push({
+      ...achievement,
+      unlocked: true,
+      unlockTime,
+    })
+  }
+
+  return newAchievements
+}
+
 // 用户字段增量更新在多个云对象里都会出现，统一封装后可以避免 update_time 和 inc 写法漂移。
 async function incrementUserFields(
   usersCollection,
@@ -205,17 +500,27 @@ function buildPagedData(list, total, page, pageSize, extra = {}) {
 }
 
 module.exports = {
+  ACHIEVEMENTS,
   DAY_IN_MS,
   DEFAULT_INVITE_TASK_CONFIGS,
+  appendAchievementPointsLog,
   appendPointsLog,
+  buildAchievementPointsDescription,
+  buildAchievementPointsLogId,
+  buildAchievementRecordId,
+  buildLoggedAchievementIdSet,
   buildPagedData,
+  getAchievementById,
   getUserById,
   getDayRange,
   getDefaultInviteTaskConfigs,
   getInviteTaskConfigByKey,
   incrementUserFields,
   incrementUserFieldsAndGetUser,
+  isDuplicateRecordError,
   loadInviteTaskConfigs,
   mergeInviteTaskConfigs,
   normalizeInviteTaskConfig,
+  parseAchievementIdFromPointsLogId,
+  unlockAchievementsForStats,
 }

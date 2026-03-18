@@ -1,5 +1,6 @@
 import { getService } from './shared'
 import type {
+  Achievement,
   ApiResponse,
   Card,
   Category,
@@ -18,7 +19,9 @@ export const cardApi = {
   getCardDetail: (cardId: string) =>
     getService('card-service').getCardDetail({ cardId }) as Promise<ApiResponse<Card>>,
   toggleFavorite: (cardId: string) =>
-    getService('card-service').toggleFavorite({ cardId }) as Promise<ApiResponse<{ isFavorited: boolean }>>,
+    getService('card-service').toggleFavorite({ cardId }) as Promise<
+      ApiResponse<{ isFavorited: boolean; newAchievements?: Achievement[] }>
+    >,
   getFavorites: (params?: { page?: number; pageSize?: number }) =>
     getService('card-service').getFavorites(params) as Promise<ApiResponse<PagedResult<Card>>>,
   getRelatedCards: (params: { cardId: string; categoryId: string; limit?: number }) =>
@@ -27,4 +30,3 @@ export const cardApi = {
   repairCardImages: () =>
     getService('card-service').repairCardImages() as Promise<ApiResponse<{ cardCount: number; categoryCount: number }>>,
 }
-

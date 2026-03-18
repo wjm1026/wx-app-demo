@@ -6,78 +6,22 @@ const achievementsCollection = db.collection('user_achievements')
 const pointsLogCollection = db.collection('points_log')
 const cardsCollection = db.collection('cards')
 const categoriesCollection = db.collection('categories')
+const favoritesCollection = db.collection('favorites')
 const { getAuthUserContext } = require('custom-auth')
 const {
-  appendPointsLog,
+  ACHIEVEMENTS,
+  DAY_IN_MS,
+  appendAchievementPointsLog,
+  buildLoggedAchievementIdSet,
+  getAchievementById,
   incrementUserFieldsAndGetUser,
+  isDuplicateRecordError,
+  unlockAchievementsForStats,
 } = require('cloud-shared')
 const CARD_LOOKUP_CHUNK_SIZE = 100
 
-const ACHIEVEMENTS = [
-  { id: 'first_card', name: '初次探索', icon: '🌟', description: '学习第一张卡片', condition: { type: 'cards_learned', count: 1 }, points: 10 },
-  { id: 'cards_10', name: '小小学霸', icon: '📚', description: '学习10张卡片', condition: { type: 'cards_learned', count: 10 }, points: 50 },
-  { id: 'cards_50', name: '知识达人', icon: '🎓', description: '学习50张卡片', condition: { type: 'cards_learned', count: 50 }, points: 100 },
-  { id: 'cards_100', name: '学习大师', icon: '👑', description: '学习100张卡片', condition: { type: 'cards_learned', count: 100 }, points: 200 },
-  { id: 'category_complete', name: '分类专家', icon: '🏆', description: '完成一个分类的所有卡片', condition: { type: 'category_complete', count: 1 }, points: 80 },
-  { id: 'sign_7', name: '坚持一周', icon: '📅', description: '连续签到7天', condition: { type: 'sign_streak', count: 7 }, points: 70 },
-  { id: 'sign_30', name: '月度达人', icon: '🌙', description: '连续签到30天', condition: { type: 'sign_streak', count: 30 }, points: 300 },
-  { id: 'favorites_10', name: '收藏家', icon: '❤️', description: '收藏10张卡片', condition: { type: 'favorites', count: 10 }, points: 30 },
-  { id: 'invite_3', name: '小小推广员', icon: '🎁', description: '邀请3位好友', condition: { type: 'invites', count: 3 }, points: 100 },
-  { id: 'invite_10', name: '超级推广员', icon: '🚀', description: '邀请10位好友', condition: { type: 'invites', count: 10 }, points: 300 }
-]
-
 function buildLearningLogRecordId(uid, cardId) {
   return `learn:${uid}:${cardId}`
-}
-
-function buildAchievementRecordId(uid, achievementId) {
-  return `achievement:${uid}:${achievementId}`
-}
-
-function buildAchievementPointsLogId(uid, achievementId) {
-  return `points:achievement:${uid}:${achievementId}`
-}
-
-function parseAchievementIdFromPointsLogId(pointsLogId) {
-  if (typeof pointsLogId !== 'string') {
-    return ''
-  }
-
-  const prefix = 'points:achievement:'
-  if (!pointsLogId.startsWith(prefix)) {
-    return ''
-  }
-
-  const parts = pointsLogId.split(':')
-  return parts[parts.length - 1] || ''
-}
-
-function buildAchievementPointsDescription(achievementName) {
-  return `解锁成就奖励：${achievementName}`
-}
-
-function getErrorMessage(error) {
-  if (!error) {
-    return ''
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return typeof error === 'string' ? error : JSON.stringify(error)
-}
-
-function isDuplicateRecordError(error) {
-  const rawCode = Number(error?.code ?? error?.errCode ?? error?.errno ?? 0)
-  const message = getErrorMessage(error).toLowerCase()
-
-  return (
-    rawCode === 11000 ||
-    message.includes('duplicate') ||
-    message.includes('e11000') ||
-    message.includes('already exists')
-  )
 }
 
 async function findLearningLogRecord(uid, cardId) {
@@ -123,54 +67,6 @@ function chunkArray(list, chunkSize) {
   return result
 }
 
-function buildLoggedAchievementIdSet(pointsLogs) {
-  const loggedAchievementIds = new Set()
-
-  for (const pointsLog of pointsLogs) {
-    const achievementId =
-      pointsLog.related_id || parseAchievementIdFromPointsLogId(pointsLog._id)
-
-    if (achievementId) {
-      loggedAchievementIds.add(achievementId)
-    }
-  }
-
-  return loggedAchievementIds
-}
-
-async function appendAchievementPointsLog({
-  uid,
-  achievement,
-  amount,
-  unlockTime,
-  balance,
-}) {
-  const rewardAmount = Number(
-    typeof amount === 'number' ? amount : achievement.points || 0,
-  )
-
-  try {
-    await appendPointsLog(pointsLogCollection, {
-      _id: buildAchievementPointsLogId(uid, achievement.id),
-      user_id: uid,
-      type: 'achievement',
-      amount: rewardAmount,
-      ...(typeof balance === 'number' ? { balance } : {}),
-      description: buildAchievementPointsDescription(achievement.name),
-      related_id: achievement.id,
-      create_time: typeof unlockTime === 'number' ? unlockTime : Date.now(),
-    })
-
-    return true
-  } catch (error) {
-    if (isDuplicateRecordError(error)) {
-      return false
-    }
-
-    throw error
-  }
-}
-
 async function syncAchievementPointsLogs(uid, achievementRecords, loggedAchievementIds) {
   if (!achievementRecords.length) {
     return loggedAchievementIds
@@ -188,12 +84,12 @@ async function syncAchievementPointsLogs(uid, achievementRecords, loggedAchievem
       continue
     }
 
-    const achievement = ACHIEVEMENTS.find((item) => item.id === achievementId)
+    const achievement = getAchievementById(achievementId)
     if (!achievement) {
       continue
     }
 
-    const created = await appendAchievementPointsLog({
+    const created = await appendAchievementPointsLog(pointsLogCollection, {
       uid,
       achievement,
       amount: Number(record.points || achievement.points || 0),
@@ -294,11 +190,157 @@ async function buildLearningProgressSnapshot(uid) {
   }
 }
 
+async function getCurrentSignStreak(uid, now = Date.now()) {
+  if (!uid) {
+    return 0
+  }
+
+  const today = new Date(now)
+  today.setHours(0, 0, 0, 0)
+  const todayStartTime = today.getTime()
+  const signLogsRes = await pointsLogCollection
+    .where({
+      user_id: uid,
+      type: 'sign_in',
+      create_time: dbCmd.lt(todayStartTime + DAY_IN_MS),
+    })
+    .field({ create_time: true })
+    .orderBy('create_time', 'desc')
+    .limit(365)
+    .get()
+  const signedDaySet = new Set()
+
+  for (const record of signLogsRes.data || []) {
+    const signTime = Number(record?.create_time || 0)
+    if (!signTime) {
+      continue
+    }
+
+    const signDate = new Date(signTime)
+    signDate.setHours(0, 0, 0, 0)
+    signedDaySet.add(signDate.getTime())
+  }
+
+  let streak = 0
+  let expectedDay = signedDaySet.has(todayStartTime)
+    ? todayStartTime
+    : todayStartTime - DAY_IN_MS
+
+  while (signedDaySet.has(expectedDay)) {
+    streak += 1
+    expectedDay -= DAY_IN_MS
+  }
+
+  return streak
+}
+
+async function countLearnedCardsInCategory(uid, categoryId) {
+  if (!uid || !categoryId) {
+    return 0
+  }
+
+  const categoryCardsRes = await cardsCollection
+    .where({
+      category_id: categoryId,
+      status: 1,
+    })
+    .field({ _id: true })
+    .get()
+  const categoryCardIds = Array.from(
+    new Set(
+      (categoryCardsRes.data || [])
+        .map((item) => item._id)
+        .filter(Boolean),
+    ),
+  )
+
+  if (categoryCardIds.length === 0) {
+    return 0
+  }
+
+  const chunks = chunkArray(categoryCardIds, CARD_LOOKUP_CHUNK_SIZE)
+  const learnedResults = await Promise.all(
+    chunks.map((chunk) =>
+      learningLogCollection
+        .where({
+          user_id: uid,
+          card_id: dbCmd.in(chunk),
+        })
+        .field({ card_id: true })
+        .get(),
+    ),
+  )
+  const learnedCardIds = new Set()
+
+  for (const learnedResult of learnedResults) {
+    for (const record of learnedResult.data || []) {
+      if (record?.card_id) {
+        learnedCardIds.add(record.card_id)
+      }
+    }
+  }
+
+  return learnedCardIds.size
+}
+
+async function buildLearningAchievementStats(uid, cardId, updatedUser) {
+  const stats = {
+    cards_learned: Number(updatedUser?.cards_learned || 0),
+    category_complete: 0,
+  }
+
+  if (!cardId) {
+    return stats
+  }
+
+  const cardRes = await cardsCollection
+    .doc(cardId)
+    .field({ category_id: true })
+    .get()
+  const currentCard = cardRes.data[0]
+  const categoryId = currentCard?.category_id
+
+  if (!categoryId) {
+    return stats
+  }
+
+  const [categoryRes, learnedCount] = await Promise.all([
+    categoriesCollection
+      .doc(categoryId)
+      .field({ card_count: true })
+      .get(),
+    countLearnedCardsInCategory(uid, categoryId),
+  ])
+  const category = categoryRes.data[0] || {}
+  const totalCards = Number(category.card_count || 0)
+
+  if (totalCards > 0 && learnedCount >= totalCards) {
+    stats.category_complete = 1
+  }
+
+  return stats
+}
+
+async function checkLearningAchievements(uid, cardId, updatedUser) {
+  const stats = await buildLearningAchievementStats(uid, cardId, updatedUser)
+
+  return unlockAchievementsForStats({
+    uid,
+    stats,
+    types: ['cards_learned', 'category_complete'],
+    usersCollection,
+    achievementsCollection,
+    pointsLogCollection,
+    dbCmd,
+  })
+}
+
 async function checkAchievements(uid) {
-  const [userRes, progressSnapshot, favCount, existingAchievements, achievementPointsLogs] = await Promise.all([
+  const [userRes, progressSnapshot, signStreak, favCount, existingAchievements, achievementPointsLogs] = await Promise.all([
     usersCollection.doc(uid).get(),
     buildLearningProgressSnapshot(uid),
-    db.collection('favorites').where({ user_id: uid }).count(),
+    getCurrentSignStreak(uid),
+    favoritesCollection.where({ user_id: uid }).count(),
     achievementsCollection.where({ user_id: uid }).get(),
     pointsLogCollection
       .where({ user_id: uid, type: 'achievement' })
@@ -308,82 +350,29 @@ async function checkAchievements(uid) {
 
   const user = userRes.data[0] || {}
   const unlockedAchievementRecords = existingAchievements.data || []
-  const loggedAchievementIds = await syncAchievementPointsLogs(
+  await syncAchievementPointsLogs(
     uid,
     unlockedAchievementRecords,
     buildLoggedAchievementIdSet(achievementPointsLogs.data || []),
   )
-  const unlockedIds = new Set(unlockedAchievementRecords.map(a => a.achievement_id))
-  const newAchievements = []
 
   const stats = {
     cards_learned: progressSnapshot.cardsLearned,
     favorites: favCount.total,
     invites: user.invite_count || 0,
-    sign_streak: user.sign_streak || 0,
+    sign_streak: signStreak,
     category_complete: progressSnapshot.categoryProgress.filter(c => c.isComplete).length
   }
 
-  for (const achievement of ACHIEVEMENTS) {
-    if (unlockedIds.has(achievement.id)) continue
-
-    const { type, count } = achievement.condition
-    if (stats[type] >= count) {
-      const unlockTime = Date.now()
-      const achievementRecordId = buildAchievementRecordId(uid, achievement.id)
-      let created = false
-
-      try {
-        await achievementsCollection.add({
-          _id: achievementRecordId,
-          user_id: uid,
-          achievement_id: achievement.id,
-          points: achievement.points,
-          unlock_time: unlockTime,
-          create_time: unlockTime
-        })
-        created = true
-      } catch (error) {
-        if (isDuplicateRecordError(error)) {
-          console.warn('[achievement-service] duplicate achievement unlock skipped', {
-            uid,
-            achievementId: achievement.id,
-            achievementRecordId,
-          })
-        } else {
-          throw error
-        }
-      }
-
-      if (!created) {
-        continue
-      }
-
-      const updatedUser = await incrementUserFieldsAndGetUser(
-        usersCollection,
-        dbCmd,
-        uid,
-        { points: achievement.points },
-      )
-      const nextBalance = Number(updatedUser?.points || 0)
-
-      await appendAchievementPointsLog({
-        uid,
-        achievement,
-        unlockTime,
-        balance: nextBalance,
-      })
-      loggedAchievementIds.add(achievement.id)
-
-      newAchievements.push({
-        ...achievement,
-        unlocked: true,
-        unlockTime
-      })
-    }
-  }
-
-  return newAchievements
+  return unlockAchievementsForStats({
+    uid,
+    stats,
+    types: ['cards_learned', 'category_complete', 'favorites', 'invites', 'sign_streak'],
+    usersCollection,
+    achievementsCollection,
+    pointsLogCollection,
+    dbCmd,
+  })
 }
 
 module.exports = {
@@ -402,6 +391,8 @@ module.exports = {
 
     let learningLogState = await findLearningLogRecord(uid, cardId)
     let isNewCard = !learningLogState.record
+
+    let updatedUser = null
 
     if (isNewCard) {
       const recordTime = Date.now()
@@ -433,9 +424,14 @@ module.exports = {
       }
 
       if (created) {
-        await usersCollection.doc(uid).update({
-          cards_learned: dbCmd.inc(1)
-        })
+        updatedUser = await incrementUserFieldsAndGetUser(
+          usersCollection,
+          dbCmd,
+          uid,
+          {
+            cards_learned: 1,
+          },
+        )
       } else {
         learningLogState = await findLearningLogRecord(uid, cardId)
         isNewCard = false
@@ -451,7 +447,10 @@ module.exports = {
       })
     }
 
-    const newAchievements = isNewCard ? await checkAchievements(uid) : []
+    const newAchievements =
+      isNewCard && updatedUser
+        ? await checkLearningAchievements(uid, cardId, updatedUser)
+        : []
 
     return {
       code: 0,
@@ -470,12 +469,10 @@ module.exports = {
     }
     const { uid } = authResult.auth
 
-    const [userRes, progressSnapshot] = await Promise.all([
-      usersCollection.doc(uid).field({ cards_learned: true, sign_streak: true }).get(),
-      buildLearningProgressSnapshot(uid)
+    const [progressSnapshot, signStreak] = await Promise.all([
+      buildLearningProgressSnapshot(uid),
+      getCurrentSignStreak(uid),
     ])
-
-    const user = userRes.data[0] || {}
     const cardsLearned = progressSnapshot.cardsLearned
     const totalCardsCount = progressSnapshot.totalCards
     const progress = totalCardsCount > 0 ? Math.round((cardsLearned / totalCardsCount) * 100) : 0
@@ -487,7 +484,7 @@ module.exports = {
         cardsLearned,
         totalCards: totalCardsCount,
         progress,
-        signStreak: user.sign_streak || 0,
+        signStreak,
         categoryProgress: progressSnapshot.categoryProgress
       }
     }
@@ -500,21 +497,9 @@ module.exports = {
     }
     const { uid } = authResult.auth
 
-    const [userAchievements, achievementPointsLogs] = await Promise.all([
-      achievementsCollection
-        .where({ user_id: uid })
-        .get(),
-      pointsLogCollection
-        .where({ user_id: uid, type: 'achievement' })
-        .field({ _id: true, related_id: true })
-        .get(),
-    ])
-
-    await syncAchievementPointsLogs(
-      uid,
-      userAchievements.data || [],
-      buildLoggedAchievementIdSet(achievementPointsLogs.data || []),
-    )
+    const userAchievements = await achievementsCollection
+      .where({ user_id: uid })
+      .get()
 
     const unlockedIds = new Set(userAchievements.data.map(a => a.achievement_id))
 
