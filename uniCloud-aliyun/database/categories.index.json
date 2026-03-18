@@ -1,0 +1,22 @@
+[
+  {
+    "IndexName": "status_sort_create_time_",
+    "MgoKeySchema": {
+      "MgoIndexKeys": [
+        {
+          "Name": "status",
+          "Direction": "1"
+        },
+        {
+          "Name": "sort",
+          "Direction": "-1"
+        },
+        {
+          "Name": "create_time",
+          "Direction": "1"
+        }
+      ],
+      "MgoIsUnique": false
+    }
+  }
+]
