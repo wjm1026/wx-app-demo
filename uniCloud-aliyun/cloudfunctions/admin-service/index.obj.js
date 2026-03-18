@@ -6,11 +6,14 @@ const cardsCollection = db.collection('cards')
 const categoriesCollection = db.collection('categories')
 const favoritesCollection = db.collection('favorites')
 const learningLogCollection = db.collection('learning_log')
+const inviteTaskConfigsCollection = db.collection('invite_task_configs')
 const pointsLogCollection = db.collection('points_log')
 const { getAuthUserContext } = require('custom-auth')
 const {
   appendPointsLog,
   buildPagedData,
+  loadInviteTaskConfigs,
+  mergeInviteTaskConfigs,
   getDayRange,
   incrementUserFieldsAndGetUser,
 } = require('cloud-shared')
@@ -74,6 +77,55 @@ function buildCardListWhere(params) {
   }
 
   return where
+}
+
+async function persistInviteTaskConfigs(taskConfigs) {
+  const nextConfigs = mergeInviteTaskConfigs(taskConfigs)
+  const existingRes = await inviteTaskConfigsCollection.get()
+  const existingMap = new Map()
+  const now = Date.now()
+
+  for (const item of existingRes.data || []) {
+    if (!item?.key || existingMap.has(item.key)) {
+      continue
+    }
+
+    existingMap.set(item.key, item)
+  }
+
+  await Promise.all(
+    nextConfigs.map((item) => {
+      const existing = existingMap.get(item.key)
+      const payload = {
+        ...item,
+        update_time: now,
+      }
+
+      if (existing?._id) {
+        return inviteTaskConfigsCollection.doc(existing._id).update(payload)
+      }
+
+      return inviteTaskConfigsCollection.add({
+        ...payload,
+        create_time: now,
+      })
+    }),
+  )
+
+  const validKeys = new Set(nextConfigs.map((item) => item.key))
+  const duplicateDocs = (existingRes.data || []).filter(
+    (item) => item?._id && (!validKeys.has(item.key) || existingMap.get(item.key)?._id !== item._id),
+  )
+
+  if (duplicateDocs.length > 0) {
+    await Promise.all(
+      duplicateDocs.map((item) =>
+        inviteTaskConfigsCollection.doc(item._id).remove(),
+      ),
+    )
+  }
+
+  return nextConfigs
 }
 
 module.exports = {
@@ -141,6 +193,48 @@ module.exports = {
         todayActiveUsers: todayActiveUsers.total,
         todayPointsStats: pointsStats.data
       }
+    }
+  },
+
+  // 获取积分任务配置
+  async getInviteTaskConfigs(params) {
+    const adminResult = await resolveAdmin(params)
+    if (!adminResult.ok) {
+      return adminResult.response
+    }
+
+    const tasks = await loadInviteTaskConfigs(inviteTaskConfigsCollection)
+
+    return {
+      code: 0,
+      msg: 'success',
+      data: tasks,
+    }
+  },
+
+  // 保存积分任务配置
+  async saveInviteTaskConfigs(params = {}) {
+    const adminResult = await resolveAdmin(params)
+    if (!adminResult.ok) {
+      return adminResult.response
+    }
+
+    const configs = Array.isArray(adminResult.params?.configs)
+      ? adminResult.params.configs
+      : []
+
+    if (configs.length === 0) {
+      return { code: 400, msg: '缺少任务配置数据' }
+    }
+
+    const tasks = await persistInviteTaskConfigs(configs)
+
+    return {
+      code: 0,
+      msg: '任务配置已保存',
+      data: {
+        tasks,
+      },
     }
   },
 

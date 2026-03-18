@@ -1,0 +1,72 @@
+{
+  "bsonType": "object",
+  "required": ["key", "title", "channel", "actionLabel"],
+  "permission": {
+    "read": false,
+    "create": false,
+    "update": false,
+    "delete": false
+  },
+  "properties": {
+    "_id": {
+      "description": "配置ID"
+    },
+    "key": {
+      "bsonType": "string",
+      "description": "固定任务键",
+      "enum": ["share-friend", "moments", "douyin", "xiaohongshu"]
+    },
+    "channel": {
+      "bsonType": "string",
+      "description": "任务渠道名",
+      "trim": "both"
+    },
+    "title": {
+      "bsonType": "string",
+      "description": "任务名称",
+      "trim": "both"
+    },
+    "desc": {
+      "bsonType": "string",
+      "description": "任务描述",
+      "trim": "both"
+    },
+    "note": {
+      "bsonType": "string",
+      "description": "任务补充说明",
+      "trim": "both"
+    },
+    "points": {
+      "bsonType": "int",
+      "description": "展示积分",
+      "minimum": 0,
+      "defaultValue": 0
+    },
+    "actionLabel": {
+      "bsonType": "string",
+      "description": "按钮文案",
+      "trim": "both"
+    },
+    "enabled": {
+      "bsonType": "bool",
+      "description": "是否启用",
+      "defaultValue": true
+    },
+    "sortOrder": {
+      "bsonType": "int",
+      "description": "排序值",
+      "defaultValue": 0
+    },
+    "create_time": {
+      "bsonType": "timestamp",
+      "description": "创建时间",
+      "forceDefaultValue": {
+        "$env": "now"
+      }
+    },
+    "update_time": {
+      "bsonType": "timestamp",
+      "description": "更新时间"
+    }
+  }
+}

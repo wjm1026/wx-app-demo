@@ -83,6 +83,13 @@
       }
     },
     {
+      "path": "pages/admin/tasks",
+      "style": {
+        "navigationBarTitleText": "任务配置",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/user/achievements",
       "style": {
         "navigationBarTitleText": "学习成就",

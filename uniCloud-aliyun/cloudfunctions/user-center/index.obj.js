@@ -2,17 +2,19 @@
 const db = uniCloud.database()
 const dbCmd = db.command
 const usersCollection = db.collection('users')
+const inviteTaskConfigsCollection = db.collection('invite_task_configs')
 const pointsLogCollection = db.collection('points_log')
 const { createToken, getAuthUserContext, stripAuthParams } = require('custom-auth')
 const {
   appendPointsLog,
   buildPagedData,
+  getInviteTaskConfigByKey,
   incrementUserFieldsAndGetUser,
+  loadInviteTaskConfigs,
 } = require('cloud-shared')
 const INVITE_BIND_WINDOW_MS = 24 * 60 * 60 * 1000
 const REGISTRATION_REWARD = 100
 const INVITEE_REWARD = 50
-const INVITER_REWARD = 100
 
 // 生成邀请码
 function generateInviteCode() {
@@ -76,7 +78,13 @@ async function findInviterByCode(inviteCode) {
   return inviterRes.data[0] || null
 }
 
-async function rewardInviterForRegistration(inviter, inviteeId) {
+function resolveInviterReward(taskConfigs) {
+  const shareTask = getInviteTaskConfigByKey(taskConfigs, 'share-friend')
+  const reward = Number(shareTask?.points)
+  return Number.isFinite(reward) ? reward : 100
+}
+
+async function rewardInviterForRegistration(inviter, inviteeId, inviterReward) {
   if (!inviter) {
     return
   }
@@ -86,7 +94,7 @@ async function rewardInviterForRegistration(inviter, inviteeId) {
     dbCmd,
     inviter._id,
     {
-      points: INVITER_REWARD,
+      points: inviterReward,
       invite_count: 1,
     },
   )
@@ -94,7 +102,7 @@ async function rewardInviterForRegistration(inviter, inviteeId) {
   await appendPointsLog(pointsLogCollection, {
     user_id: inviter._id,
     type: 'invite',
-    amount: INVITER_REWARD,
+    amount: inviterReward,
     balance: Number(updatedInviter?.points || 0),
     description: '邀请新用户奖励',
     related_id: inviteeId,
@@ -149,13 +157,15 @@ module.exports = {
     if (userRes.data.length === 0) {
       // 新用户注册
       isNewUser = true
+      const taskConfigs = await loadInviteTaskConfigs(inviteTaskConfigsCollection)
+      const inviterReward = resolveInviterReward(taskConfigs)
       const inviter = await findInviterByCode(normalizedInviteCode)
       const newUser = buildNewUser(openid, unionid, inviter)
 
       const addRes = await usersCollection.add(newUser)
       userId = addRes.id
 
-      await rewardInviterForRegistration(inviter, userId)
+      await rewardInviterForRegistration(inviter, userId, inviterReward)
       await recordRegistrationGift(userId, newUser.points)
     } else {
       // 老用户更新登录时间
@@ -257,8 +267,9 @@ module.exports = {
       return { code: 400, msg: '不能填写自己的邀请码' }
     }
 
+    const taskConfigs = await loadInviteTaskConfigs(inviteTaskConfigsCollection)
     const inviteReward = INVITEE_REWARD
-    const inviterReward = INVITER_REWARD
+    const inviterReward = resolveInviterReward(taskConfigs)
 
     const updatedUser = await incrementUserFieldsAndGetUser(
       usersCollection,
@@ -304,6 +315,17 @@ module.exports = {
         inviterId: inviter._id,
         inviteReward,
       },
+    }
+  },
+
+  // 获取积分任务配置（公开）
+  async getInviteTaskConfigs() {
+    const tasks = await loadInviteTaskConfigs(inviteTaskConfigsCollection)
+
+    return {
+      code: 0,
+      msg: 'success',
+      data: tasks,
     }
   },
 

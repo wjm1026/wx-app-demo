@@ -91,6 +91,24 @@ export interface InviteUserInfo {
   time?: number | string
 }
 
+export type InviteTaskKey =
+  | 'share-friend'
+  | 'moments'
+  | 'douyin'
+  | 'xiaohongshu'
+
+export interface InviteTaskConfig {
+  key: InviteTaskKey
+  channel: string
+  title: string
+  desc: string
+  note: string
+  points: number
+  actionLabel: string
+  enabled: boolean
+  sortOrder: number
+}
+
 export interface InviteInfoResult {
   invite_code?: string
   inviteCode?: string
@@ -108,6 +126,10 @@ export interface BindInviteCodeResult {
   userInfo: UserInfo
   inviterId: string
   inviteReward: number
+}
+
+export interface SaveInviteTaskConfigsResult {
+  tasks: InviteTaskConfig[]
 }
 
 export interface HomeDataResult {

@@ -3,6 +3,7 @@ import type {
   ApiResponse,
   BindInviteCodeResult,
   InviteInfoResult,
+  InviteTaskConfig,
   LoginByWeixinResult,
   PagedResult,
   PointsLogItem,
@@ -17,6 +18,8 @@ export const userApi = {
   getUserInfo: () => getService('user-center').getUserInfo() as Promise<ApiResponse<UserInfo>>,
   updateUserInfo: (params: { nickname?: string; avatar?: string; gender?: number }) =>
     getService('user-center').updateUserInfo(params) as Promise<ApiResponse<UserInfo>>,
+  getInviteTaskConfigs: () =>
+    getService('user-center').getInviteTaskConfigs() as Promise<ApiResponse<InviteTaskConfig[]>>,
   getInviteInfo: () => getService('user-center').getInviteInfo() as Promise<ApiResponse<InviteInfoResult>>,
   getPointsLog: (params?: { page?: number; pageSize?: number }) =>
     getService('user-center').getPointsLog(params) as Promise<ApiResponse<PagedResult<PointsLogItem>>>,

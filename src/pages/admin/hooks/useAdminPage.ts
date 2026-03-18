@@ -191,6 +191,17 @@ export function useAdminPage() {
       onClick: goStats,
     },
     {
+      key: 'tasks',
+      title: '任务配置',
+      metric: '积分任务中心',
+      desc: '维护任务名称、描述、积分和按钮文案',
+      badge: '运营',
+      available: true,
+      icon: '/static/icons/line/gift.svg',
+      tone: 'tone-violet',
+      onClick: goTasks,
+    },
+    {
       key: 'categories',
       title: '分类管理',
       metric: `${formatNumber(stats.value.categoryCount)} 个分类`,
@@ -338,6 +349,10 @@ export function useAdminPage() {
 
   function goStats() {
     navigateTo('/pages/admin/stats')
+  }
+
+  function goTasks() {
+    navigateTo('/pages/admin/tasks')
   }
 
   function goCategories() {

@@ -3,6 +3,7 @@ import type {
   AdminCardPayload,
   AdminCategoryPayload,
   AdminCheckResult,
+  InviteTaskConfig,
   AdminLearningLogResetResult,
   AdminStatsResult,
   AdminUserDetailResult,
@@ -11,11 +12,16 @@ import type {
   Card,
   Category,
   PagedResult,
+  SaveInviteTaskConfigsResult,
 } from './types'
 
 export const adminApi = {
   checkAdmin: () => getService('admin-service').checkAdmin() as Promise<ApiResponse<AdminCheckResult>>,
   getStats: () => getService('admin-service').getStats() as Promise<ApiResponse<AdminStatsResult>>,
+  getInviteTaskConfigs: () =>
+    getService('admin-service').getInviteTaskConfigs() as Promise<ApiResponse<InviteTaskConfig[]>>,
+  saveInviteTaskConfigs: (configs: InviteTaskConfig[]) =>
+    getService('admin-service').saveInviteTaskConfigs({ configs }) as Promise<ApiResponse<SaveInviteTaskConfigsResult>>,
   getUserList: (params?: { page?: number; pageSize?: number; status?: number; keyword?: string }) =>
     getService('admin-service').getUserList(params) as Promise<ApiResponse<PagedResult<AdminUserListItem>>>,
   getUserDetail: (userId: string) =>

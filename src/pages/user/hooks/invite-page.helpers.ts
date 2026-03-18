@@ -1,16 +1,17 @@
-import type { InviteInfoResult, InviteUserInfo } from '@/api'
+import type {
+  InviteInfoResult,
+  InviteTaskConfig,
+  InviteTaskKey,
+  InviteUserInfo,
+} from '@/api'
+import {
+  getDefaultInviteTaskConfigs,
+  getInviteTaskMeta,
+} from '@/config/invite-tasks'
 import { DEFAULT_AVATAR, formatDate, formatRelativeDate } from '@/utils'
 
-export const TASK_REWARDS = {
-  shareFriend: 100,
-  moments: 60,
-  douyin: 120,
-  xiaohongshu: 80,
-} as const
-
 export const INVITE_CODE_PATTERN = /^[A-Z0-9]{6}$/
-
-export type MissionKey = 'share-friend' | 'moments' | 'douyin' | 'xiaohongshu'
+export type MissionKey = InviteTaskKey
 
 export interface InviteSummaryCard {
   key: string
@@ -21,7 +22,7 @@ export interface InviteSummaryCard {
 }
 
 export interface InviteMissionCard {
-  key: MissionKey
+  key: InviteTaskKey
   title: string
   desc: string
   note: string
@@ -49,58 +50,6 @@ export interface DecoratedInviteUser {
   relativeLabel: string
   rewardLabel: string
 }
-
-// 任务卡片的展示配置基本固定，集中定义后，主 hook 只负责状态和副作用编排。
-const MISSION_CARD_BLUEPRINTS = [
-  {
-    key: 'share-friend' as const,
-    title: '分享给微信好友',
-    desc: '直接发送小程序卡片，好友打开后会自动带上你的分享口令。',
-    note: '这是当前已接通的真实邀请链路，转化会直接沉淀到战绩里。',
-    reward: TASK_REWARDS.shareFriend,
-    actionLabel: '立即分享',
-    actionType: 'share' as const,
-    channel: '微信好友',
-    icon: '/static/icons/brands/wechat.svg',
-    tone: 'tone-cyan',
-  },
-  {
-    key: 'moments' as const,
-    title: '发朋友圈',
-    desc: '复制分享文案后，从右上角菜单分享到朋友圈做曝光。',
-    note: '朋友圈分享同样会带上你的分享口令，适合做一次性扩散。',
-    reward: TASK_REWARDS.moments,
-    actionLabel: '查看指引',
-    actionType: 'action' as const,
-    channel: '朋友圈',
-    icon: '/static/icons/brands/moments.svg',
-    tone: 'tone-amber',
-  },
-  {
-    key: 'douyin' as const,
-    title: '发抖音',
-    desc: '复制短视频传播文案和口令，到抖音发布你的内容。',
-    note: '适合剪短视频、晒学习过程或展示孩子的使用体验。',
-    reward: TASK_REWARDS.douyin,
-    actionLabel: '复制素材',
-    actionType: 'action' as const,
-    channel: '抖音',
-    icon: '/static/icons/brands/douyin.svg',
-    tone: 'tone-rose',
-  },
-  {
-    key: 'xiaohongshu' as const,
-    title: '发小红书',
-    desc: '复制图文种草文案和口令，到小红书发布图文或笔记。',
-    note: '适合做学习清单、启蒙经验分享和好物推荐类内容。',
-    reward: TASK_REWARDS.xiaohongshu,
-    actionLabel: '复制素材',
-    actionType: 'action' as const,
-    channel: '小红书',
-    icon: '/static/icons/brands/xiaohongshu.svg',
-    tone: 'tone-green',
-  },
-] as const
 
 const MISSION_TIPS: InviteTipCard[] = [
   {
@@ -170,18 +119,33 @@ export function validateManualInviteCode(rawValue: string) {
   return { normalized, errorMessage: '' }
 }
 
-export function buildInviteSummaryCards(invitedCount: number): InviteSummaryCard[] {
-  const totalMissionPoints =
-    TASK_REWARDS.shareFriend +
-    TASK_REWARDS.moments +
-    TASK_REWARDS.douyin +
-    TASK_REWARDS.xiaohongshu
+function getEnabledTaskConfigs(taskConfigs: InviteTaskConfig[]) {
+  return taskConfigs.filter((item) => item.enabled)
+}
+
+export function resolveShareTaskReward(taskConfigs: InviteTaskConfig[]) {
+  const shareTask =
+    taskConfigs.find((item) => item.key === 'share-friend') ||
+    getDefaultInviteTaskConfigs().find((item) => item.key === 'share-friend')
+
+  return Number(shareTask?.points || 0)
+}
+
+export function buildInviteSummaryCards(
+  invitedCount: number,
+  taskConfigs: InviteTaskConfig[],
+): InviteSummaryCard[] {
+  const enabledTaskConfigs = getEnabledTaskConfigs(taskConfigs)
+  const totalMissionPoints = enabledTaskConfigs.reduce(
+    (total, item) => total + Number(item.points || 0),
+    0,
+  )
 
   return [
     {
       key: 'tasks',
       label: '可做任务',
-      value: String(MISSION_CARD_BLUEPRINTS.length),
+      value: String(enabledTaskConfigs.length),
       icon: '/static/icons/line/calendar.svg',
       tone: 'tone-cyan',
     },
@@ -205,23 +169,28 @@ export function buildInviteSummaryCards(invitedCount: number): InviteSummaryCard
 export function buildMissionCards(options: {
   isLoggedIn: boolean
   hasInviteCode: boolean
+  taskConfigs: InviteTaskConfig[]
 }): InviteMissionCard[] {
   const actionLabel = options.isLoggedIn ? undefined : '先登录'
   const enabled = options.isLoggedIn && options.hasInviteCode
 
-  return MISSION_CARD_BLUEPRINTS.map((item) => ({
-    key: item.key,
-    title: item.title,
-    desc: item.desc,
-    note: item.note,
-    points: item.reward,
-    actionLabel: actionLabel || item.actionLabel,
-    actionType: item.actionType,
-    enabled,
-    channel: item.channel,
-    icon: item.icon,
-    tone: item.tone,
-  }))
+  return getEnabledTaskConfigs(options.taskConfigs).map((item) => {
+    const meta = getInviteTaskMeta(item.key)
+
+    return {
+      key: item.key,
+      title: item.title,
+      desc: item.desc,
+      note: item.note,
+      points: item.points,
+      actionLabel: actionLabel || item.actionLabel,
+      actionType: meta.actionType,
+      enabled,
+      channel: item.channel,
+      icon: meta.icon,
+      tone: meta.tone,
+    }
+  })
 }
 
 export function buildMissionTips() {
@@ -230,6 +199,7 @@ export function buildMissionTips() {
 
 export function decorateInvitedList(
   invitedList: InviteUserInfo[],
+  shareReward: number,
 ): DecoratedInviteUser[] {
   return invitedList.map((item, index) => {
     const inviteTime = resolveInviteTime(item)
@@ -240,7 +210,7 @@ export function decorateInvitedList(
       nickname: item.nickname || '微信好友',
       timeLabel: formatDate(inviteTime, 'mdHm') || '刚刚加入',
       relativeLabel: formatRelativeDate(inviteTime) || '刚刚',
-      rewardLabel: `+${TASK_REWARDS.shareFriend}`,
+      rewardLabel: shareReward > 0 ? `+${shareReward}` : '已加入',
     }
   })
 }

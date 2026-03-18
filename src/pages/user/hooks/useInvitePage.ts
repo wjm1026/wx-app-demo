@@ -2,6 +2,10 @@ import { computed, ref } from 'vue'
 import { onShareAppMessage, onShareTimeline, onShow } from '@dcloudio/uni-app'
 import { userApi, type InviteUserInfo } from '@/api'
 import { useLoginGuard } from '@/composables/useLoginGuard'
+import {
+  getDefaultInviteTaskConfigs,
+  mergeInviteTaskConfigs,
+} from '@/config/invite-tasks'
 import { usePageLayout } from '@/composables/usePageLayout'
 import {
   buildInviteSharePath,
@@ -23,6 +27,7 @@ import {
   decorateInvitedList,
   extractInvitedList,
   type MissionKey,
+  resolveShareTaskReward,
   validateManualInviteCode,
 } from './invite-page.helpers'
 
@@ -36,6 +41,7 @@ export function useInvitePage() {
   const manualInviteCode = ref('')
   const canBindInviteCode = ref(false)
   const invitedList = ref<InviteUserInfo[]>([])
+  const taskConfigs = ref(getDefaultInviteTaskConfigs())
   const inviteBindLoading = ref(false)
   const loading = ref(false)
 
@@ -88,20 +94,24 @@ export function useInvitePage() {
   )
 
   const summaryCards = computed(() =>
-    buildInviteSummaryCards(invitedList.value.length),
+    buildInviteSummaryCards(invitedList.value.length, taskConfigs.value),
   )
 
   const missionCards = computed(() =>
     buildMissionCards({
       isLoggedIn: isLoggedIn.value,
       hasInviteCode: Boolean(ownInviteCode.value),
+      taskConfigs: taskConfigs.value,
     }),
   )
 
   const missionTips = buildMissionTips()
 
   const decoratedInvitedList = computed(() =>
-    decorateInvitedList(invitedList.value),
+    decorateInvitedList(
+      invitedList.value,
+      resolveShareTaskReward(taskConfigs.value),
+    ),
   )
 
   const conversionHint = computed(() =>
@@ -147,6 +157,18 @@ export function useInvitePage() {
       showToast(getErrorMessage(error, '网络错误，请稍后重试'))
     } finally {
       loading.value = false
+    }
+  }
+
+  async function loadTaskConfigs() {
+    try {
+      const res = await userApi.getInviteTaskConfigs()
+
+      if (res.code === 0 && Array.isArray(res.data)) {
+        taskConfigs.value = mergeInviteTaskConfigs(res.data)
+      }
+    } catch {
+      taskConfigs.value = getDefaultInviteTaskConfigs()
     }
   }
 
@@ -337,14 +359,16 @@ export function useInvitePage() {
     landingInviteCode.value = getStoredInviteCode()
     manualInviteCode.value = landingInviteCode.value
     canBindInviteCode.value = isInviteBindingWindowOpen(store.userInfo)
+    const loadTaskConfigsPromise = loadTaskConfigs()
 
     if (!isLoggedIn.value) {
       ownInviteCode.value = ''
       invitedList.value = []
+      await loadTaskConfigsPromise
       return
     }
 
-    await loadInviteData()
+    await Promise.all([loadTaskConfigsPromise, loadInviteData()])
   })
 
   return {

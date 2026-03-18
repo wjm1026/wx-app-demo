@@ -15,7 +15,10 @@ export const getService = <T extends ServiceName>(name: T) => {
     return cached
   }
 
-  const rawService = uniCloud.importObject(name)
+  // 统一关闭 uniCloud 云对象自带的 loading / error UI，交给页面层自己控制。
+  const rawService = uniCloud.importObject(name, {
+    customUI: true,
+  })
   const service = new Proxy(rawService, {
     get(target, prop, receiver) {
       const value = Reflect.get(target, prop, receiver)
@@ -45,4 +48,3 @@ export const getService = <T extends ServiceName>(name: T) => {
   serviceCache.set(name, service)
   return service
 }
-
