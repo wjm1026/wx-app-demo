@@ -235,6 +235,16 @@ export function useAdminPage() {
       tone: 'tone-safe',
       onClick: repairCardImages,
     },
+    {
+      key: 'clear-learning-log',
+      title: '清空学习记录',
+      desc: '删除 learning_log 全表，并把用户学习计数统一归零。',
+      note: '高风险操作，不会清空已解锁成就，执行后需重新累积学习记录。',
+      buttonLabel: '立即清空',
+      icon: '/static/icons/line/shield.svg',
+      tone: 'tone-danger',
+      onClick: clearLearningLog,
+    },
   ])
 
   async function loadStats() {
@@ -308,6 +318,17 @@ export function useAdminPage() {
       errorText: '图片修复失败',
       fallbackSuccessText: '图片修复完成',
       execute: () => cardApi.repairCardImages(),
+    })
+  }
+
+  async function clearLearningLog() {
+    await runCardMaintenanceAction({
+      title: '确认清空学习记录',
+      content: '将清空 learning_log 全表，并把所有用户的已学习卡片计数归零。此操作不会清空已解锁成就，确定继续吗？',
+      loadingText: '清理学习记录中...',
+      errorText: '清理学习记录失败',
+      fallbackSuccessText: '学习记录已清空',
+      execute: () => adminApi.clearLearningLog(),
     })
   }
 

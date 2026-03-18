@@ -19,7 +19,7 @@
     "type": {
       "bsonType": "string",
       "description": "类型",
-      "enum": ["invite", "ad_reward", "sign_in", "consume", "refund", "gift", "admin_add", "admin_deduct"]
+      "enum": ["invite", "invite_bonus", "achievement", "ad_reward", "sign_in", "consume", "refund", "gift", "admin_add", "admin_deduct"]
     },
     "amount": {
       "bsonType": "int",

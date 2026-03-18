@@ -1,10 +1,10 @@
-import { computed, onMounted } from 'vue'
+import { computed } from 'vue'
 import {
   onPullDownRefresh,
   onReachBottom,
   onShow,
 } from '@dcloudio/uni-app'
-import { userApi, type PointsLogItem } from '@/api'
+import { achievementApi, userApi, type PointsLogItem } from '@/api'
 import { useLoginGuard } from '@/composables/useLoginGuard'
 import { usePageLayout } from '@/composables/usePageLayout'
 import { usePagedList } from '@/composables/usePagedList'
@@ -23,6 +23,12 @@ const LOG_VISUAL_MAP: Record<string, LogVisualMeta> = {
     chipLabel: '广告奖励',
     chipTone: 'chip-sky',
     iconTone: 'icon-sky',
+  },
+  achievement: {
+    icon: '/static/icons/line/trophy.svg',
+    chipLabel: '成就奖励',
+    chipTone: 'chip-amber',
+    iconTone: 'icon-amber',
   },
   consume: {
     icon: '/static/icons/line/ticket.svg',
@@ -158,20 +164,25 @@ export function usePointsLogPage() {
     navigateBack()
   }
 
-  onMounted(() => {
-    if (!ensureLoggedIn()) {
-      return
+  async function syncAchievementPointsLogs() {
+    try {
+      await achievementApi.getAchievements()
+    } catch (error) {
+      console.error('同步成就积分流水失败:', error)
     }
+  }
 
-    void refresh()
-  })
+  async function syncPageData() {
+    await syncAchievementPointsLogs()
+    await Promise.all([refresh(), refreshUserPoints()])
+  }
 
   onShow(() => {
     if (!ensureLoggedIn()) {
       return
     }
 
-    void refreshUserPoints()
+    void syncPageData()
   })
 
   onPullDownRefresh(async () => {
@@ -180,6 +191,7 @@ export function usePointsLogPage() {
       return
     }
 
+    await syncAchievementPointsLogs()
     await refresh()
     uni.stopPullDownRefresh()
   })

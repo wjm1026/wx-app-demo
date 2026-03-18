@@ -5,6 +5,7 @@ const usersCollection = db.collection('users')
 const cardsCollection = db.collection('cards')
 const categoriesCollection = db.collection('categories')
 const favoritesCollection = db.collection('favorites')
+const learningLogCollection = db.collection('learning_log')
 const pointsLogCollection = db.collection('points_log')
 const { getAuthUserContext } = require('custom-auth')
 const {
@@ -18,6 +19,8 @@ const {
 const ADMIN_OPENIDS = [
   // 在这里添加管理员的openid
 ]
+
+const LEARNING_LOG_RESET_CONFIRM_TEXT = 'RESET_LEARNING_LOG'
 
 async function resolveAdmin(params) {
   const authResult = await getAuthUserContext(params, { message: '未登录' })
@@ -501,5 +504,45 @@ module.exports = {
     await categoriesCollection.doc(categoryId).remove()
 
     return { code: 0, msg: '删除成功' }
+  },
+
+  // 清空学习记录（仅管理员维护）
+  async clearLearningLog(params) {
+    const adminResult = await resolveAdmin(params)
+    if (!adminResult.ok) {
+      return adminResult.response
+    }
+
+    const { confirmText } = adminResult.params
+
+    if (confirmText !== LEARNING_LOG_RESET_CONFIRM_TEXT) {
+      return {
+        code: 400,
+        msg: `危险操作，请传入 confirmText=${LEARNING_LOG_RESET_CONFIRM_TEXT}`,
+      }
+    }
+
+    const [logCountRes, affectedUsersRes] = await Promise.all([
+      learningLogCollection.count(),
+      usersCollection.where({ cards_learned: dbCmd.gt(0) }).count(),
+    ])
+
+    await Promise.all([
+      learningLogCollection.where({ _id: dbCmd.exists(true) }).remove(),
+      usersCollection.where({ cards_learned: dbCmd.gt(0) }).update({
+        cards_learned: 0,
+        update_time: Date.now(),
+      }),
+    ])
+
+    return {
+      code: 0,
+      msg: 'learning_log 已清空，用户学习计数已重置',
+      data: {
+        removedLearningLogCount: logCountRes.total,
+        resetUserCount: affectedUsersRes.total,
+        achievementsUntouched: true,
+      },
+    }
   }
 }

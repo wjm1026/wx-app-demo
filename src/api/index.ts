@@ -10,6 +10,7 @@ export type {
   AdminCardPayload,
   AdminCategoryPayload,
   AdminCheckResult,
+  AdminLearningLogResetResult,
   AdminStatsPointStat,
   AdminStatsResult,
   AdminUserDetailResult,

@@ -46,6 +46,18 @@
       "defaultValue": 5,
       "minimum": 0
     },
+    "cards_learned": {
+      "bsonType": "int",
+      "description": "已学习卡片数（缓存字段）",
+      "defaultValue": 0,
+      "minimum": 0
+    },
+    "sign_streak": {
+      "bsonType": "int",
+      "description": "连续签到天数",
+      "defaultValue": 0,
+      "minimum": 0
+    },
     "invite_code": {
       "bsonType": "string",
       "description": "我的邀请码"

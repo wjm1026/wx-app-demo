@@ -3,6 +3,7 @@ import type {
   AdminCardPayload,
   AdminCategoryPayload,
   AdminCheckResult,
+  AdminLearningLogResetResult,
   AdminStatsResult,
   AdminUserDetailResult,
   AdminUserListItem,
@@ -36,5 +37,8 @@ export const adminApi = {
     getService('admin-service').saveCategory(categoryData) as Promise<ApiResponse>,
   deleteCategory: (categoryId: string) =>
     getService('admin-service').deleteCategory({ categoryId }) as Promise<ApiResponse>,
+  clearLearningLog: () =>
+    getService('admin-service').clearLearningLog({
+      confirmText: 'RESET_LEARNING_LOG',
+    }) as Promise<ApiResponse<AdminLearningLogResetResult>>,
 }
-

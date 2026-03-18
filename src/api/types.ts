@@ -141,6 +141,12 @@ export interface AdminStatsResult {
   todayPointsStats?: AdminStatsPointStat[]
 }
 
+export interface AdminLearningLogResetResult {
+  removedLearningLogCount: number
+  resetUserCount: number
+  achievementsUntouched: boolean
+}
+
 export interface AdminUserListItem {
   _id: string
   nickname?: string

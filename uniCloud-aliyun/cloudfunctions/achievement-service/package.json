@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.obj.js",
   "dependencies": {
-    "custom-auth": "file:../common/custom-auth"
+    "custom-auth": "file:../common/custom-auth",
+    "cloud-shared": "file:../common/cloud-shared"
   },
   "extensions": {}
 }
