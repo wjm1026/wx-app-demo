@@ -34,6 +34,10 @@ const AUTH_SECRET =
   authConfig.secret ||
   FALLBACK_SECRET
 
+function getUsersCollection() {
+  return uniCloud.database().collection('users')
+}
+
 function toBase64Url(input) {
   return Buffer.from(input)
     .toString('base64')
@@ -178,10 +182,51 @@ function getAuthContext(params, options = {}) {
   }
 }
 
+async function getAuthUserContext(params, options = {}) {
+  const {
+    required = true,
+    message = '请先登录',
+    missingUserMessage = '登录态已失效，请重新登录',
+  } = options
+  const authResult = getAuthContext(params, { required, message })
+
+  if (!authResult.ok || !authResult.auth?.uid) {
+    return authResult
+  }
+
+  const userRes = await getUsersCollection().doc(authResult.auth.uid).get()
+  const user = userRes.data[0]
+
+  if (!user) {
+    if (!required) {
+      return {
+        ok: true,
+        auth: null,
+        user: null,
+        params: authResult.params,
+      }
+    }
+
+    return {
+      ok: false,
+      auth: null,
+      user: null,
+      params: authResult.params,
+      response: { code: 401, msg: missingUserMessage },
+    }
+  }
+
+  return {
+    ...authResult,
+    user,
+  }
+}
+
 module.exports = {
   AUTH_PARAM_KEY,
   createToken,
   getAuthContext,
+  getAuthUserContext,
   stripAuthParams,
   verifyToken,
 }

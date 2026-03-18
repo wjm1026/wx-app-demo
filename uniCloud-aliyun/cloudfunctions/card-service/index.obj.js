@@ -11,7 +11,7 @@ const {
   isLegacyPlaceholderUrl,
   normalizeCardRecord,
 } = require('./image-data')
-const { getAuthContext } = require('custom-auth')
+const { getAuthUserContext } = require('custom-auth')
 
 const CATEGORY_COVER_MAP = createSeedData().categories.reduce((result, category) => {
   result[category.name] = category.cover
@@ -184,7 +184,7 @@ module.exports = {
 
   // 获取卡片详情
   async getCardDetail(params) {
-    const authResult = getAuthContext(params, { required: false })
+    const authResult = await getAuthUserContext(params, { required: false })
     const { cardId } = authResult.params
 
     if (!cardId) {
@@ -235,7 +235,7 @@ module.exports = {
 
   // 收藏/取消收藏
   async toggleFavorite(params) {
-    const authResult = getAuthContext(params)
+    const authResult = await getAuthUserContext(params)
     if (!authResult.ok) {
       return authResult.response
     }
@@ -281,7 +281,7 @@ module.exports = {
 
   // 获取收藏列表
   async getFavorites(params) {
-    const authResult = getAuthContext(params)
+    const authResult = await getAuthUserContext(params)
     if (!authResult.ok) {
       return authResult.response
     }

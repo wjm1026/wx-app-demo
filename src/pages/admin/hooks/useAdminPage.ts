@@ -3,7 +3,13 @@ import { onShow } from '@dcloudio/uni-app'
 import { adminApi, cardApi, type AdminStatsResult } from '@/api'
 import { useConfirmedAction } from '@/composables/useConfirmedAction'
 import { usePageLayout } from '@/composables/usePageLayout'
-import { getSystemInfo, navigateBack, navigateTo, showToast } from '@/utils'
+import {
+  assertApiSuccess,
+  getSystemInfo,
+  navigateBack,
+  navigateTo,
+  showToast,
+} from '@/utils'
 
 interface AdminStats {
   userCount: number
@@ -233,13 +239,10 @@ export function useAdminPage() {
 
   async function loadStats() {
     try {
-      const res = await adminApi.getStats()
-
-      if (res.code === 0) {
-        stats.value = normalizeStats(res.data)
-      }
-    } catch (error) {
-      console.error('加载统计数据失败:', error)
+      const res = assertApiSuccess(await adminApi.getStats(), '加载统计数据失败')
+      stats.value = normalizeStats(res.data)
+    } catch {
+      // 后台首页每次展示都会拉取统计，这里保持静默失败，避免出现连续 toast 打断操作。
     }
   }
 
@@ -271,14 +274,14 @@ export function useAdminPage() {
     loadingText: string
     errorText: string
     fallbackSuccessText: string
-    execute: () => Promise<{ msg: string }>
+    execute: () => Promise<{ code: number; msg?: string }>
   }) {
     await runConfirmedAction({
       title: options.title,
       content: options.content,
       loadingText: options.loadingText,
       errorText: options.errorText,
-      execute: options.execute,
+      execute: async () => assertApiSuccess(await options.execute(), options.errorText),
       getSuccessMessage: (result) => result.msg || options.fallbackSuccessText,
       onSuccess: async () => {
         await loadStats()

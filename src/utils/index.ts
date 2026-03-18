@@ -1,8 +1,17 @@
 export type ToastIcon = 'success' | 'error' | 'none' | 'loading'
 export type DateValue = string | number | Date | null | undefined
+export type ApiLikeResponse<T = unknown> = {
+  code: number
+  msg?: string
+  data?: T
+}
 
 export const DEFAULT_AVATAR =
   'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
+// 分享落地后的邀请码会先缓存在本地，等用户首次登录时再一并带给后端。
+export const INVITE_CODE_STORAGE_KEY = 'INVITE_CODE'
+// 登录后补填邀请码只开放给注册后短时间内、且尚未绑定邀请人的新用户。
+export const INVITE_BIND_WINDOW_MS = 24 * 60 * 60 * 1000
 
 export function showToast(title: string, icon: ToastIcon = 'none', duration = 2000) {
   const mappedIcon: UniApp.ShowToastOptions['icon'] = icon === 'error' ? 'none' : icon
@@ -33,6 +42,70 @@ export function navigateBack(delta = 1) {
   uni.navigateBack({ delta })
 }
 
+// 邀请码可能来自剪贴板、分享 query 或服务端字段，统一清洗后再参与比较和存储。
+export function normalizeInviteCode(value: unknown): string {
+  if (typeof value !== 'string') {
+    return ''
+  }
+
+  return value.trim().toUpperCase()
+}
+
+export function buildInviteSharePath(inviteCode?: string) {
+  const normalized = normalizeInviteCode(inviteCode)
+
+  if (!normalized) {
+    return '/pages/user/invite'
+  }
+
+  return `/pages/user/invite?inviteCode=${encodeURIComponent(normalized)}`
+}
+
+export function getStoredInviteCode() {
+  return normalizeInviteCode(uni.getStorageSync(INVITE_CODE_STORAGE_KEY))
+}
+
+export function storeInviteCode(inviteCode: unknown) {
+  const normalized = normalizeInviteCode(inviteCode)
+
+  if (!normalized) {
+    return ''
+  }
+
+  uni.setStorageSync(INVITE_CODE_STORAGE_KEY, normalized)
+  return normalized
+}
+
+export function isInviteBindingWindowOpen(
+  user?: { create_time?: number | null; inviter_id?: string | null } | null,
+) {
+  if (!user || user.inviter_id) {
+    return false
+  }
+
+  const createTime = Number(user.create_time || 0)
+  if (!createTime) {
+    return false
+  }
+
+  return Date.now() - createTime <= INVITE_BIND_WINDOW_MS
+}
+
+export function clearStoredInviteCode() {
+  uni.removeStorageSync(INVITE_CODE_STORAGE_KEY)
+}
+
+// 冷启动和热启动拿到的 query 结构一致，这里统一兜底两个常见字段名。
+export function storeInviteCodeFromQuery(
+  query?: Record<string, unknown> | null,
+) {
+  if (!query) {
+    return ''
+  }
+
+  return storeInviteCode(query.inviteCode || query.invite_code)
+}
+
 export function getErrorMessage(error: unknown, fallback = '请求失败'): string {
   if (typeof error === 'string') {
     return error || fallback
@@ -51,6 +124,19 @@ export function getErrorMessage(error: unknown, fallback = '请求失败'): stri
   }
 
   return fallback
+}
+
+// 很多云对象接口会返回 { code, msg }，这里统一把“业务失败”转成 throw，
+// 让共享的 loading / toast 流程可以按真正的成功或失败分支运行。
+export function assertApiSuccess<T extends ApiLikeResponse>(
+  response: T,
+  fallback = '请求失败',
+) {
+  if (response.code !== 0) {
+    throw new Error(response.msg || fallback)
+  }
+
+  return response
 }
 
 export function formatNumber(num: number): string {

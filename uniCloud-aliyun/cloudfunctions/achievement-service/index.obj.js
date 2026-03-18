@@ -5,7 +5,7 @@ const learningLogCollection = db.collection('learning_log')
 const achievementsCollection = db.collection('user_achievements')
 const cardsCollection = db.collection('cards')
 const categoriesCollection = db.collection('categories')
-const { getAuthContext } = require('custom-auth')
+const { getAuthUserContext } = require('custom-auth')
 
 const ACHIEVEMENTS = [
   { id: 'first_card', name: '初次探索', icon: '🌟', description: '学习第一张卡片', condition: { type: 'cards_learned', count: 1 }, points: 10 },
@@ -99,7 +99,7 @@ async function checkAchievements(uid) {
 
 module.exports = {
   async recordLearning(params) {
-    const authResult = getAuthContext(params)
+    const authResult = await getAuthUserContext(params)
     if (!authResult.ok) {
       return authResult.response
     }
@@ -151,7 +151,7 @@ module.exports = {
   },
 
   async getLearningProgress(params) {
-    const authResult = getAuthContext(params)
+    const authResult = await getAuthUserContext(params)
     if (!authResult.ok) {
       return authResult.response
     }
@@ -183,7 +183,7 @@ module.exports = {
   },
 
   async getAchievements(params) {
-    const authResult = getAuthContext(params)
+    const authResult = await getAuthUserContext(params)
     if (!authResult.ok) {
       return authResult.response
     }
@@ -213,7 +213,7 @@ module.exports = {
   },
 
   async checkAndUnlockAchievements(params) {
-    const authResult = getAuthContext(params)
+    const authResult = await getAuthUserContext(params)
     if (!authResult.ok) {
       return authResult.response
     }

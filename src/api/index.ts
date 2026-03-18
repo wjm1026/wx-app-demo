@@ -15,6 +15,7 @@ export type {
   AdminUserDetailResult,
   AdminUserListItem,
   ApiResponse,
+  BindInviteCodeResult,
   Card,
   Category,
   HomeDataResult,

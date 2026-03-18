@@ -6,7 +6,13 @@ const cardsCollection = db.collection('cards')
 const categoriesCollection = db.collection('categories')
 const favoritesCollection = db.collection('favorites')
 const pointsLogCollection = db.collection('points_log')
-const { getAuthContext } = require('custom-auth')
+const { getAuthUserContext } = require('custom-auth')
+const {
+  appendPointsLog,
+  buildPagedData,
+  getDayRange,
+  incrementUserFieldsAndGetUser,
+} = require('cloud-shared')
 
 // 管理员openid列表（需要配置）
 const ADMIN_OPENIDS = [
@@ -14,18 +20,13 @@ const ADMIN_OPENIDS = [
 ]
 
 async function resolveAdmin(params) {
-  const authResult = getAuthContext(params, { message: '未登录' })
+  const authResult = await getAuthUserContext(params, { message: '未登录' })
   if (!authResult.ok) {
     return authResult
   }
 
   const { uid } = authResult.auth
-  const userRes = await usersCollection.doc(uid).get()
-  if (userRes.data.length === 0) {
-    return { ok: false, response: { code: 404, msg: '用户不存在' } }
-  }
-
-  const user = userRes.data[0]
+  const user = authResult.user
   if (user.role !== 'admin' && !ADMIN_OPENIDS.includes(user.openid)) {
     return { ok: false, response: { code: 403, msg: '无管理员权限' } }
   }
@@ -36,6 +37,40 @@ async function resolveAdmin(params) {
     adminId: uid,
     adminUser: user,
   }
+}
+
+function buildUserListWhere(params) {
+  const { status, keyword } = params
+  const where = {}
+
+  if (status !== undefined) {
+    where.status = status
+  }
+
+  if (keyword) {
+    where.nickname = new RegExp(keyword, 'i')
+  }
+
+  return where
+}
+
+function buildCardListWhere(params) {
+  const { categoryId, keyword, status } = params
+  const where = {}
+
+  if (categoryId) {
+    where.category_id = categoryId
+  }
+
+  if (keyword) {
+    where.name = new RegExp(keyword, 'i')
+  }
+
+  if (status !== undefined) {
+    where.status = status
+  }
+
+  return where
 }
 
 module.exports = {
@@ -64,24 +99,26 @@ module.exports = {
       return adminResult.response
     }
 
+    const { startTime } = getDayRange()
+
     const [userCount, cardCount, categoryCount, todayNewUsers, todayActiveUsers] = await Promise.all([
       usersCollection.count(),
       cardsCollection.count(),
       categoriesCollection.count(),
       // 今日新增用户
       usersCollection.where({
-        create_time: dbCmd.gte(new Date(new Date().setHours(0, 0, 0, 0)).getTime())
+        create_time: dbCmd.gte(startTime)
       }).count(),
       // 今日活跃用户
       usersCollection.where({
-        last_login_time: dbCmd.gte(new Date(new Date().setHours(0, 0, 0, 0)).getTime())
+        last_login_time: dbCmd.gte(startTime)
       }).count()
     ])
 
     // 获取积分发放统计
     const pointsStats = await pointsLogCollection.aggregate()
       .match({
-        create_time: dbCmd.gte(new Date(new Date().setHours(0, 0, 0, 0)).getTime())
+        create_time: dbCmd.gte(startTime)
       })
       .group({
         _id: '$type',
@@ -113,14 +150,7 @@ module.exports = {
 
     const { page = 1, pageSize = 20, status, keyword } = adminResult.params
 
-    // 构建查询条件
-    const where = {}
-    if (status !== undefined) {
-      where.status = status
-    }
-    if (keyword) {
-      where.nickname = new RegExp(keyword, 'i')
-    }
+    const where = buildUserListWhere({ status, keyword })
 
     const [listRes, countRes] = await Promise.all([
       usersCollection
@@ -139,12 +169,7 @@ module.exports = {
     return {
       code: 0,
       msg: 'success',
-      data: {
-        list: listRes.data,
-        total: countRes.total,
-        page,
-        pageSize
-      }
+      data: buildPagedData(listRes.data, countRes.total, page, pageSize),
     }
   },
 
@@ -253,27 +278,29 @@ module.exports = {
       return { code: 400, msg: '积分不足' }
     }
 
-    // 更新积分
-    await usersCollection.doc(userId).update({
-      points: newBalance,
-      update_time: Date.now()
-    })
+    // 管理员调整积分会同时影响余额和流水，统一使用共享 helper，避免别的后台入口再各写一遍。
+    const updatedUser = await incrementUserFieldsAndGetUser(
+      usersCollection,
+      dbCmd,
+      userId,
+      { points: amount },
+      {},
+    )
 
     // 记录积分日志
-    await pointsLogCollection.add({
+    await appendPointsLog(pointsLogCollection, {
       user_id: userId,
       type: amount > 0 ? 'admin_add' : 'admin_deduct',
       amount,
-      balance: newBalance,
+      balance: Number(updatedUser?.points || 0),
       description: reason || (amount > 0 ? '管理员添加积分' : '管理员扣除积分'),
       operator_id: adminResult.adminId,
-      create_time: Date.now()
     })
 
     return {
       code: 0,
       msg: '积分调整成功',
-      data: { newBalance }
+      data: { newBalance: Number(updatedUser?.points || 0) }
     }
   },
 
@@ -314,16 +341,7 @@ module.exports = {
 
     const { page = 1, pageSize = 20, categoryId, keyword, status } = adminResult.params
 
-    const where = {}
-    if (categoryId) {
-      where.category_id = categoryId
-    }
-    if (keyword) {
-      where.name = new RegExp(keyword, 'i')
-    }
-    if (status !== undefined) {
-      where.status = status
-    }
+    const where = buildCardListWhere({ categoryId, keyword, status })
 
     const [listRes, countRes] = await Promise.all([
       cardsCollection
@@ -338,12 +356,7 @@ module.exports = {
     return {
       code: 0,
       msg: 'success',
-      data: {
-        list: listRes.data,
-        total: countRes.total,
-        page,
-        pageSize
-      }
+      data: buildPagedData(listRes.data, countRes.total, page, pageSize),
     }
   },
 

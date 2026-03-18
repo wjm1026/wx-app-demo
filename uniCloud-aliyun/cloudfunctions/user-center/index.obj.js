@@ -3,7 +3,16 @@ const db = uniCloud.database()
 const dbCmd = db.command
 const usersCollection = db.collection('users')
 const pointsLogCollection = db.collection('points_log')
-const { createToken, getAuthContext, stripAuthParams } = require('custom-auth')
+const { createToken, getAuthUserContext, stripAuthParams } = require('custom-auth')
+const {
+  appendPointsLog,
+  buildPagedData,
+  incrementUserFieldsAndGetUser,
+} = require('cloud-shared')
+const INVITE_BIND_WINDOW_MS = 24 * 60 * 60 * 1000
+const REGISTRATION_REWARD = 100
+const INVITEE_REWARD = 50
+const INVITER_REWARD = 100
 
 // 生成邀请码
 function generateInviteCode() {
@@ -15,10 +24,98 @@ function generateInviteCode() {
   return code
 }
 
+function normalizeInviteCode(value) {
+  return typeof value === 'string' ? value.trim().toUpperCase() : ''
+}
+
+function getInviteBindDeadline(user) {
+  const createTime = Number(user?.create_time || 0)
+  return createTime > 0 ? createTime + INVITE_BIND_WINDOW_MS : 0
+}
+
+function canBindInviteCode(user, now = Date.now()) {
+  if (!user || user.inviter_id) {
+    return false
+  }
+
+  const deadline = getInviteBindDeadline(user)
+  if (!deadline) {
+    return false
+  }
+
+  return now <= deadline
+}
+
+function buildNewUser(openid, unionid, inviter) {
+  const now = Date.now()
+  const points = REGISTRATION_REWARD + (inviter ? INVITEE_REWARD : 0)
+
+  return {
+    openid,
+    unionid: unionid || '',
+    nickname: '宝宝' + Math.floor(Math.random() * 10000),
+    avatar: '',
+    gender: 0,
+    points,
+    free_views: 10,
+    invite_code: generateInviteCode(),
+    invite_count: 0,
+    is_vip: false,
+    create_time: now,
+    last_login_time: now,
+    ...(inviter ? { inviter_id: inviter._id } : {}),
+  }
+}
+
+async function findInviterByCode(inviteCode) {
+  if (!inviteCode) {
+    return null
+  }
+
+  const inviterRes = await usersCollection.where({ invite_code: inviteCode }).get()
+  return inviterRes.data[0] || null
+}
+
+async function rewardInviterForRegistration(inviter, inviteeId) {
+  if (!inviter) {
+    return
+  }
+
+  const updatedInviter = await incrementUserFieldsAndGetUser(
+    usersCollection,
+    dbCmd,
+    inviter._id,
+    {
+      points: INVITER_REWARD,
+      invite_count: 1,
+    },
+  )
+
+  await appendPointsLog(pointsLogCollection, {
+    user_id: inviter._id,
+    type: 'invite',
+    amount: INVITER_REWARD,
+    balance: Number(updatedInviter?.points || 0),
+    description: '邀请新用户奖励',
+    related_id: inviteeId,
+  })
+}
+
+async function recordRegistrationGift(userId, points) {
+  await appendPointsLog(pointsLogCollection, {
+    user_id: userId,
+    type: 'gift',
+    amount: points,
+    balance: points,
+    description: '新用户注册奖励',
+  })
+}
+
 module.exports = {
   // 微信登录
   async loginByWeixin(params) {
     const { code, inviteCode } = stripAuthParams(params)
+    const normalizedInviteCode = normalizeInviteCode(inviteCode)
     
     // 调用微信接口获取openid
     const res = await uniCloud.httpclient.request(
@@ -52,65 +149,19 @@ module.exports = {
     if (userRes.data.length === 0) {
       // 新用户注册
       isNewUser = true
-      const newUser = {
-        openid,
-        unionid: unionid || '',
-        nickname: '宝宝' + Math.floor(Math.random() * 10000),
-        avatar: '',
-        gender: 0,
-        points: 100, // 新用户赠送100积分
-        free_views: 10, // 新用户免费查看10次
-        invite_code: generateInviteCode(),
-        invite_count: 0,
-        is_vip: false,
-        create_time: Date.now(),
-        last_login_time: Date.now()
-      }
-
-      // 处理邀请关系
-      if (inviteCode) {
-        const inviterRes = await usersCollection.where({ invite_code: inviteCode }).get()
-        if (inviterRes.data.length > 0) {
-          newUser.inviter_id = inviterRes.data[0]._id
-          newUser.points += 50 // 被邀请人额外获得50积分
-          
-          // 给邀请人增加积分
-          const inviter = inviterRes.data[0]
-          await usersCollection.doc(inviter._id).update({
-            points: dbCmd.inc(100),
-            invite_count: dbCmd.inc(1)
-          })
-          
-          // 记录邀请人积分流水
-          await pointsLogCollection.add({
-            user_id: inviter._id,
-            type: 'invite',
-            amount: 100,
-            balance: inviter.points + 100,
-            description: '邀请新用户奖励',
-            related_id: '', // 稍后更新
-            create_time: Date.now()
-          })
-        }
-      }
+      const inviter = await findInviterByCode(normalizedInviteCode)
+      const newUser = buildNewUser(openid, unionid, inviter)
 
       const addRes = await usersCollection.add(newUser)
       userId = addRes.id
 
-      // 记录新用户积分流水
-      await pointsLogCollection.add({
-        user_id: userId,
-        type: 'gift',
-        amount: newUser.points,
-        balance: newUser.points,
-        description: '新用户注册奖励',
-        create_time: Date.now()
-      })
+      await rewardInviterForRegistration(inviter, userId)
+      await recordRegistrationGift(userId, newUser.points)
     } else {
       // 老用户更新登录时间
       userId = userRes.data[0]._id
       await usersCollection.doc(userId).update({
-        last_login_time: Date.now()
+        last_login_time: Date.now(),
       })
     }
 
@@ -139,28 +190,21 @@ module.exports = {
 
   // 获取用户信息
   async getUserInfo(params) {
-    const authResult = getAuthContext(params, { message: '未登录' })
+    const authResult = await getAuthUserContext(params, { message: '未登录' })
     if (!authResult.ok) {
       return authResult.response
-    }
-    const { uid } = authResult.auth
-
-    const res = await usersCollection.doc(uid).get()
-    
-    if (res.data.length === 0) {
-      return { code: 404, msg: '用户不存在' }
     }
 
     return {
       code: 0,
       msg: 'success',
-      data: res.data[0]
+      data: authResult.user
     }
   },
 
   // 更新用户信息
   async updateUserInfo(params) {
-    const authResult = getAuthContext(params, { message: '未登录' })
+    const authResult = await getAuthUserContext(params, { message: '未登录' })
     if (!authResult.ok) {
       return authResult.response
     }
@@ -168,7 +212,7 @@ module.exports = {
 
     const { nickname, avatar, gender } = authResult.params
     const updateData = { update_time: Date.now() }
-    
+
     if (nickname) updateData.nickname = nickname
     if (avatar) updateData.avatar = avatar
     if (typeof gender === 'number') updateData.gender = gender
@@ -178,16 +222,100 @@ module.exports = {
     return { code: 0, msg: '更新成功' }
   },
 
+  // 登录后补绑邀请码
+  async bindInviteCode(params) {
+    const authResult = await getAuthUserContext(params, { message: '未登录' })
+    if (!authResult.ok) {
+      return authResult.response
+    }
+
+    const { uid } = authResult.auth
+    const user = authResult.user
+    const inviteCode = normalizeInviteCode(authResult.params?.inviteCode)
+
+    if (!inviteCode) {
+      return { code: 400, msg: '请输入邀请码' }
+    }
+
+    if (!/^[A-Z0-9]{6}$/.test(inviteCode)) {
+      return { code: 400, msg: '邀请码格式不正确' }
+    }
+
+    if (!canBindInviteCode(user)) {
+      return { code: 400, msg: '当前账号已不能再绑定邀请码' }
+    }
+
+    if (inviteCode === normalizeInviteCode(user.invite_code)) {
+      return { code: 400, msg: '不能填写自己的邀请码' }
+    }
+
+    const inviter = await findInviterByCode(inviteCode)
+    if (!inviter) {
+      return { code: 404, msg: '邀请码不存在' }
+    }
+    if (!inviter || inviter._id === uid) {
+      return { code: 400, msg: '不能填写自己的邀请码' }
+    }
+
+    const inviteReward = INVITEE_REWARD
+    const inviterReward = INVITER_REWARD
+
+    const updatedUser = await incrementUserFieldsAndGetUser(
+      usersCollection,
+      dbCmd,
+      uid,
+      { points: inviteReward },
+      { inviter_id: inviter._id },
+    )
+
+    const updatedInviter = await incrementUserFieldsAndGetUser(
+      usersCollection,
+      dbCmd,
+      inviter._id,
+      {
+        points: inviterReward,
+        invite_count: 1,
+      },
+    )
+
+    await appendPointsLog(pointsLogCollection, {
+      user_id: uid,
+      type: 'invite_bonus',
+      amount: inviteReward,
+      balance: Number(updatedUser?.points || 0),
+      description: '填写好友邀请码奖励',
+      related_id: inviter._id,
+    })
+
+    await appendPointsLog(pointsLogCollection, {
+      user_id: inviter._id,
+      type: 'invite',
+      amount: inviterReward,
+      balance: Number(updatedInviter?.points || 0),
+      description: '邀请新用户奖励',
+      related_id: uid,
+    })
+
+    return {
+      code: 0,
+      msg: '邀请码绑定成功，已获得50积分',
+      data: {
+        userInfo: updatedUser,
+        inviterId: inviter._id,
+        inviteReward,
+      },
+    }
+  },
+
   // 获取邀请信息
   async getInviteInfo(params) {
-    const authResult = getAuthContext(params, { message: '未登录' })
+    const authResult = await getAuthUserContext(params, { message: '未登录' })
     if (!authResult.ok) {
       return authResult.response
     }
     const { uid } = authResult.auth
 
-    const userRes = await usersCollection.doc(uid).get()
-    const user = userRes.data[0]
+    const user = authResult.user
 
     // 获取邀请列表
     const invitedUsers = await usersCollection
@@ -203,6 +331,9 @@ module.exports = {
       data: {
         inviteCode: user.invite_code,
         inviteCount: user.invite_count,
+        inviterId: user.inviter_id || '',
+        canBindInviteCode: canBindInviteCode(user),
+        inviteBindDeadline: getInviteBindDeadline(user),
         invitedUsers: invitedUsers.data
       }
     }
@@ -210,7 +341,7 @@ module.exports = {
 
   // 获取积分流水
   async getPointsLog(params) {
-    const authResult = getAuthContext(params, { message: '未登录' })
+    const authResult = await getAuthUserContext(params, { message: '未登录' })
     if (!authResult.ok) {
       return authResult.response
     }
@@ -231,12 +362,7 @@ module.exports = {
     return {
       code: 0,
       msg: 'success',
-      data: {
-        list: res.data,
-        total: countRes.total,
-        page,
-        pageSize
-      }
+      data: buildPagedData(res.data, countRes.total, page, pageSize),
     }
-  }
+  },
 }

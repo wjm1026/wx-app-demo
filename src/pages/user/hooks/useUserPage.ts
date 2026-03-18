@@ -1,23 +1,29 @@
 import { computed, onMounted, ref, watch } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onShareAppMessage, onShow } from '@dcloudio/uni-app'
 import { pointsApi, userApi, type LoginByWeixinResult } from '@/api'
 import { useMeasuredHeight } from '@/composables/useMeasuredHeight'
 import { usePageLayout } from '@/composables/usePageLayout'
 import { useStore } from '@/store'
 import {
   DEFAULT_AVATAR,
+  clearStoredInviteCode,
   getErrorMessage,
+  getStoredInviteCode,
+  isInviteBindingWindowOpen,
   navigateTo,
   showToast,
 } from '@/utils'
-
-function isRewardedAdCompleted(status: unknown) {
-  if (!status || typeof status !== 'object') {
-    return false
-  }
-
-  return Boolean((status as { isEnded?: boolean }).isEnded)
-}
+import {
+  buildLoginSuccessMessage,
+  buildUserPageViewModel,
+  buildUserSharePayload,
+  isRewardedAdCompleted,
+  isUnauthorizedCode,
+  MOCK_REWARDED_AD_DURATION_MS,
+  PROTECTED_USER_PAGE_ROUTES,
+  REWARDED_VIDEO_AD_UNIT_ID,
+  type ProtectedUserPage,
+} from './user-page.helpers'
 
 export function useUserPage() {
   const store = useStore()
@@ -29,24 +35,16 @@ export function useUserPage() {
   const isLoading = ref(false)
 
   const isLoggedIn = computed(() => store.isLoggedIn)
-  const userInfo = computed(() => ({
-    nickname: store.userInfo?.nickname || '点击登录',
-    avatar: store.userInfo?.avatar || '',
-    points: store.userInfo?.points || 0,
-    freeViews: store.userInfo?.free_views || 0,
-    inviteCount: store.userInfo?.invite_count || 0,
-    inviteCode: store.userInfo?.invite_code || '',
-    isVip: store.userInfo?.is_vip || false,
-  }))
+  const userInfo = computed(() => buildUserPageViewModel(store.userInfo))
   const contentScrollStyle = computed(() => ({
     marginTop: `${headerHeight.value}px`,
     height: `calc(100vh - ${headerHeight.value}px)`,
   }))
 
-  // 用户资料和签到状态都依赖登录态。只要接口返回 401，就说明本地 token 已失效，
-  // 页面应该立刻回退到未登录状态，避免前后端口径不一致。
+  // 用户资料和签到状态都依赖登录态。只要接口返回 401/404，就说明本地 token 已失效
+  // 或服务端已不存在当前用户，页面应该立刻回退到未登录状态，避免前后端口径不一致。
   function handleUnauthorized(code?: number, options: { resetSignIn?: boolean } = {}) {
-    if (code !== 401) {
+    if (!isUnauthorizedCode(code)) {
       return false
     }
 
@@ -68,8 +66,8 @@ export function useUserPage() {
       }
 
       handleUnauthorized(res.code)
-    } catch (error) {
-      console.error('获取用户信息失败:', error)
+    } catch {
+      // 用户页展示时允许静默失败，避免临时网络波动导致重复提示。
     }
   }
 
@@ -83,8 +81,8 @@ export function useUserPage() {
       }
 
       handleUnauthorized(res.code, { resetSignIn: true })
-    } catch (error) {
-      console.error('获取签到状态失败:', error)
+    } catch {
+      // 签到状态失败不影响页面主流程，留给下一次展示时重试。
     }
   }
 
@@ -140,9 +138,13 @@ export function useUserPage() {
 
     store.setToken(data.token, data.tokenExpired)
     store.setUserInfo(data.userInfo)
-    uni.removeStorageSync('INVITE_CODE')
+    // 已经绑定成功或已超出补绑窗口的账号，不需要继续保留待处理邀请码；
+    // 只有仍处于补绑窗口且尚未绑定邀请人的新用户，才保留它用于后续手动补填。
+    if (!isInviteBindingWindowOpen(data.userInfo)) {
+      clearStoredInviteCode()
+    }
     uni.hideToast()
-    showToast(data.isNewUser ? '欢迎新用户！获得100积分 🎉' : '登录成功 🎉', 'success')
+    showToast(buildLoginSuccessMessage(data.isNewUser), 'success')
     void refreshAuthenticatedState()
     return true
   }
@@ -169,7 +171,8 @@ export function useUserPage() {
       }
 
       showToast('登录中...', 'loading')
-      const inviteCode = uni.getStorageSync('INVITE_CODE') || undefined
+      // 分享链接落地后的邀请码会先缓存在本地，这里统一在真正登录时再消费给后端。
+      const inviteCode = getStoredInviteCode() || undefined
       const res = await userApi.loginByWeixin(loginRes.code, inviteCode)
 
       if (res.code === 0 && res.data) {
@@ -230,8 +233,7 @@ export function useUserPage() {
   async function rewardPointsFromAdSafely() {
     try {
       await rewardPointsFromAd()
-    } catch (error) {
-      console.error('积分发放失败:', error)
+    } catch {
       showToast('获取积分失败')
     }
   }
@@ -252,7 +254,7 @@ export function useUserPage() {
     setTimeout(() => {
       uni.hideToast()
       void rewardPointsFromAdSafely()
-    }, 2000)
+    }, MOCK_REWARDED_AD_DURATION_MS)
   }
 
   async function watchAd() {
@@ -263,7 +265,7 @@ export function useUserPage() {
     // #ifdef MP-WEIXIN
     try {
       const videoAd = uni.createRewardedVideoAd({
-        adUnitId: 'adunit-xxxxxxxxx',
+        adUnitId: REWARDED_VIDEO_AD_UNIT_ID,
       })
 
       videoAd.onClose((status) => {
@@ -271,8 +273,7 @@ export function useUserPage() {
       })
 
       videoAd.show().catch(() => videoAd.load().then(() => videoAd.show()))
-    } catch (error) {
-      console.warn('广告加载失败，开发模式直接发放积分', error)
+    } catch {
       await rewardPointsFromAdSafely()
     }
     // #endif
@@ -291,25 +292,25 @@ export function useUserPage() {
     action()
   }
 
-  // 用户中心多个入口都需要登录保护，统一走这里可以避免每个按钮重复写守卫逻辑。
-  function navigateWithLogin(url: string) {
-    runWithLogin(() => navigateTo(url))
+  // 用户中心多个入口都需要登录保护，统一从路由表读取可以避免页面地址散落多处。
+  function goProtectedPage(page: ProtectedUserPage) {
+    runWithLogin(() => navigateTo(PROTECTED_USER_PAGE_ROUTES[page]))
   }
 
   function goFavorites() {
-    navigateWithLogin('/pages/user/favorites')
+    goProtectedPage('favorites')
   }
 
   function goAchievements() {
-    navigateWithLogin('/pages/user/achievements')
+    goProtectedPage('achievements')
   }
 
   function goInvite() {
-    navigateWithLogin('/pages/user/invite')
+    goProtectedPage('invite')
   }
 
   function goPointsLog() {
-    navigateWithLogin('/pages/user/points-log')
+    goProtectedPage('pointsLog')
   }
 
   function goFeedback() {
@@ -333,8 +334,11 @@ export function useUserPage() {
   }
 
   function goAdmin() {
-    navigateWithLogin('/pages/admin/admin')
+    goProtectedPage('admin')
   }
+
+  // 用户中心里的“分享给朋友”也统一走邀请码分享，避免和邀请页出现两套不同链路。
+  onShareAppMessage(() => buildUserSharePayload(userInfo.value.inviteCode))
 
   onMounted(() => {
     refreshUserPanel()

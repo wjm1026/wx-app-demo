@@ -18,6 +18,7 @@ export interface UserInfo {
   points: number
   free_views: number
   invite_code: string
+  inviter_id?: string
   invite_count: number
   is_vip: boolean
   role?: 'user' | 'admin'
@@ -93,10 +94,20 @@ export interface InviteUserInfo {
 export interface InviteInfoResult {
   invite_code?: string
   inviteCode?: string
+  inviteCount?: number
+  inviterId?: string
+  canBindInviteCode?: boolean
+  inviteBindDeadline?: number
   list?: InviteUserInfo[]
   invitedList?: InviteUserInfo[]
   invitedUsers?: InviteUserInfo[]
   invited_users?: InviteUserInfo[]
+}
+
+export interface BindInviteCodeResult {
+  userInfo: UserInfo
+  inviterId: string
+  inviteReward: number
 }
 
 export interface HomeDataResult {

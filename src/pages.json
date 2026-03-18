@@ -45,7 +45,7 @@
     {
       "path": "pages/user/invite",
       "style": {
-        "navigationBarTitleText": "邀请好友",
+        "navigationBarTitleText": "赚取积分",
         "navigationStyle": "custom"
       }
     },

@@ -5,8 +5,10 @@ import {
   type AdminUserDetailResult,
   type PointsLogItem,
 } from '@/api'
+import { useConfirmedAction } from '@/composables/useConfirmedAction'
 import { usePageLayout } from '@/composables/usePageLayout'
 import {
+  assertApiSuccess,
   DEFAULT_AVATAR,
   formatDate,
   getErrorMessage,
@@ -18,6 +20,7 @@ import {
 
 export function useAdminUserDetailPage() {
   const { statusBarHeight } = usePageLayout()
+  const { runActionWithFeedback, runConfirmedAction } = useConfirmedAction()
   const userId = ref('')
   const userInfo = ref<AdminUserDetailResult['user'] | null>(null)
   const favoriteCount = ref(0)
@@ -31,6 +34,13 @@ export function useAdminUserDetailPage() {
 
   function goBack() {
     navigateBack()
+  }
+
+  function applyUserDetail(detail: AdminUserDetailResult) {
+    userInfo.value = detail.user
+    favoriteCount.value = detail.favoriteCount || 0
+    invitedCount.value = detail.invitedCount || 0
+    recentPoints.value = detail.recentPoints || []
   }
 
   function formatUserDate(value: number | string | undefined) {
@@ -48,25 +58,26 @@ export function useAdminUserDetailPage() {
     })
   }
 
-  async function loadUserDetail() {
+  async function loadUserDetail(showLoadingMask = true) {
     try {
-      showLoading()
+      if (showLoadingMask) {
+        showLoading()
+      }
+
       const res = await adminApi.getUserDetail(userId.value)
 
       if (res.code === 0 && res.data) {
-        userInfo.value = res.data.user
-        favoriteCount.value = res.data.favoriteCount || 0
-        invitedCount.value = res.data.invitedCount || 0
-        recentPoints.value = res.data.recentPoints || []
+        applyUserDetail(res.data)
         return
       }
 
       showToast(res.msg || '加载失败')
     } catch (error) {
       showToast(getErrorMessage(error, '加载失败'))
-      console.error(error)
     } finally {
-      hideLoading()
+      if (showLoadingMask) {
+        hideLoading()
+      }
     }
   }
 
@@ -79,30 +90,19 @@ export function useAdminUserDetailPage() {
     const actionText = isBanned ? '解封' : '封禁'
     const newStatus = isBanned ? 1 : 2
 
-    uni.showModal({
+    await runConfirmedAction({
       title: '确认操作',
       content: `确定要${actionText}该用户吗？`,
-      success: async (res) => {
-        if (!res.confirm) {
-          return
-        }
-
-        try {
-          showLoading('处理中...')
-          const apiRes = await adminApi.updateUserStatus(userId.value, newStatus)
-
-          if (apiRes.code === 0) {
-            showToast(`${actionText}成功`)
-            void loadUserDetail()
-            return
-          }
-
-          showToast(apiRes.msg || '操作失败')
-        } catch (error) {
-          showToast(getErrorMessage(error, '操作失败'))
-        } finally {
-          hideLoading()
-        }
+      loadingText: '处理中...',
+      errorText: '操作失败',
+      execute: async () =>
+        assertApiSuccess(
+          await adminApi.updateUserStatus(userId.value, newStatus),
+          '操作失败',
+        ),
+      getSuccessMessage: () => `${actionText}成功`,
+      onSuccess: async () => {
+        await loadUserDetail(false)
       },
     })
   }
@@ -116,30 +116,19 @@ export function useAdminUserDetailPage() {
     const actionText = isAdmin ? '取消管理员' : '设为管理员'
     const newRole = isAdmin ? 'user' : 'admin'
 
-    uni.showModal({
+    await runConfirmedAction({
       title: '确认操作',
       content: `确定要${actionText}吗？`,
-      success: async (res) => {
-        if (!res.confirm) {
-          return
-        }
-
-        try {
-          showLoading('处理中...')
-          const apiRes = await adminApi.setUserRole(userId.value, newRole)
-
-          if (apiRes.code === 0) {
-            showToast('设置成功')
-            void loadUserDetail()
-            return
-          }
-
-          showToast(apiRes.msg || '操作失败')
-        } catch (error) {
-          showToast(getErrorMessage(error, '操作失败'))
-        } finally {
-          hideLoading()
-        }
+      loadingText: '处理中...',
+      errorText: '操作失败',
+      execute: async () =>
+        assertApiSuccess(
+          await adminApi.setUserRole(userId.value, newRole),
+          '操作失败',
+        ),
+      successText: '设置成功',
+      onSuccess: async () => {
+        await loadUserDetail(false)
       },
     })
   }
@@ -167,27 +156,24 @@ export function useAdminUserDetailPage() {
       return
     }
 
-    try {
-      showLoading('处理中...')
-      const res = await adminApi.adjustUserPoints(
-        userId.value,
-        amount,
-        adjustForm.reason || '管理员调整',
-      )
-
-      if (res.code === 0) {
-        showToast('调整成功')
+    await runActionWithFeedback({
+      loadingText: '处理中...',
+      successText: '调整成功',
+      errorText: '调整失败',
+      execute: async () =>
+        assertApiSuccess(
+          await adminApi.adjustUserPoints(
+            userId.value,
+            amount,
+            adjustForm.reason || '管理员调整',
+          ),
+          '调整失败',
+        ),
+      onSuccess: async () => {
         closePointsModal()
-        void loadUserDetail()
-        return
-      }
-
-      showToast(res.msg || '调整失败')
-    } catch (error) {
-      showToast(getErrorMessage(error, '调整失败'))
-    } finally {
-      hideLoading()
-    }
+        await loadUserDetail(false)
+      },
+    })
   }
 
   onLoad((options) => {

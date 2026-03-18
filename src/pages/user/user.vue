@@ -169,8 +169,8 @@
                 mode="aspectFit"
               />
             </view>
-            <text class="menu-title">邀请好友</text>
-            <view class="menu-badge">+100积分</view>
+            <text class="menu-title">赚取积分</text>
+            <view class="menu-badge">任务中心</view>
             <image
               class="menu-arrow-image"
               src="/static/icons/line/chevron-right.svg"
