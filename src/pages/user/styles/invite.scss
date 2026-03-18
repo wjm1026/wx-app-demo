@@ -474,7 +474,6 @@
 }
 
 .task-list,
-.tip-list,
 .invite-list {
   display: flex;
   flex-direction: column;
@@ -498,7 +497,6 @@
 }
 
 .task-icon-shell,
-.tip-icon-shell,
 .empty-icon-shell {
   width: 68rpx;
   height: 68rpx;
@@ -510,7 +508,6 @@
 }
 
 .task-icon,
-.tip-icon,
 .empty-icon {
   width: 34rpx;
   height: 34rpx;
@@ -553,7 +550,6 @@
 
 .task-desc,
 .task-note,
-.tip-desc,
 .invite-time,
 .invite-relative,
 .loading-text,
@@ -563,8 +559,7 @@
   color: $color-text-secondary;
 }
 
-.task-desc,
-.tip-desc {
+.task-desc {
   margin-top: 10rpx;
 }
 
@@ -600,7 +595,6 @@
   opacity: 0.94;
 }
 
-.tip-card,
 .invite-item {
   display: flex;
   gap: $spacing-3;
@@ -609,15 +603,12 @@
   background: rgba(248, 250, 252, 0.88);
 }
 
-.tip-copy,
 .invite-item-copy {
   flex: 1;
   min-width: 0;
 }
 
-.tip-title,
 .invite-name,
-.loading-title,
 .empty-title {
   font-size: 26rpx;
   font-weight: $font-weight-semibold;

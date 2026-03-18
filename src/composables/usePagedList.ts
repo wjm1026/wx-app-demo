@@ -17,10 +17,20 @@ interface UsePagedListOptions<T, Q extends object> {
   onError?: (message: string) => void
 }
 
+interface RefreshOptions {
+  replaceQuery?: boolean
+}
+
 export function usePagedList<T, Q extends object = Record<string, never>>(
   options: UsePagedListOptions<T, Q>,
 ) {
   const pageSize = options.pageSize ?? 20
+
+  function normalizeQuery(value: Partial<Q> | Q) {
+    return Object.fromEntries(
+      Object.entries(value).filter(([, item]) => item !== undefined),
+    ) as Q
+  }
 
   const list = ref([]) as Ref<T[]>
   const loading = ref(false)
@@ -28,14 +38,18 @@ export function usePagedList<T, Q extends object = Record<string, never>>(
   const total = ref(0)
   const hasMore = ref(true)
   const query = ref(
-    (options.initialQuery ? { ...options.initialQuery } : ({} as Q)) as Q,
+    normalizeQuery(options.initialQuery ? { ...options.initialQuery } : ({} as Q)),
   ) as Ref<Q>
 
   function updateQuery(next: Partial<Q>) {
-    query.value = {
+    query.value = normalizeQuery({
       ...query.value,
       ...next,
-    } as Q
+    } as Q)
+  }
+
+  function replaceQuery(next: Q) {
+    query.value = normalizeQuery(next)
   }
 
   async function request(reset = false): Promise<boolean> {
@@ -81,9 +95,13 @@ export function usePagedList<T, Q extends object = Record<string, never>>(
     }
   }
 
-  async function refresh(nextQuery?: Partial<Q>) {
+  async function refresh(nextQuery?: Partial<Q> | Q, refreshOptions?: RefreshOptions) {
     if (nextQuery) {
-      updateQuery(nextQuery)
+      if (refreshOptions?.replaceQuery) {
+        replaceQuery(nextQuery as Q)
+      } else {
+        updateQuery(nextQuery as Partial<Q>)
+      }
     }
 
     currentPage.value = 0
@@ -104,6 +122,7 @@ export function usePagedList<T, Q extends object = Record<string, never>>(
     hasMore,
     query,
     updateQuery,
+    replaceQuery,
     refresh,
     loadMore,
   }

@@ -138,30 +138,6 @@
       <view class="section-card">
         <view class="section-head">
           <view class="section-title-wrap">
-            <image class="section-title-icon" src="/static/icons/line/info.svg" mode="aspectFit" />
-            <view class="section-title-copy">
-              <text class="section-title">任务说明</text>
-              <text class="section-subtitle">先把路径跑通，再把同一份口令复制到更多平台。</text>
-            </view>
-          </view>
-        </view>
-
-        <view class="tip-list">
-          <view v-for="item in missionTips" :key="item.key" class="tip-card">
-            <view class="tip-icon-shell">
-              <image class="tip-icon" :src="item.icon" mode="aspectFit" />
-            </view>
-            <view class="tip-copy">
-              <text class="tip-title">{{ item.title }}</text>
-              <text class="tip-desc">{{ item.desc }}</text>
-            </view>
-          </view>
-        </view>
-      </view>
-
-      <view class="section-card">
-        <view class="section-head">
-          <view class="section-title-wrap">
             <image class="section-title-icon" src="/static/icons/line/users.svg" mode="aspectFit" />
             <view class="section-title-copy">
               <text class="section-title">分享转化</text>
@@ -225,7 +201,6 @@ const {
   manualInviteCode,
   manualInviteHint,
   missionCards,
-  missionTips,
   saveManualInviteCode,
   showManualInviteInput,
   statusBarHeight,

@@ -68,7 +68,6 @@
               />
               <text class="vip-text">尊贵会员</text>
             </view>
-            <text class="edit-trigger">官方控件</text>
           </view>
           <view v-else class="nickname-row" @click="editNickname">
             <text class="nickname">{{ userInfo.nickname || "点击登录" }}</text>
@@ -105,9 +104,6 @@
           <text class="user-id" v-if="isLoggedIn"
             >ID: {{ userInfo.inviteCode }}</text
           >
-          <!-- #ifdef MP-WEIXIN -->
-          <text v-if="isLoggedIn" class="profile-tip">微信端头像和昵称使用官方资料控件</text>
-          <!-- #endif -->
           <!-- #ifndef MP-WEIXIN -->
           <text v-if="isLoggedIn" class="profile-tip">点击头像或昵称可自定义资料</text>
           <!-- #endif -->

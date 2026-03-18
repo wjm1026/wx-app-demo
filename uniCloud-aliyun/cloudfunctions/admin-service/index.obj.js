@@ -49,15 +49,34 @@ function buildUserListWhere(params) {
   const { status, keyword } = params
   const where = {}
 
-  if (status !== undefined) {
+  if (status === 1) {
+    // 兼容历史脏数据：老用户可能没有 status 字段，但业务上应视为正常用户。
+    where.status = dbCmd.neq(2)
+  } else if (status !== undefined) {
     where.status = status
   }
 
   if (keyword) {
-    where.nickname = new RegExp(keyword, 'i')
+    const keywordRegExp = new RegExp(keyword, 'i')
+    where.$or = [
+      { nickname: keywordRegExp },
+      { _id: keywordRegExp },
+    ]
   }
 
   return where
+}
+
+function normalizeUserRecord(user) {
+  if (!user || typeof user !== 'object') {
+    return user
+  }
+
+  return {
+    ...user,
+    role: user.role || 'user',
+    status: user.status === 2 ? 2 : 1,
+  }
 }
 
 function buildCardListWhere(params) {
@@ -266,7 +285,12 @@ module.exports = {
     return {
       code: 0,
       msg: 'success',
-      data: buildPagedData(listRes.data, countRes.total, page, pageSize),
+      data: buildPagedData(
+        (listRes.data || []).map(normalizeUserRecord),
+        countRes.total,
+        page,
+        pageSize,
+      ),
     }
   },
 
@@ -292,7 +316,7 @@ module.exports = {
       return { code: 404, msg: '用户不存在' }
     }
 
-    const user = userRes.data[0]
+    const user = normalizeUserRecord(userRes.data[0])
 
     // 获取用户收藏数
     const favoriteCount = await favoritesCollection.where({ user_id: userId }).count()

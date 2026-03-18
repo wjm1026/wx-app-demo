@@ -65,7 +65,6 @@
           </view>
 
           <view class="task-switch-wrap">
-            <text class="task-switch-label">{{ task.enabled ? '启用中' : '已停用' }}</text>
             <switch
               class="task-switch"
               color="#1f9d8b"

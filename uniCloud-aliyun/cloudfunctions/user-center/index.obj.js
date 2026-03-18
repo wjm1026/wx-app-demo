@@ -63,6 +63,8 @@ function buildNewUser(openid, unionid, inviter) {
     invite_code: generateInviteCode(),
     invite_count: 0,
     is_vip: false,
+    role: 'user',
+    status: 1,
     create_time: now,
     last_login_time: now,
     ...(inviter ? { inviter_id: inviter._id } : {}),
@@ -169,10 +171,22 @@ module.exports = {
       await recordRegistrationGift(userId, newUser.points)
     } else {
       // 老用户更新登录时间
-      userId = userRes.data[0]._id
-      await usersCollection.doc(userId).update({
+      const existingUser = userRes.data[0] || {}
+      userId = existingUser._id
+
+      const updateData = {
         last_login_time: Date.now(),
-      })
+      }
+
+      if (typeof existingUser.status !== 'number') {
+        updateData.status = 1
+      }
+
+      if (!existingUser.role) {
+        updateData.role = 'user'
+      }
+
+      await usersCollection.doc(userId).update(updateData)
     }
 
     // 获取用户信息

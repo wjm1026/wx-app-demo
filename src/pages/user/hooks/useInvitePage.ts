@@ -23,7 +23,6 @@ import {
   buildInviteSummaryCards,
   buildMissionCards,
   buildMissionCopy,
-  buildMissionTips,
   decorateInvitedList,
   extractInvitedList,
   type MissionKey,
@@ -104,8 +103,6 @@ export function useInvitePage() {
       taskConfigs: taskConfigs.value,
     }),
   )
-
-  const missionTips = buildMissionTips()
 
   const decoratedInvitedList = computed(() =>
     decorateInvitedList(
@@ -388,7 +385,6 @@ export function useInvitePage() {
     manualInviteCode,
     manualInviteHint,
     missionCards,
-    missionTips,
     saveManualInviteCode,
     showManualInviteInput,
     statusBarHeight,

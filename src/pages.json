@@ -67,19 +67,22 @@
     {
       "path": "pages/admin/users",
       "style": {
-        "navigationBarTitleText": "用户管理"
+        "navigationBarTitleText": "用户管理",
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/admin/user-detail",
       "style": {
-        "navigationBarTitleText": "用户详情"
+        "navigationBarTitleText": "用户详情",
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/admin/stats",
       "style": {
-        "navigationBarTitleText": "数据统计"
+        "navigationBarTitleText": "数据统计",
+        "navigationStyle": "custom"
       }
     },
     {

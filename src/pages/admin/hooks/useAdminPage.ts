@@ -76,7 +76,7 @@ export function useAdminPage() {
     toAverage(stats.value.cardCount, stats.value.categoryCount),
   )
 
-  const adminStateTone = computed(() => {
+  const statusTone = computed(() => {
     if (checkingAdmin.value) {
       return 'is-pending'
     }
@@ -88,7 +88,7 @@ export function useAdminPage() {
     width: `${menuButtonInsetPx}px`,
   }))
 
-  const heroStatusLabel = computed(() => {
+  const statusLabel = computed(() => {
     if (checkingAdmin.value) {
       return '权限校验中'
     }
@@ -100,7 +100,7 @@ export function useAdminPage() {
     return stats.value.cardCount > 0 ? '数据已接入' : '待初始化'
   })
 
-  const heroSnapshotLabel = computed(() => {
+  const snapshotLabel = computed(() => {
     if (stats.value.todayNewUsers > 0) {
       return `今日新增 ${formatNumber(stats.value.todayNewUsers)} 位用户`
     }
@@ -111,33 +111,6 @@ export function useAdminPage() {
 
     return '等待今天的第一批数据写入'
   })
-
-  const kpiCards = computed(() => [
-    {
-      key: 'users',
-      valueLabel: formatNumber(stats.value.userCount),
-      label: '用户总量',
-      meta: '进入用户管理',
-      icon: '/static/icons/line/users.svg',
-      onClick: goUsers,
-    },
-    {
-      key: 'cards',
-      valueLabel: formatNumber(stats.value.cardCount),
-      label: '卡片库存',
-      meta: '内容资源总量',
-      icon: '/static/icons/line/ticket.svg',
-      onClick: goCards,
-    },
-    {
-      key: 'categories',
-      valueLabel: formatNumber(stats.value.categoryCount),
-      label: '分类结构',
-      meta: '查看数据统计',
-      icon: '/static/icons/line/bar-chart.svg',
-      onClick: goStats,
-    },
-  ])
 
   // 这里把有限的后台统计字段折叠成“运营脉冲”，避免模板里到处散落百分比和比率公式。
   const pulseCards = computed(() => [
@@ -174,8 +147,8 @@ export function useAdminPage() {
       metric: `${formatNumber(stats.value.userCount)} 位用户`,
       desc: '查看用户状态、积分和封禁情况',
       badge: '实时',
-      available: true,
       icon: '/static/icons/line/users.svg',
+      available: true,
       tone: 'tone-blue',
       onClick: goUsers,
     },
@@ -185,8 +158,8 @@ export function useAdminPage() {
       metric: `${activeRate.value}% 活跃率`,
       desc: '追踪关键指标与内容运营趋势',
       badge: '分析',
-      available: true,
       icon: '/static/icons/line/bar-chart.svg',
+      available: true,
       tone: 'tone-indigo',
       onClick: goStats,
     },
@@ -196,8 +169,8 @@ export function useAdminPage() {
       metric: '积分任务中心',
       desc: '维护任务名称、描述、积分和按钮文案',
       badge: '运营',
-      available: true,
       icon: '/static/icons/line/gift.svg',
+      available: true,
       tone: 'tone-violet',
       onClick: goTasks,
     },
@@ -207,8 +180,8 @@ export function useAdminPage() {
       metric: `${formatNumber(stats.value.categoryCount)} 个分类`,
       desc: '维护内容结构和分类编排规则',
       badge: '规划',
+      icon: '/static/icons/line/grid.svg',
       available: false,
-      icon: '/static/icons/line/info.svg',
       tone: 'tone-amber',
       onClick: goCategories,
     },
@@ -218,8 +191,8 @@ export function useAdminPage() {
       metric: `${formatNumber(stats.value.cardCount)} 张卡片`,
       desc: '补充内容资源并维护素材质量',
       badge: '规划',
-      available: false,
       icon: '/static/icons/line/ticket.svg',
+      available: false,
       tone: 'tone-mint',
       onClick: goCards,
     },
@@ -377,19 +350,16 @@ export function useAdminPage() {
   })
 
   return {
-    adminStateTone,
     checkingAdmin,
-    formatNumber,
     goBack,
-    heroSnapshotLabel,
-    heroStatusLabel,
     isAdmin,
-    kpiCards,
     maintenanceCards,
     menuCards,
     navPlaceholderStyle,
     pulseCards,
-    stats,
+    snapshotLabel,
     statusBarHeight,
+    statusLabel,
+    statusTone,
   }
 }

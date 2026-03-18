@@ -11,6 +11,7 @@ import {
   assertApiSuccess,
   DEFAULT_AVATAR,
   formatDate,
+  formatNumber,
   getErrorMessage,
   hideLoading,
   navigateBack,
@@ -45,6 +46,10 @@ export function useAdminUserDetailPage() {
 
   function formatUserDate(value: number | string | undefined) {
     return formatDate(value, 'ymdHm') || '-'
+  }
+
+  function formatMetric(value: number | string | undefined) {
+    return formatNumber(Number(value || 0))
   }
 
   function copyId() {
@@ -196,6 +201,7 @@ export function useAdminUserDetailPage() {
     defaultAvatar: DEFAULT_AVATAR,
     favoriteCount,
     formatDate: formatUserDate,
+    formatMetric,
     goBack,
     invitedCount,
     openPointsModal,

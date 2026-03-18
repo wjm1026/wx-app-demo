@@ -1,4 +1,4 @@
-import { onHide, onLaunch, onShow } from '@dcloudio/uni-app'
+import { onLaunch, onShow } from '@dcloudio/uni-app'
 import { appStore, initStore } from '@/store'
 import { isInviteBindingWindowOpen, storeInviteCodeFromQuery } from '@/utils'
 
@@ -22,5 +22,4 @@ export function useAppLifecycle() {
     // 已打开的小程序再次通过分享链接进入时，不会重新 launch，需要在 show 阶段补接一次参数。
     syncInviteCodeFromQuery(options?.query)
   })
-  onHide(() => {})
 }

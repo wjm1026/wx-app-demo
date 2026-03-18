@@ -35,13 +35,6 @@ export interface InviteMissionCard {
   tone: string
 }
 
-export interface InviteTipCard {
-  key: string
-  title: string
-  desc: string
-  icon: string
-}
-
 export interface DecoratedInviteUser {
   key: string
   avatar: string
@@ -50,27 +43,6 @@ export interface DecoratedInviteUser {
   relativeLabel: string
   rewardLabel: string
 }
-
-const MISSION_TIPS: InviteTipCard[] = [
-  {
-    key: 'rule',
-    title: '任务入口',
-    desc: '先从微信好友任务开始跑真实转化，再把同一份口令同步到外部平台。',
-    icon: '/static/icons/line/share.svg',
-  },
-  {
-    key: 'copy',
-    title: '统一素材',
-    desc: '所有外部平台任务都会复用同一个分享口令，减少重复准备内容。',
-    icon: '/static/icons/line/message.svg',
-  },
-  {
-    key: 'result',
-    title: '战绩回看',
-    desc: '当前页面底部会展示通过分享朋友任务带来的真实邀请转化记录。',
-    icon: '/static/icons/line/bar-chart.svg',
-  },
-]
 
 export function extractInvitedList(data: InviteInfoResult): InviteUserInfo[] {
   const candidates = [
@@ -191,10 +163,6 @@ export function buildMissionCards(options: {
       tone: meta.tone,
     }
   })
-}
-
-export function buildMissionTips() {
-  return MISSION_TIPS
 }
 
 export function decorateInvitedList(

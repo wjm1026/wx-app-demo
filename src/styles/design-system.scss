@@ -472,25 +472,5 @@ $clay-shadow-active: inset 6rpx 6rpx 12rpx rgba(0, 0, 0, 0.08), inset -6rpx -6rp
   border-radius: $radius-md;
 }
 
-// ============================================
-// UTILITY CLASSES
-// ============================================
-
-.animate-bounce-in {
-  animation: bounce-in $duration-slow $ease-bounce;
-}
-
-.animate-wiggle {
-  animation: wiggle 0.5s $ease-in-out;
-}
-
-.animate-float {
-  animation: float 3s ease-in-out infinite;
-}
-
-.animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
 // Reduced motion support - Note: * selector not supported in WeChat Mini Program
 // Apply reduced motion handling in individual components if needed
