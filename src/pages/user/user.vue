@@ -11,6 +11,31 @@
 
       <!-- 用户信息 -->
       <view class="user-info">
+        <!-- #ifdef MP-WEIXIN -->
+        <button
+          v-if="isLoggedIn"
+          class="avatar-wrapper avatar-button"
+          open-type="chooseAvatar"
+          @chooseavatar="handleChooseAvatar"
+        >
+          <image
+            class="avatar"
+            :src="userInfo.avatar || defaultAvatar"
+            mode="aspectFill"
+          />
+          <view v-if="userInfo.isVip" class="vip-badge">VIP</view>
+        </button>
+        <view v-else class="avatar-wrapper" @click="chooseAvatar">
+          <image
+            class="avatar"
+            :src="userInfo.avatar || defaultAvatar"
+            mode="aspectFill"
+          />
+          <view v-if="userInfo.isVip" class="vip-badge">VIP</view>
+        </view>
+        <!-- #endif -->
+
+        <!-- #ifndef MP-WEIXIN -->
         <view class="avatar-wrapper" @click="chooseAvatar">
           <image
             class="avatar"
@@ -19,8 +44,33 @@
           />
           <view v-if="userInfo.isVip" class="vip-badge">VIP</view>
         </view>
+        <!-- #endif -->
+
         <view class="info-content">
-          <view class="nickname-row">
+          <!-- #ifdef MP-WEIXIN -->
+          <view v-if="isLoggedIn" class="nickname-row editable official">
+            <input
+              v-model="nicknameDraft"
+              class="nickname-input"
+              type="nickname"
+              maxlength="20"
+              confirm-type="done"
+              placeholder="请输入昵称"
+              placeholder-style="color: #94A3B8;"
+              @blur="handleNicknameSubmit"
+              @confirm="handleNicknameSubmit"
+            />
+            <view v-if="userInfo.isVip" class="vip-tag">
+              <image
+                class="vip-icon-image"
+                src="/static/icons/line/crown.svg"
+                mode="aspectFit"
+              />
+              <text class="vip-text">尊贵会员</text>
+            </view>
+            <text class="edit-trigger">官方控件</text>
+          </view>
+          <view v-else class="nickname-row" @click="editNickname">
             <text class="nickname">{{ userInfo.nickname || "点击登录" }}</text>
             <view v-if="userInfo.isVip" class="vip-tag">
               <image
@@ -31,9 +81,36 @@
               <text class="vip-text">尊贵会员</text>
             </view>
           </view>
+          <!-- #endif -->
+
+          <!-- #ifndef MP-WEIXIN -->
+          <view
+            class="nickname-row"
+            :class="{ editable: isLoggedIn }"
+            @click="editNickname"
+          >
+            <text class="nickname">{{ userInfo.nickname || "点击登录" }}</text>
+            <view v-if="userInfo.isVip" class="vip-tag">
+              <image
+                class="vip-icon-image"
+                src="/static/icons/line/crown.svg"
+                mode="aspectFit"
+              />
+              <text class="vip-text">尊贵会员</text>
+            </view>
+            <text v-if="isLoggedIn" class="edit-trigger">修改</text>
+          </view>
+          <!-- #endif -->
+
           <text class="user-id" v-if="isLoggedIn"
             >ID: {{ userInfo.inviteCode }}</text
           >
+          <!-- #ifdef MP-WEIXIN -->
+          <text v-if="isLoggedIn" class="profile-tip">微信端头像和昵称使用官方资料控件</text>
+          <!-- #endif -->
+          <!-- #ifndef MP-WEIXIN -->
+          <text v-if="isLoggedIn" class="profile-tip">点击头像或昵称可自定义资料</text>
+          <!-- #endif -->
         </view>
       </view>
 
@@ -293,6 +370,7 @@ const {
   defaultAvatar,
   doLogin,
   doSignIn,
+  editNickname,
   goAbout,
   goAchievements,
   goAdmin,
@@ -300,8 +378,11 @@ const {
   goFeedback,
   goInvite,
   goPointsLog,
+  handleChooseAvatar,
+  handleNicknameSubmit,
   hasSigned,
   isLoggedIn,
+  nicknameDraft,
   statusBarHeight,
   store,
   userInfo,

@@ -79,6 +79,19 @@
   position: relative;
 }
 
+.avatar-button {
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  background: transparent;
+  border: none;
+  overflow: visible;
+
+  &::after {
+    border: none;
+  }
+}
+
 .avatar {
   width: 140rpx;
   height: 140rpx;
@@ -107,14 +120,51 @@
 .nickname-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: $spacing-2;
   margin-bottom: $spacing-1;
+
+  &.editable {
+    display: inline-flex;
+    max-width: 100%;
+    padding-right: $spacing-1;
+  }
+
+  &.editable:active {
+    opacity: 0.72;
+  }
+
+  &.official {
+    width: 100%;
+  }
 }
 
 .nickname {
   font-size: $font-size-xl;
   font-weight: $font-weight-bold;
   color: $color-text-primary;
+}
+
+.nickname-input {
+  min-width: 180rpx;
+  max-width: 320rpx;
+  height: 56rpx;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.edit-trigger {
+  padding: 4rpx 14rpx;
+  border-radius: $radius-full;
+  background: rgba($color-primary, 0.1);
+  font-size: $font-size-xs;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
 }
 
 .vip-tag {
@@ -139,6 +189,13 @@
 .user-id {
   font-size: $font-size-sm;
   color: $color-text-secondary;
+}
+
+.profile-tip {
+  display: block;
+  margin-top: 8rpx;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
 }
 
 // 统计卡片

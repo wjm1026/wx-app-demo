@@ -9,8 +9,10 @@ import {
   clearStoredInviteCode,
   getErrorMessage,
   getStoredInviteCode,
+  hideLoading,
   isInviteBindingWindowOpen,
   navigateTo,
+  showLoading,
   showToast,
 } from '@/utils'
 import {
@@ -25,6 +27,14 @@ import {
   type ProtectedUserPage,
 } from './user-page.helpers'
 
+type UserProfilePatch = {
+  nickname?: string
+  avatar?: string
+  gender?: number
+}
+
+const PROFILE_NICKNAME_MAX_LENGTH = 20
+
 export function useUserPage() {
   const store = useStore()
   const { statusBarHeight } = usePageLayout()
@@ -33,6 +43,8 @@ export function useUserPage() {
 
   const hasSigned = ref(false)
   const isLoading = ref(false)
+  const isUpdatingProfile = ref(false)
+  const nicknameDraft = ref('')
 
   const isLoggedIn = computed(() => store.isLoggedIn)
   const userInfo = computed(() => buildUserPageViewModel(store.userInfo))
@@ -111,19 +123,245 @@ export function useUserPage() {
     return true
   }
 
-  function chooseAvatar() {
+  function applyLocalUserInfoPatch(patch: UserProfilePatch) {
+    if (!store.userInfo) {
+      return
+    }
+
+    store.setUserInfo({
+      ...store.userInfo,
+      ...patch,
+    })
+  }
+
+  function normalizeNickname(value: unknown) {
+    if (typeof value !== 'string') {
+      return ''
+    }
+
+    return value.trim().slice(0, PROFILE_NICKNAME_MAX_LENGTH)
+  }
+
+  function extractFileExtension(filePath: string) {
+    const matched = filePath.match(/\.([0-9a-zA-Z]+)(?:$|\?)/)
+    return matched?.[1]?.toLowerCase() || 'png'
+  }
+
+  function extractInputValue(event: unknown) {
+    if (!event || typeof event !== 'object') {
+      return ''
+    }
+
+    const detail = (event as { detail?: { value?: unknown } }).detail
+    return typeof detail?.value === 'string' ? detail.value : ''
+  }
+
+  function extractAvatarFilePath(event: unknown) {
+    if (!event || typeof event !== 'object') {
+      return ''
+    }
+
+    const detail = (event as { detail?: { avatarUrl?: unknown } }).detail
+    return typeof detail?.avatarUrl === 'string' ? detail.avatarUrl : ''
+  }
+
+  function isCancelledAction(error: unknown) {
+    return getErrorMessage(error).toLowerCase().includes('cancel')
+  }
+
+  async function commitUserProfilePatch(
+    patch: UserProfilePatch,
+    messages: { success: string; failure: string },
+  ) {
+    const res = await userApi.updateUserInfo(patch)
+
+    if (res.code === 0) {
+      applyLocalUserInfoPatch(patch)
+      void loadUserInfo()
+      return {
+        ok: true,
+        message: messages.success,
+      }
+    }
+
+    if (handleUnauthorized(res.code)) {
+      return {
+        ok: false,
+        message: '',
+      }
+    }
+
+    return {
+      ok: false,
+      message: res.msg || messages.failure,
+    }
+  }
+
+  async function selectAvatarFile() {
+    const res = await new Promise<UniApp.ChooseImageSuccessCallbackResult>(
+      (resolve, reject) => {
+        uni.chooseImage({
+          count: 1,
+          sizeType: ['compressed'],
+          sourceType: ['album', 'camera'],
+          success: resolve,
+          fail: reject,
+        })
+      },
+    )
+
+    return res.tempFilePaths?.[0] || ''
+  }
+
+  async function uploadAvatar(filePath: string) {
+    const extension = extractFileExtension(filePath)
+    const cloudPath = `user-avatar-${store.userInfo?._id || 'guest'}-${Date.now()}.${extension}`
+    const result = await uniCloud.uploadFile({
+      filePath,
+      cloudPath,
+    })
+
+    return result.fileID
+  }
+
+  async function updateAvatarFromPath(filePath: string) {
+    try {
+      if (!filePath) {
+        return
+      }
+
+      isUpdatingProfile.value = true
+      showLoading('上传头像中...')
+      const avatar = await uploadAvatar(filePath)
+      const result = await commitUserProfilePatch(
+        { avatar },
+        {
+          success: '头像已更新',
+          failure: '更新头像失败',
+        },
+      )
+      hideLoading()
+      if (result.message) {
+        showToast(result.message, result.ok ? 'success' : 'none')
+      }
+    } catch (error) {
+      if (!isCancelledAction(error)) {
+        hideLoading()
+        showToast(getErrorMessage(error, '更新头像失败'))
+      }
+    } finally {
+      hideLoading()
+      isUpdatingProfile.value = false
+    }
+  }
+
+  async function chooseAvatar() {
+    if (triggerLoginIfNeeded() || isUpdatingProfile.value) {
+      return
+    }
+
+    try {
+      const filePath = await selectAvatarFile()
+      await updateAvatarFromPath(filePath)
+    } catch (error) {
+      if (!isCancelledAction(error)) {
+        hideLoading()
+        showToast(getErrorMessage(error, '更新头像失败'))
+      }
+    }
+  }
+
+  async function handleChooseAvatar(event: unknown) {
+    if (triggerLoginIfNeeded() || isUpdatingProfile.value) {
+      return
+    }
+
+    await updateAvatarFromPath(extractAvatarFilePath(event))
+  }
+
+  async function saveNickname(nextNickname: unknown) {
+    const currentNickname = store.userInfo?.nickname || ''
+    const nickname = normalizeNickname(nextNickname)
+
+    nicknameDraft.value = nickname
+
+    if (!nickname) {
+      nicknameDraft.value = currentNickname
+      showToast('昵称不能为空')
+      return
+    }
+
+    if (nickname === currentNickname || isUpdatingProfile.value) {
+      return
+    }
+
+    isUpdatingProfile.value = true
+    showLoading('保存昵称中...')
+    try {
+      const result = await commitUserProfilePatch(
+        { nickname },
+        {
+          success: '昵称已更新',
+          failure: '更新昵称失败',
+        },
+      )
+      hideLoading()
+      if (!result.ok) {
+        nicknameDraft.value = currentNickname
+      }
+      if (result.message) {
+        showToast(result.message, result.ok ? 'success' : 'none')
+      }
+    } catch (error) {
+      hideLoading()
+      nicknameDraft.value = currentNickname
+      showToast(getErrorMessage(error, '更新昵称失败'))
+    } finally {
+      hideLoading()
+      isUpdatingProfile.value = false
+    }
+  }
+
+  async function handleNicknameSubmit(event?: unknown) {
     if (triggerLoginIfNeeded()) {
       return
     }
 
-    uni.chooseImage({
-      count: 1,
-      sizeType: ['compressed'],
-      sourceType: ['album', 'camera'],
-      success: async () => {
-        showToast('头像功能开发中')
-      },
-    })
+    const nextNickname = extractInputValue(event) || nicknameDraft.value
+    await saveNickname(nextNickname)
+  }
+
+  async function editNickname() {
+    if (triggerLoginIfNeeded() || isUpdatingProfile.value) {
+      return
+    }
+
+    const currentNickname = store.userInfo?.nickname || ''
+
+    try {
+      const modalRes = await new Promise<UniApp.ShowModalRes>((resolve, reject) => {
+        uni.showModal({
+          title: '修改昵称',
+          content: currentNickname || '请输入新的昵称',
+          editable: true,
+          placeholderText: currentNickname || '请输入昵称',
+          confirmText: '保存',
+          success: resolve,
+          fail: reject,
+        })
+      })
+
+      if (!modalRes.confirm) {
+        return
+      }
+
+      await saveNickname(modalRes.content)
+    } catch (error) {
+      if (!isCancelledAction(error)) {
+        hideLoading()
+        showToast(getErrorMessage(error, '更新昵称失败'))
+      }
+    }
   }
 
   // 只有拿到可用 token，前端才真正写入登录态。
@@ -322,7 +560,7 @@ export function useUserPage() {
     uni.openCustomerServiceChat({
       extInfo: { url: '' },
       corpId: '',
-      success() {},
+      success() { },
       fail() {
         showToast('客服功能开发中')
       },
@@ -352,6 +590,14 @@ export function useUserPage() {
     updateHeaderHeight()
   })
 
+  watch(
+    () => store.userInfo?.nickname,
+    (value) => {
+      nicknameDraft.value = normalizeNickname(value)
+    },
+    { immediate: true },
+  )
+
   return {
     contentScrollStyle,
     defaultAvatar: DEFAULT_AVATAR,
@@ -364,13 +610,17 @@ export function useUserPage() {
     goFeedback,
     goInvite,
     goPointsLog,
+    handleChooseAvatar,
+    handleNicknameSubmit,
     hasSigned,
     isLoading,
     isLoggedIn,
+    nicknameDraft,
     statusBarHeight,
     store,
     userInfo,
     watchAd,
     chooseAvatar,
+    editNickname,
   }
 }
