@@ -29,10 +29,17 @@ export interface UserInfo {
 export interface Category {
   _id: string
   name: string
-  icon: string
-  cover: string
+  icon?: string
+  cover?: string
+  color?: string
   card_count?: number
   gradient?: string
+  description?: string
+  sort?: number
+  sort_order?: number
+  status?: number
+  create_time?: number
+  update_time?: number
 }
 
 export interface Card {
@@ -187,12 +194,29 @@ export interface AdminUserDetailResult {
   recentPoints: PointsLogItem[]
 }
 
+export interface AdminCardListQuery {
+  page?: number
+  pageSize?: number
+  categoryId?: string
+  keyword?: string
+  status?: number
+}
+
 export interface AdminCardPayload extends Partial<Card> {
   _id?: string
 }
 
-export interface AdminCategoryPayload extends Partial<Category> {
+export interface AdminCategoryPayload {
   _id?: string
+  name?: string
+  icon?: string
+  cover?: string
+  color?: string
+  gradient?: string
+  description?: string
+  sort?: number
+  sort_order?: number
+  status?: number
 }
 
 export interface Achievement {

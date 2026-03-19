@@ -1,6 +1,7 @@
 import { getService } from './shared'
 import type {
   AdminCardPayload,
+  AdminCardListQuery,
   AdminCategoryPayload,
   AdminCheckResult,
   InviteTaskConfig,
@@ -42,7 +43,7 @@ export const adminApi = {
   setUserRole: (userId: string, role: 'user' | 'admin') =>
     getService('admin-service').setUserRole({ userId, role }) as Promise<ApiResponse>,
   /** 获取卡片列表 */
-  getCardList: (params?: { page?: number; pageSize?: number; categoryId?: string; keyword?: string }) =>
+  getCardList: (params?: AdminCardListQuery) =>
     getService('admin-service').getCardList(params) as Promise<ApiResponse<PagedResult<Card>>>,
   /** 保存卡片 */
   saveCard: (cardData: AdminCardPayload) =>

@@ -102,6 +102,70 @@ function buildCardListWhere(params) {
   return where
 }
 
+/** 规范化分类排序值 */
+function normalizeCategorySort(value) {
+  const parsed = Number.parseInt(String(value ?? ''), 10)
+  return Number.isNaN(parsed) ? 0 : parsed
+}
+
+/** 规范化分类状态值 */
+function normalizeCategoryStatus(value) {
+  return Number(value) === 0 ? 0 : 1
+}
+
+/** 规范化分类记录 */
+function normalizeCategoryRecord(category, countMap) {
+  if (!category || typeof category !== 'object') {
+    return category
+  }
+
+  const sort = normalizeCategorySort(category.sort ?? category.sort_order)
+  const cardCount = countMap?.has(category._id)
+    ? Number(countMap.get(category._id) || 0)
+    : Number(category.card_count || 0)
+
+  return {
+    ...category,
+    sort,
+    status: normalizeCategoryStatus(category.status),
+    card_count: cardCount,
+  }
+}
+
+/** 构建分类保存 payload */
+function buildCategorySavePayload(input = {}) {
+  return {
+    name: String(input.name || '').trim(),
+    icon: String(input.icon || '').trim(),
+    cover: String(input.cover || '').trim(),
+    color: String(input.color || '').trim(),
+    gradient: String(input.gradient || '').trim(),
+    description: String(input.description || '').trim(),
+    sort: normalizeCategorySort(input.sort ?? input.sort_order),
+    status: normalizeCategoryStatus(input.status),
+  }
+}
+
+/** 构建分类卡片数量映射（管理员口径：统计所有状态卡片） */
+async function buildCategoryCountMapForAdmin() {
+  const aggregateRes = await cardsCollection
+    .aggregate()
+    .group({
+      _id: '$category_id',
+      total: { $sum: 1 },
+    })
+    .end()
+
+  const countMap = new Map()
+  for (const item of aggregateRes.data || []) {
+    if (!item?._id) {
+      continue
+    }
+    countMap.set(item._id, Number(item.total || 0))
+  }
+  return countMap
+}
+
 /** 持久化保存邀请任务配置 */
 async function persistInviteTaskConfigs(taskConfigs) {
   const nextConfigs = mergeInviteTaskConfigs(taskConfigs)
@@ -500,11 +564,37 @@ module.exports = {
     }
 
     if (_id) {
+      const cardRes = await cardsCollection.doc(_id).get()
+      if (cardRes.data.length === 0) {
+        return { code: 404, msg: '卡片不存在' }
+      }
+
+      const previousCard = cardRes.data[0] || {}
+      const previousCategoryId = previousCard.category_id
+      const nextCategoryId = cardData.category_id
+
       // 更新
       await cardsCollection.doc(_id).update({
         ...cardData,
         update_time: Date.now()
       })
+
+      // 卡片在编辑时可能被迁移到其他分类，这里同步修正分类计数，避免统计值漂移。
+      if (
+        previousCategoryId &&
+        nextCategoryId &&
+        previousCategoryId !== nextCategoryId
+      ) {
+        await Promise.all([
+          categoriesCollection.doc(previousCategoryId).update({
+            card_count: dbCmd.inc(-1)
+          }),
+          categoriesCollection.doc(nextCategoryId).update({
+            card_count: dbCmd.inc(1)
+          }),
+        ])
+      }
+
       return { code: 0, msg: '更新成功' }
     } else {
       // 新增
@@ -566,12 +656,28 @@ module.exports = {
       return adminResult.response
     }
 
-    const res = await categoriesCollection.orderBy('sort_order', 'asc').get()
+    const [res, countMap] = await Promise.all([
+      categoriesCollection
+        .limit(500)
+        .get(),
+      buildCategoryCountMapForAdmin(),
+    ])
+
+    const categories = (res.data || [])
+      .map((item) => normalizeCategoryRecord(item, countMap))
+      .sort((left, right) => {
+        const sortDiff = normalizeCategorySort(right?.sort) - normalizeCategorySort(left?.sort)
+        if (sortDiff !== 0) {
+          return sortDiff
+        }
+
+        return Number(left?.create_time || 0) - Number(right?.create_time || 0)
+      })
 
     return {
       code: 0,
       msg: 'success',
-      data: res.data
+      data: categories
     }
   },
 
@@ -583,22 +689,22 @@ module.exports = {
     }
 
     const { _id, ...categoryData } = adminResult.params
+    const payload = buildCategorySavePayload(categoryData)
 
-    if (!categoryData.name) {
+    if (!payload.name) {
       return { code: 400, msg: '分类名称不能为空' }
     }
 
     if (_id) {
       await categoriesCollection.doc(_id).update({
-        ...categoryData,
+        ...payload,
         update_time: Date.now()
       })
       return { code: 0, msg: '更新成功' }
     } else {
       const addRes = await categoriesCollection.add({
-        ...categoryData,
+        ...payload,
         card_count: 0,
-        sort_order: 0,
         create_time: Date.now()
       })
       return { code: 0, msg: '添加成功', data: { id: addRes.id } }

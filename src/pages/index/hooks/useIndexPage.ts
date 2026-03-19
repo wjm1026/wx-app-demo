@@ -21,6 +21,15 @@ function getMenuButtonInsetPx() {
   return Math.ceil(systemInfo.windowWidth - menuButtonInfo.left + uni.upx2px(24))
 }
 
+/** 判断分类图标是否为图片地址 */
+function isImageIcon(value?: string) {
+  if (!value) {
+    return false
+  }
+
+  return /^(https?:\/\/|cloud:\/\/|file:\/\/|wxfile:\/\/|\/)/i.test(value.trim())
+}
+
 /** 封装首页页面逻辑 */
 export function useIndexPage() {
   const { statusBarHeight, navBarHeight } = usePageLayout()
@@ -152,6 +161,7 @@ export function useIndexPage() {
     remainCards,
     statusBarHeight,
     todayStats,
+    isImageIcon,
     useCategoryBanner,
   }
 }

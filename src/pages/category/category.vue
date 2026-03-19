@@ -26,7 +26,13 @@
           <view class="category-header" @click="toggleExpand(item._id)">
             <view class="category-left">
               <view class="category-icon" :style="{ background: item.gradient }">
-                <text class="category-emoji">{{ item.icon }}</text>
+                <image
+                  v-if="isImageIcon(item.icon)"
+                  class="category-icon-image"
+                  :src="item.icon"
+                  mode="aspectFill"
+                />
+                <text v-else class="category-emoji">{{ item.icon }}</text>
               </view>
               <view class="category-info">
                 <text class="category-name">{{ item.name }}</text>
@@ -131,6 +137,7 @@ const {
   expandedIds,
   goCardDetail,
   isInitialLoading,
+  isImageIcon,
   loadMore,
   safeBottomStyle,
   statusBarHeight,

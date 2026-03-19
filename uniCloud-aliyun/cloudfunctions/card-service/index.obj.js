@@ -43,6 +43,36 @@ function normalizeCardList(cards = []) {
   return cards.map((item) => normalizeCardRecord(item))
 }
 
+/** 构建分类卡片数量映射（仅统计启用卡片） */
+async function buildEnabledCategoryCountMap() {
+  const aggregateRes = await cardsCollection
+    .aggregate()
+    .match({ status: 1 })
+    .group({
+      _id: '$category_id',
+      total: { $sum: 1 },
+    })
+    .end()
+
+  const countMap = new Map()
+  for (const item of aggregateRes.data || []) {
+    if (!item?._id) {
+      continue
+    }
+    countMap.set(item._id, Number(item.total || 0))
+  }
+
+  return countMap
+}
+
+/** 叠加分类卡片数量 */
+function appendCategoryCount(categories = [], countMap = new Map()) {
+  return categories.map((category) => ({
+    ...category,
+    card_count: Number(countMap.get(category._id) || 0),
+  }))
+}
+
 /** 构建收藏记录ID */
 function buildFavoriteRecordId(uid, cardId) {
   return `favorite:${uid}:${cardId}`
@@ -81,23 +111,28 @@ async function syncCardFavoriteCount(cardId) {
 module.exports = {
   // 获取分类列表
   async getCategories() {
-    const res = await categoriesCollection
-      .where({ status: 1 })
-      .orderBy('sort', 'desc')
-      .orderBy('create_time', 'asc')
-      .get()
+    const [res, countMap] = await Promise.all([
+      categoriesCollection
+        .where({ status: 1 })
+        .orderBy('sort', 'desc')
+        .orderBy('create_time', 'asc')
+        .get(),
+      buildEnabledCategoryCountMap(),
+    ])
+
+    const categories = appendCategoryCount(res.data, countMap)
 
     return {
       code: 0,
       msg: 'success',
-      data: res.data.map((item) => normalizeCategoryRecord(item))
+      data: categories.map((item) => normalizeCategoryRecord(item))
     }
   },
 
   // 获取首页数据
   async getHomeData() {
     // 并行获取多个数据
-    const [categoriesRes, hotCardsRes, recentCardsRes] = await Promise.all([
+    const [categoriesRes, hotCardsRes, recentCardsRes, countMap] = await Promise.all([
       // 获取分类（限制8个用于首页展示）
       categoriesCollection
         .where({ status: 1 })
@@ -117,14 +152,17 @@ module.exports = {
         .where({ status: 1 })
         .orderBy('create_time', 'desc')
         .limit(10)
-        .get()
+        .get(),
+      buildEnabledCategoryCountMap(),
     ])
+
+    const categories = appendCategoryCount(categoriesRes.data, countMap)
 
     return {
       code: 0,
       msg: 'success',
       data: {
-        categories: categoriesRes.data.map((item) => normalizeCategoryRecord(item)),
+        categories: categories.map((item) => normalizeCategoryRecord(item)),
         hotCards: normalizeCardList(hotCardsRes.data),
         recentCards: normalizeCardList(recentCardsRes.data)
       }

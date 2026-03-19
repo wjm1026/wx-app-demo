@@ -64,7 +64,13 @@
                 class="category-icon-wrapper"
                 :style="{ background: item.gradient }"
               >
-                <text class="category-emoji">{{ item.icon }}</text>
+                <image
+                  v-if="isImageIcon(item.icon)"
+                  class="category-icon-image"
+                  :src="item.icon"
+                  mode="aspectFill"
+                />
+                <text v-else class="category-emoji">{{ item.icon }}</text>
               </view>
               <text class="category-name">{{ item.name }}</text>
               <text class="category-count">{{ item.card_count || 0 }}个</text>
@@ -83,7 +89,13 @@
               class="category-icon-wrapper"
               :style="{ background: item.gradient }"
             >
-              <text class="category-emoji">{{ item.icon }}</text>
+              <image
+                v-if="isImageIcon(item.icon)"
+                class="category-icon-image"
+                :src="item.icon"
+                mode="aspectFill"
+              />
+              <text v-else class="category-emoji">{{ item.icon }}</text>
             </view>
             <text class="category-name">{{ item.name }}</text>
             <text class="category-count">{{ item.card_count || 0 }}个</text>
@@ -236,6 +248,7 @@ const {
   goCategoryDetail,
   goSearch,
   hotCards,
+  isImageIcon,
   isNewCard,
   mainScrollStyle,
   navContentStyle,

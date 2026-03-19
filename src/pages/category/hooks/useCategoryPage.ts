@@ -18,6 +18,15 @@ interface CategoryWithCards extends Category {
 
 const CONTENT_TOP_GAP_PX = uni.upx2px(32)
 
+/** 判断分类图标是否为图片地址 */
+function isImageIcon(value?: string) {
+  if (!value) {
+    return false
+  }
+
+  return /^(https?:\/\/|cloud:\/\/|file:\/\/|wxfile:\/\/|\/)/i.test(value.trim())
+}
+
 /** 封装分类页面逻辑 */
 export function useCategoryPage() {
   const { statusBarHeight, navBarHeight } = usePageLayout()
@@ -73,21 +82,27 @@ export function useCategoryPage() {
       const res = await cardApi.getCategories()
 
       if (res.code === 0 && res.data) {
-        const oldCategories = categories.value
-        categories.value = res.data.map((cat) => {
-          const oldCat = oldCategories.find((item) => item._id === cat._id)
+        categories.value = res.data.map((cat) => ({
+          ...cat,
+          cards: [],
+          page: 1,
+          hasMore: true,
+          isLoading: false,
+        }))
 
-          return {
-            ...cat,
-            cards: oldCat ? oldCat.cards : [],
-            page: oldCat ? oldCat.page : 1,
-            hasMore: oldCat ? oldCat.hasMore : true,
-            isLoading: false,
-          }
-        })
+        expandedIds.value = expandedIds.value.filter((id) =>
+          categories.value.some((item) => item._id === id),
+        )
 
         if (expandedIds.value.length === 0 && categories.value.length > 0) {
           toggleExpand(categories.value[0]._id)
+        } else {
+          expandedIds.value.forEach((id) => {
+            const category = categories.value.find((item) => item._id === id)
+            if (category && category.cards.length === 0) {
+              void loadCards(id)
+            }
+          })
         }
       }
     } catch (error) {
@@ -212,6 +227,7 @@ export function useCategoryPage() {
     expandedIds,
     goCardDetail,
     isInitialLoading,
+    isImageIcon,
     loadMore,
     safeBottomStyle,
     statusBarHeight,

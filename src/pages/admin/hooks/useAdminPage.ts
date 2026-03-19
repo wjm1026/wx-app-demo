@@ -185,9 +185,9 @@ export function useAdminPage() {
       title: '分类管理',
       metric: `${formatNumber(stats.value.categoryCount)} 个分类`,
       desc: '维护内容结构和分类编排规则',
-      badge: '规划',
+      badge: '内容',
       icon: '/static/icons/line/grid.svg',
-      available: false,
+      available: true,
       tone: 'tone-amber',
       onClick: goCategories,
     },
@@ -196,9 +196,9 @@ export function useAdminPage() {
       title: '卡片管理',
       metric: `${formatNumber(stats.value.cardCount)} 张卡片`,
       desc: '补充内容资源并维护素材质量',
-      badge: '规划',
+      badge: '内容',
       icon: '/static/icons/line/ticket.svg',
-      available: false,
+      available: true,
       tone: 'tone-mint',
       onClick: goCards,
     },
@@ -344,12 +344,12 @@ export function useAdminPage() {
 
   /** 跳转到分类列表 */
   function goCategories() {
-    showToast('分类管理开发中')
+    navigateTo('/pages/admin/categories')
   }
 
   /** 跳转到卡片列表 */
   function goCards() {
-    showToast('卡片管理开发中')
+    navigateTo('/pages/admin/cards')
   }
 
   /** 返回上一页 */

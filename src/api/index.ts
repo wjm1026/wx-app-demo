@@ -8,6 +8,7 @@ export type {
   Achievement,
   AchievementsResult,
   AdminCardPayload,
+  AdminCardListQuery,
   AdminCategoryPayload,
   AdminCheckResult,
   AdminLearningLogResetResult,

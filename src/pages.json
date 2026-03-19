@@ -93,6 +93,20 @@
       }
     },
     {
+      "path": "pages/admin/cards",
+      "style": {
+        "navigationBarTitleText": "卡片管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/admin/categories",
+      "style": {
+        "navigationBarTitleText": "分类管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/user/achievements",
       "style": {
         "navigationBarTitleText": "学习成就",
