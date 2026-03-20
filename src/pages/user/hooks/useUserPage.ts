@@ -1,6 +1,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { onShareAppMessage, onShow } from '@dcloudio/uni-app'
 import { pointsApi, userApi, type LoginByWeixinResult } from '@/api'
+import { uploadApiFile } from '@/api/shared'
 import { useMeasuredHeight } from '@/composables/useMeasuredHeight'
 import { usePageLayout } from '@/composables/usePageLayout'
 import { useStore } from '@/store'
@@ -149,12 +150,6 @@ export function useUserPage() {
     return value.trim().slice(0, PROFILE_NICKNAME_MAX_LENGTH)
   }
 
-  /** 提取文件扩展名 */
-  function extractFileExtension(filePath: string) {
-    const matched = filePath.match(/\.([0-9a-zA-Z]+)(?:$|\?)/)
-    return matched?.[1]?.toLowerCase() || 'png'
-  }
-
   /** 提取输入内容值 */
   function extractInputValue(event: unknown) {
     if (!event || typeof event !== 'object') {
@@ -228,14 +223,18 @@ export function useUserPage() {
 
   /** 上传头像 */
   async function uploadAvatar(filePath: string) {
-    const extension = extractFileExtension(filePath)
-    const cloudPath = `user-avatar-${store.userInfo?._id || 'guest'}-${Date.now()}.${extension}`
-    const result = await uniCloud.uploadFile({
-      filePath,
-      cloudPath,
-    })
+    const folder = `avatars/${store.userInfo?._id || 'guest'}`
+    const result = await uploadApiFile(filePath, { folder })
+    if (result.code !== 0) {
+      throw new Error(result.msg || '上传头像失败')
+    }
 
-    return result.fileID
+    const uploadUrl = result.data?.url || result.data?.path
+    if (!uploadUrl) {
+      throw new Error('上传头像失败')
+    }
+
+    return uploadUrl
   }
 
   /** 从路径更新头像 */

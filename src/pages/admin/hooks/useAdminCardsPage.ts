@@ -6,6 +6,7 @@ import {
   type Card,
   type Category,
 } from '@/api'
+import { uploadApiFile } from '@/api/shared'
 import { useConfirmedAction } from '@/composables/useConfirmedAction'
 import { usePageLayout } from '@/composables/usePageLayout'
 import { usePagedList } from '@/composables/usePagedList'
@@ -193,12 +194,6 @@ export function useAdminCardsPage() {
   /** 返回上一页 */
   function goBack() {
     navigateBack()
-  }
-
-  /** 提取文件扩展名 */
-  function extractFileExtension(filePath: string) {
-    const matched = filePath.match(/\.([0-9a-zA-Z]+)(?:$|\?)/)
-    return matched?.[1]?.toLowerCase() || 'png'
   }
 
   /** 判断是否取消操作 */
@@ -390,14 +385,18 @@ export function useAdminCardsPage() {
 
   /** 上传卡片图片 */
   async function uploadCardImage(filePath: string) {
-    const extension = extractFileExtension(filePath)
-    const cloudPath = `card-image-${formModel.value._id || 'new'}-${Date.now()}.${extension}`
-    const result = await uniCloud.uploadFile({
-      filePath,
-      cloudPath,
-    })
+    const folder = `cards/${formModel.value._id || 'new'}`
+    const result = await uploadApiFile(filePath, { folder })
+    if (result.code !== 0) {
+      throw new Error(result.msg || '上传图片失败')
+    }
 
-    return result.fileID
+    const uploadUrl = result.data?.url || result.data?.path
+    if (!uploadUrl) {
+      throw new Error('上传图片失败')
+    }
+
+    return uploadUrl
   }
 
   /** 选择并上传主图 */

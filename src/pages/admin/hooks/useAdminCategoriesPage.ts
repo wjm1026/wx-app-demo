@@ -5,6 +5,7 @@ import {
   type AdminCategoryPayload,
   type Category,
 } from '@/api'
+import { uploadApiFile } from '@/api/shared'
 import { useConfirmedAction } from '@/composables/useConfirmedAction'
 import { usePageLayout } from '@/composables/usePageLayout'
 import {
@@ -224,12 +225,6 @@ export function useAdminCategoriesPage() {
     return getErrorMessage(error).toLowerCase().includes('cancel')
   }
 
-  /** 提取文件扩展名 */
-  function extractFileExtension(filePath: string) {
-    const matched = filePath.match(/\.([0-9a-zA-Z]+)(?:$|\?)/)
-    return matched?.[1]?.toLowerCase() || 'png'
-  }
-
   /** 选择图片 */
   async function selectImageFile() {
     const result = await new Promise<UniApp.ChooseImageSuccessCallbackResult>(
@@ -249,15 +244,18 @@ export function useAdminCategoriesPage() {
 
   /** 上传分类图片 */
   async function uploadCategoryImage(filePath: string, field: UploadField) {
-    const extension = extractFileExtension(filePath)
-    const cloudPath = `category-${field}-${formModel.value._id || 'new'}-${Date.now()}.${extension}`
+    const folder = `categories/${field}/${formModel.value._id || 'new'}`
+    const result = await uploadApiFile(filePath, { folder })
+    if (result.code !== 0) {
+      throw new Error(result.msg || '上传图片失败')
+    }
 
-    const result = await uniCloud.uploadFile({
-      filePath,
-      cloudPath,
-    })
+    const uploadUrl = result.data?.url || result.data?.path
+    if (!uploadUrl) {
+      throw new Error('上传图片失败')
+    }
 
-    return result.fileID
+    return uploadUrl
   }
 
   /** 执行字段图片上传 */

@@ -1,4 +1,4 @@
-import { getService } from './shared'
+import { apiGet, apiPost } from './shared'
 import type {
   Achievement,
   AchievementsResult,
@@ -9,7 +9,10 @@ import type {
 export const achievementApi = {
   /** 记录学习 */
   recordLearning: (cardId: string, duration?: number) =>
-    getService('achievement-service').recordLearning({ cardId, duration }) as Promise<
+    apiPost<{
+      isNewCard: boolean
+      newAchievements: Achievement[]
+    }>('/api/v1/learning/records', { cardId, duration }) as Promise<
       ApiResponse<{
         isNewCard: boolean
         newAchievements: Achievement[]
@@ -17,16 +20,17 @@ export const achievementApi = {
     >,
   /** 获取学习进度 */
   getLearningProgress: () =>
-    getService('achievement-service').getLearningProgress() as Promise<ApiResponse<LearningProgress>>,
+    apiGet<LearningProgress>('/api/v1/learning/progress') as Promise<ApiResponse<LearningProgress>>,
   /** 获取成就列表 */
   getAchievements: () =>
-    getService('achievement-service').getAchievements() as Promise<ApiResponse<AchievementsResult>>,
+    apiGet<AchievementsResult>('/api/v1/achievements') as Promise<ApiResponse<AchievementsResult>>,
   /** 检查并解锁成就列表 */
   checkAndUnlockAchievements: () =>
-    getService('achievement-service').checkAndUnlockAchievements() as Promise<
+    apiPost<{
+      newAchievements: Achievement[]
+    }>('/api/v1/achievements/unlock-check') as Promise<
       ApiResponse<{
         newAchievements: Achievement[]
       }>
     >,
 }
-

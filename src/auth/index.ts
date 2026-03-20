@@ -1,5 +1,3 @@
-export const AUTH_PARAM_KEY = '__authToken'
-
 export const AUTH_STORAGE_KEYS = {
   token: 'custom_auth_token',
   tokenExpired: 'custom_auth_token_expired',
