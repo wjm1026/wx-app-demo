@@ -9,7 +9,6 @@ import {
   formatDate,
   formatRelativeDate,
   navigateBack,
-  navigateTo,
   showToast,
   switchTab,
 } from '@/utils'
@@ -101,11 +100,6 @@ export function useFavoritesPage() {
     switchTab('/pages/index/index')
   }
 
-  /** 跳转到卡片详情 */
-  function goCardDetail(id: string) {
-    navigateTo(`/pages/card/detail?id=${id}`)
-  }
-
   /** 返回上一页 */
   function goBack() {
     navigateBack()
@@ -166,7 +160,6 @@ export function useFavoritesPage() {
     decoratedFavorites,
     goBack,
     favorites,
-    goCardDetail,
     goHome,
     isLoading,
     removeFavorite,

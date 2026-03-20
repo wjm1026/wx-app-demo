@@ -8,13 +8,6 @@
       }
     },
     {
-      "path": "pages/card/detail",
-      "style": {
-        "navigationBarTitleText": "学习卡片",
-        "navigationStyle": "custom"
-      }
-    },
-    {
       "path": "pages/user/user",
       "style": {
         "navigationBarTitleText": "我的",

@@ -80,7 +80,6 @@
           :key="item._id"
           class="favorite-card"
           :class="item.tone"
-          @click="goCardDetail(item._id)"
         >
           <view class="favorite-media-wrap">
             <CardImage
@@ -137,7 +136,6 @@ const {
   decoratedFavorites,
   favorites,
   goBack,
-  goCardDetail,
   goHome,
   isLoading,
   removeFavorite,

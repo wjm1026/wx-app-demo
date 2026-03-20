@@ -3,7 +3,7 @@ import { onLoad, onReady, onShow } from '@dcloudio/uni-app'
 import { cardApi, type Card, type Category } from '@/api'
 import { useMeasuredHeight } from '@/composables/useMeasuredHeight'
 import { usePageLayout } from '@/composables/usePageLayout'
-import { getSafeAreaBottom, getSystemInfo, navigateTo } from '@/utils'
+import { getSafeAreaBottom, getSystemInfo } from '@/utils'
 
 interface CategoryWithCards extends Category {
   cards: Card[]
@@ -164,11 +164,6 @@ export function useIndexPage() {
     void loadCards(categoryId)
   }
 
-  /** 跳转到卡片详情 */
-  function goCardDetail(id: string) {
-    navigateTo(`/pages/card/detail?id=${id}`)
-  }
-
   onLoad(() => {
     void loadCategories()
     updateNavBarHeight()
@@ -185,7 +180,6 @@ export function useIndexPage() {
   return {
     categories,
     expandedIds,
-    goCardDetail,
     isImageIcon,
     isInitialLoading,
     loadMore,

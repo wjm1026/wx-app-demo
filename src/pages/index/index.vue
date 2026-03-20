@@ -45,7 +45,6 @@
                 v-for="card in item.cards"
                 :key="card._id"
                 class="merged-card-item"
-                @click="goCardDetail(card._id)"
               >
                 <view class="merged-card-image-wrapper">
                   <CardImage
@@ -128,7 +127,6 @@ import { useIndexPage } from './hooks/useIndexPage'
 const {
   categories,
   expandedIds,
-  goCardDetail,
   isImageIcon,
   isInitialLoading,
   loadMore,
