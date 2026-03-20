@@ -139,16 +139,6 @@ export interface SaveInviteTaskConfigsResult {
   tasks: InviteTaskConfig[]
 }
 
-export interface HomeDataResult {
-  categories: Category[]
-  hotCards: Card[]
-  recentCards: Card[]
-}
-
-export interface SearchCardsResult extends PagedResult<Card> {
-  keyword: string
-}
-
 export interface AdminCheckResult {
   isAdmin: boolean
   nickname: string

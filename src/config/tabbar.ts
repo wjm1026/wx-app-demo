@@ -13,12 +13,6 @@ export const TABBAR_ITEMS: TabbarItem[] = [
     activeIcon: '/static/icons/tabbar/home-solid.svg'
   },
   {
-    pagePath: '/pages/category/category',
-    text: '分类',
-    icon: '/static/icons/tabbar/category-line.svg',
-    activeIcon: '/static/icons/tabbar/category-solid.svg'
-  },
-  {
     pagePath: '/pages/user/user',
     text: '我的',
     icon: '/static/icons/tabbar/user-line.svg',

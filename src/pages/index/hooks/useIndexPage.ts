@@ -3,11 +3,17 @@ import { onLoad, onReady, onShow } from '@dcloudio/uni-app'
 import { cardApi, type Card, type Category } from '@/api'
 import { useMeasuredHeight } from '@/composables/useMeasuredHeight'
 import { usePageLayout } from '@/composables/usePageLayout'
-import { formatNumber, getSystemInfo, navigateTo } from '@/utils'
+import { getSafeAreaBottom, getSystemInfo, navigateTo } from '@/utils'
+
+interface CategoryWithCards extends Category {
+  cards: Card[]
+  page: number
+  hasMore: boolean
+  isLoading: boolean
+}
 
 const CONTENT_TOP_GAP_PX = uni.upx2px(32)
-const NEW_CARD_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
-const DAILY_GOAL = 10
+const TABBAR_SPACER_PX = uni.upx2px(160)
 
 /** 获取菜单按钮留白像素值 */
 function getMenuButtonInsetPx() {
@@ -37,15 +43,10 @@ export function useIndexPage() {
     useMeasuredHeight('.nav-bar', navBarHeight.value)
 
   const menuButtonInsetPx = getMenuButtonInsetPx()
-  const categories = ref<Category[]>([])
-  const hotCards = ref<Card[]>([])
-  const recentCards = ref<Card[]>([])
-  const isLoading = ref(false)
-  const todayStats = ref({
-    learned: 5,
-    streak: 3,
-    points: 25,
-  })
+  const categories = ref<CategoryWithCards[]>([])
+  const expandedIds = ref<string[]>([])
+  const isInitialLoading = ref(true)
+  const isCategoryLoading = ref(false)
 
   const resolvedNavBarHeight = computed(
     () => measuredNavBarHeight.value || navBarHeight.value,
@@ -59,70 +60,108 @@ export function useIndexPage() {
   const mainScrollStyle = computed(() => ({
     paddingTop: `${resolvedNavBarHeight.value + CONTENT_TOP_GAP_PX}px`,
   }))
-  const remainCards = computed(() =>
-    Math.max(0, DAILY_GOAL - todayStats.value.learned),
-  )
-  const progressPercent = computed(() =>
-    Math.min(100, (todayStats.value.learned / DAILY_GOAL) * 100),
-  )
-  const useCategoryBanner = computed(() => categories.value.length > 4)
+  const safeBottomStyle = computed(() => ({
+    height: `${TABBAR_SPACER_PX + getSafeAreaBottom()}px`,
+  }))
 
-  /** 加载数据 */
-  async function loadData() {
-    if (isLoading.value) {
+  /** 加载分类列表 */
+  async function loadCategories() {
+    if (isCategoryLoading.value) {
       return
     }
 
-    isLoading.value = true
+    isCategoryLoading.value = true
+    isInitialLoading.value = true
 
     try {
-      const res = await cardApi.getHomeData()
+      const res = await cardApi.getCategories()
 
       if (res.code === 0 && res.data) {
-        categories.value = res.data.categories || []
-        hotCards.value = res.data.hotCards || []
-        recentCards.value = res.data.recentCards || []
+        categories.value = res.data.map((item) => ({
+          ...item,
+          cards: [],
+          page: 1,
+          hasMore: true,
+          isLoading: false,
+        }))
+
+        expandedIds.value = expandedIds.value.filter((id) =>
+          categories.value.some((item) => item._id === id),
+        )
+
+        if (expandedIds.value.length === 0 && categories.value.length > 0) {
+          const firstId = categories.value[0]._id
+          expandedIds.value = [firstId]
+          void loadCards(firstId)
+        } else {
+          expandedIds.value.forEach((id) => {
+            const category = categories.value.find((item) => item._id === id)
+            if (category && category.cards.length === 0) {
+              void loadCards(id)
+            }
+          })
+        }
       }
     } catch (error) {
-      console.error('加载首页数据失败:', error)
+      console.error('加载分类失败:', error)
     } finally {
-      isLoading.value = false
+      isInitialLoading.value = false
+      isCategoryLoading.value = false
     }
   }
 
-  /** 判断新卡片是否满足条件 */
-  function isNewCard(card: Card): boolean {
-    if (!card.create_time) {
-      return false
+  /** 加载分类卡片列表 */
+  async function loadCards(categoryId: string) {
+    const category = categories.value.find((item) => item._id === categoryId)
+
+    if (!category || category.isLoading || !category.hasMore) {
+      return
     }
 
-    return Date.now() - card.create_time < NEW_CARD_WINDOW_MS
+    category.isLoading = true
+
+    try {
+      const res = await cardApi.getCardsByCategory({
+        categoryId,
+        page: category.page,
+        pageSize: 12,
+      })
+
+      if (res.code === 0 && res.data) {
+        category.cards =
+          category.page === 1
+            ? res.data.list
+            : [...category.cards, ...res.data.list]
+        category.hasMore = category.cards.length < res.data.total
+        category.page += 1
+      }
+    } catch (error) {
+      console.error('加载分类卡片失败:', error)
+    } finally {
+      category.isLoading = false
+    }
   }
 
-  /** 获取分类名称 */
-  function getCategoryName(card: Card): string {
-    return (
-      categories.value.find((item) => item._id === card.category_id)?.name ||
-      '未分类'
-    )
+  /** 切换分类展开状态 */
+  function toggleExpand(id: string) {
+    const index = expandedIds.value.indexOf(id)
+
+    if (index > -1) {
+      expandedIds.value.splice(index, 1)
+      return
+    }
+
+    expandedIds.value.push(id)
+
+    const category = categories.value.find((item) => item._id === id)
+    if (category && category.cards.length === 0) {
+      void loadCards(id)
+    }
   }
 
-  /** 跳转到搜索 */
-  function goSearch() {
-    navigateTo('/pages/search/search')
-  }
-
-  /** 跳转到分类 */
-  function goCategory() {
-    uni.switchTab({ url: '/pages/category/category' })
-  }
-
-  /** 跳转到分类详情 */
-  function goCategoryDetail(id: string) {
-    uni.setStorageSync('TARGET_CATEGORY_ID', id)
-    uni.switchTab({
-      url: '/pages/category/category',
-    })
+  /** 加载更多分类卡片 */
+  function loadMore(categoryId: string) {
+    void loadCards(categoryId)
   }
 
   /** 跳转到卡片详情 */
@@ -131,7 +170,7 @@ export function useIndexPage() {
   }
 
   onLoad(() => {
-    void loadData()
+    void loadCategories()
     updateNavBarHeight()
   })
 
@@ -145,23 +184,16 @@ export function useIndexPage() {
 
   return {
     categories,
-    formatNumber,
-    getCategoryName,
+    expandedIds,
     goCardDetail,
-    goCategory,
-    goCategoryDetail,
-    goSearch,
-    hotCards,
-    isNewCard,
+    isImageIcon,
+    isInitialLoading,
+    loadMore,
     mainScrollStyle,
     navContentStyle,
     navLogoStyle,
-    progressPercent,
-    recentCards,
-    remainCards,
+    safeBottomStyle,
     statusBarHeight,
-    todayStats,
-    isImageIcon,
-    useCategoryBanner,
+    toggleExpand,
   }
 }

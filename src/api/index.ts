@@ -20,7 +20,6 @@ export type {
   BindInviteCodeResult,
   Card,
   Category,
-  HomeDataResult,
   InviteInfoResult,
   InviteTaskConfig,
   InviteTaskKey,
@@ -30,6 +29,5 @@ export type {
   PagedResult,
   PointsLogItem,
   SaveInviteTaskConfigsResult,
-  SearchCardsResult,
   UserInfo,
 } from './types'

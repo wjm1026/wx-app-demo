@@ -8,23 +8,9 @@
       }
     },
     {
-      "path": "pages/category/category",
-      "style": {
-        "navigationBarTitleText": "分类",
-        "navigationStyle": "custom"
-      }
-    },
-    {
       "path": "pages/card/detail",
       "style": {
         "navigationBarTitleText": "学习卡片",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/search/search",
-      "style": {
-        "navigationBarTitleText": "搜索",
         "navigationStyle": "custom"
       }
     },
@@ -134,12 +120,6 @@
         "text": "首页",
         "iconPath": "static/tabbar/home.png",
         "selectedIconPath": "static/tabbar/home-active.png"
-      },
-      {
-        "pagePath": "pages/category/category",
-        "text": "分类",
-        "iconPath": "static/tabbar/category.png",
-        "selectedIconPath": "static/tabbar/category-active.png"
       },
       {
         "pagePath": "pages/user/user",

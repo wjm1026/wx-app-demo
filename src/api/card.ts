@@ -4,22 +4,15 @@ import type {
   ApiResponse,
   Card,
   Category,
-  HomeDataResult,
   PagedResult,
-  SearchCardsResult,
 } from './types'
 
 export const cardApi = {
   /** 获取分类列表 */
   getCategories: () => apiGet<Category[]>('/api/v1/categories') as Promise<ApiResponse<Category[]>>,
-  /** 获取首页数据 */
-  getHomeData: () => apiGet<HomeDataResult>('/api/v1/cards/home') as Promise<ApiResponse<HomeDataResult>>,
   /** 按分类获取卡片列表 */
   getCardsByCategory: (params: { categoryId: string; page?: number; pageSize?: number }) =>
     apiGet<PagedResult<Card>>('/api/v1/cards', params) as Promise<ApiResponse<PagedResult<Card>>>,
-  /** 搜索卡片列表 */
-  searchCards: (params: { keyword: string; page?: number; pageSize?: number }) =>
-    apiGet<SearchCardsResult>('/api/v1/cards/search', params) as Promise<ApiResponse<SearchCardsResult>>,
   /** 获取卡片详情 */
   getCardDetail: (cardId: string) =>
     apiGet<Card>(`/api/v1/cards/${encodeURIComponent(cardId)}`) as Promise<ApiResponse<Card>>,
