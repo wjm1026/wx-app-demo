@@ -1,16 +1,9 @@
 import { computed, ref } from 'vue'
 import { onLoad, onReady, onShow } from '@dcloudio/uni-app'
-import { cardApi, type Card, type Category } from '@/api'
+import { cardApi, type Category } from '@/api'
 import { useMeasuredHeight } from '@/composables/useMeasuredHeight'
 import { usePageLayout } from '@/composables/usePageLayout'
 import { getSafeAreaBottom, getSystemInfo } from '@/utils'
-
-interface CategoryWithCards extends Category {
-  cards: Card[]
-  page: number
-  hasMore: boolean
-  isLoading: boolean
-}
 
 const CONTENT_TOP_GAP_PX = uni.upx2px(32)
 const TABBAR_SPACER_PX = uni.upx2px(160)
@@ -43,8 +36,7 @@ export function useIndexPage() {
     useMeasuredHeight('.nav-bar', navBarHeight.value)
 
   const menuButtonInsetPx = getMenuButtonInsetPx()
-  const categories = ref<CategoryWithCards[]>([])
-  const expandedIds = ref<string[]>([])
+  const categories = ref<Category[]>([])
   const isInitialLoading = ref(true)
   const isCategoryLoading = ref(false)
 
@@ -77,30 +69,7 @@ export function useIndexPage() {
       const res = await cardApi.getCategories()
 
       if (res.code === 0 && res.data) {
-        categories.value = res.data.map((item) => ({
-          ...item,
-          cards: [],
-          page: 1,
-          hasMore: true,
-          isLoading: false,
-        }))
-
-        expandedIds.value = expandedIds.value.filter((id) =>
-          categories.value.some((item) => item._id === id),
-        )
-
-        if (expandedIds.value.length === 0 && categories.value.length > 0) {
-          const firstId = categories.value[0]._id
-          expandedIds.value = [firstId]
-          void loadCards(firstId)
-        } else {
-          expandedIds.value.forEach((id) => {
-            const category = categories.value.find((item) => item._id === id)
-            if (category && category.cards.length === 0) {
-              void loadCards(id)
-            }
-          })
-        }
+        categories.value = res.data
       }
     } catch (error) {
       console.error('加载分类失败:', error)
@@ -108,60 +77,6 @@ export function useIndexPage() {
       isInitialLoading.value = false
       isCategoryLoading.value = false
     }
-  }
-
-  /** 加载分类卡片列表 */
-  async function loadCards(categoryId: string) {
-    const category = categories.value.find((item) => item._id === categoryId)
-
-    if (!category || category.isLoading || !category.hasMore) {
-      return
-    }
-
-    category.isLoading = true
-
-    try {
-      const res = await cardApi.getCardsByCategory({
-        categoryId,
-        page: category.page,
-        pageSize: 12,
-      })
-
-      if (res.code === 0 && res.data) {
-        category.cards =
-          category.page === 1
-            ? res.data.list
-            : [...category.cards, ...res.data.list]
-        category.hasMore = category.cards.length < res.data.total
-        category.page += 1
-      }
-    } catch (error) {
-      console.error('加载分类卡片失败:', error)
-    } finally {
-      category.isLoading = false
-    }
-  }
-
-  /** 切换分类展开状态 */
-  function toggleExpand(id: string) {
-    const index = expandedIds.value.indexOf(id)
-
-    if (index > -1) {
-      expandedIds.value.splice(index, 1)
-      return
-    }
-
-    expandedIds.value.push(id)
-
-    const category = categories.value.find((item) => item._id === id)
-    if (category && category.cards.length === 0) {
-      void loadCards(id)
-    }
-  }
-
-  /** 加载更多分类卡片 */
-  function loadMore(categoryId: string) {
-    void loadCards(categoryId)
   }
 
   onLoad(() => {
@@ -179,15 +94,12 @@ export function useIndexPage() {
 
   return {
     categories,
-    expandedIds,
     isImageIcon,
     isInitialLoading,
-    loadMore,
     mainScrollStyle,
     navContentStyle,
     navLogoStyle,
     safeBottomStyle,
     statusBarHeight,
-    toggleExpand,
   }
 }
