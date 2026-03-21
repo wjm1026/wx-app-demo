@@ -3,7 +3,7 @@ import { onLoad, onReady, onShow } from '@dcloudio/uni-app'
 import { cardApi, type Category } from '@/api'
 import { useMeasuredHeight } from '@/composables/useMeasuredHeight'
 import { usePageLayout } from '@/composables/usePageLayout'
-import { getSafeAreaBottom, getSystemInfo } from '@/utils'
+import { getSafeAreaBottom, getSystemInfo, navigateTo } from '@/utils'
 
 const CONTENT_TOP_GAP_PX = uni.upx2px(32)
 const TABBAR_SPACER_PX = uni.upx2px(160)
@@ -56,6 +56,19 @@ export function useIndexPage() {
     height: `${TABBAR_SPACER_PX + getSafeAreaBottom()}px`,
   }))
 
+  /** 打开分类详情页 */
+  function openCategoryCards(category: Category) {
+    const categoryId = String(category._id || '').trim()
+    if (!categoryId) {
+      return
+    }
+
+    const encodedId = encodeURIComponent(categoryId)
+    const encodedName = encodeURIComponent(String(category.name || '分类图片'))
+
+    navigateTo(`/pages/category/cards?categoryId=${encodedId}&categoryName=${encodedName}`)
+  }
+
   /** 加载分类列表 */
   async function loadCategories() {
     if (isCategoryLoading.value) {
@@ -99,6 +112,7 @@ export function useIndexPage() {
     mainScrollStyle,
     navContentStyle,
     navLogoStyle,
+    openCategoryCards,
     safeBottomStyle,
     statusBarHeight,
   }

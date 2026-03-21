@@ -8,6 +8,14 @@
       }
     },
     {
+      "path": "pages/category/cards",
+      "style": {
+        "navigationBarTitleText": "分类图片",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
       "path": "pages/user/user",
       "style": {
         "navigationBarTitleText": "我的",

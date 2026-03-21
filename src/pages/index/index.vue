@@ -17,6 +17,7 @@
           :key="item._id"
           class="merged-category-card"
           :class="'delay-' + (index % 8)"
+          @click="openCategoryCards(item)"
         >
           <view
             class="merged-category-icon"
@@ -59,6 +60,7 @@ const {
   mainScrollStyle,
   navContentStyle,
   navLogoStyle,
+  openCategoryCards,
   safeBottomStyle,
   statusBarHeight,
 } = useIndexPage()
