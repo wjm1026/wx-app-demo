@@ -70,6 +70,8 @@ const STATUS_TABS = [
   { value: 0, label: '禁用', note: '前台不展示' },
 ] as const
 
+const LAST_SELECTED_CATEGORY_STORAGE_KEY = 'admin:cards:lastSelectedCategoryId'
+
 /** 创建默认表单 */
 function createDefaultForm(categoryId = ''): CardFormState {
   return {
@@ -113,6 +115,7 @@ export function useAdminCardsPage() {
   const formSaving = ref(false)
   const imageUploading = ref(false)
   const formModel = ref<CardFormState>(createDefaultForm())
+  const lastSelectedCategoryId = ref(String(uni.getStorageSync(LAST_SELECTED_CATEGORY_STORAGE_KEY) || ''))
 
   const {
     list: cardList,
@@ -182,6 +185,40 @@ export function useAdminCardsPage() {
 
   const formTitle = computed(() => (formModel.value._id ? '编辑卡片' : '新增卡片'))
   const isEditMode = computed(() => Boolean(formModel.value._id))
+  const formCategoryIndex = computed(() => {
+    const index = categories.value.findIndex((item) => item._id === formModel.value.category_id)
+    return index < 0 ? 0 : index
+  })
+
+  /** 判断分类是否存在 */
+  function hasCategory(categoryId: string) {
+    return categories.value.some((item) => item._id === categoryId)
+  }
+
+  /** 记住上次选择的分类 */
+  function rememberLastSelectedCategory(categoryId: string) {
+    const normalized = String(categoryId || '').trim()
+    if (!normalized) {
+      return
+    }
+
+    lastSelectedCategoryId.value = normalized
+    uni.setStorageSync(LAST_SELECTED_CATEGORY_STORAGE_KEY, normalized)
+  }
+
+  /** 解析新增表单默认分类 */
+  function resolveCreateFormCategoryId() {
+    const rememberedCategoryId = lastSelectedCategoryId.value
+    if (rememberedCategoryId && hasCategory(rememberedCategoryId)) {
+      return rememberedCategoryId
+    }
+
+    if (activeCategoryId.value && hasCategory(activeCategoryId.value)) {
+      return activeCategoryId.value
+    }
+
+    return ''
+  }
 
   /** 读取事件值 */
   function readEventValue(event: ValueEvent) {
@@ -224,6 +261,10 @@ export function useAdminCardsPage() {
         '加载分类失败',
       )
       categories.value = Array.isArray(response.data) ? response.data : []
+      if (lastSelectedCategoryId.value && !hasCategory(lastSelectedCategoryId.value)) {
+        lastSelectedCategoryId.value = ''
+        uni.removeStorageSync(LAST_SELECTED_CATEGORY_STORAGE_KEY)
+      }
     } catch (error) {
       showToast(getErrorMessage(error, '加载分类失败'))
       categories.value = []
@@ -300,7 +341,7 @@ export function useAdminCardsPage() {
 
   /** 打开新增表单 */
   function openCreateForm() {
-    formModel.value = createDefaultForm(activeCategoryId.value)
+    formModel.value = createDefaultForm(resolveCreateFormCategoryId())
     formVisible.value = true
   }
 
@@ -360,10 +401,12 @@ export function useAdminCardsPage() {
     }
 
     const selectedCategory = categories.value[index]
+    const selectedCategoryId = selectedCategory?._id || ''
     formModel.value = {
       ...formModel.value,
-      category_id: selectedCategory?._id || '',
+      category_id: selectedCategoryId,
     }
+    rememberLastSelectedCategory(selectedCategoryId)
   }
 
   /** 选择图片文件 */
@@ -500,6 +543,9 @@ export function useAdminCardsPage() {
     if (!validateCardForm(payload)) {
       return
     }
+    if (!isEditMode.value) {
+      rememberLastSelectedCategory(payload.category_id || '')
+    }
 
     formSaving.value = true
     try {
@@ -589,6 +635,7 @@ export function useAdminCardsPage() {
     closeForm,
     deleteCard,
     formModel,
+    formCategoryIndex,
     formSaving,
     formTitle,
     formVisible,

@@ -19,6 +19,7 @@ export type {
   ApiResponse,
   BindInviteCodeResult,
   Card,
+  CardLite,
   Category,
   InviteInfoResult,
   InviteTaskConfig,

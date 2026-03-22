@@ -108,12 +108,10 @@
 
 .skeleton-media,
 .skeleton-line {
-  background: linear-gradient(
-    110deg,
-    rgba(228, 235, 245, 0.9) 24%,
-    rgba(255, 255, 255, 0.96) 48%,
-    rgba(228, 235, 245, 0.9) 72%
-  );
+  background: linear-gradient(110deg,
+      rgba(228, 235, 245, 0.9) 24%,
+      rgba(255, 255, 255, 0.96) 48%,
+      rgba(228, 235, 245, 0.9) 72%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.2s linear infinite;
 }

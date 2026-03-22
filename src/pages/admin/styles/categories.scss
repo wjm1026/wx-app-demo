@@ -250,12 +250,25 @@ $danger: #b91c1c;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16rpx;
+}
+
+.list-copy {
+  flex: 1;
+  min-width: 0;
 }
 
 .list-title {
   font-size: 30rpx;
   font-weight: 700;
   color: $text-primary;
+}
+
+.list-subtitle {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: $text-muted;
 }
 
 .list-create-btn {
@@ -282,6 +295,11 @@ $danger: #b91c1c;
 .category-card {
   background: $surface;
   padding: 20rpx;
+}
+
+.category-card.dragging {
+  border-color: rgba(29, 78, 216, 0.42);
+  box-shadow: 0 24rpx 56rpx rgba(29, 78, 216, 0.18);
 }
 
 .category-main {
@@ -393,6 +411,16 @@ $danger: #b91c1c;
   font-weight: 600;
 }
 
+.action-btn.sort {
+  background: rgba(15, 118, 110, 0.12);
+  color: #0f766e;
+}
+
+.action-btn.sort.active {
+  background: linear-gradient(135deg, #0f766e, #0ea5a8);
+  color: #fff;
+}
+
 .action-btn.edit {
   background: rgba(29, 78, 216, 0.1);
   color: $primary;
@@ -401,6 +429,10 @@ $danger: #b91c1c;
 .action-btn.delete {
   background: rgba(185, 28, 28, 0.1);
   color: $danger;
+}
+
+.action-btn.disabled {
+  opacity: 0.45;
 }
 
 .editor-mask {
@@ -519,6 +551,20 @@ $danger: #b91c1c;
   box-sizing: border-box;
   font-size: 25rpx;
   color: $text-primary;
+}
+
+.form-static-value {
+  width: 100%;
+  min-height: 82rpx;
+  padding: 16rpx 18rpx;
+  border-radius: 16rpx;
+  border: 2rpx dashed rgba($border, 0.9);
+  background: rgba(29, 78, 216, 0.04);
+  box-sizing: border-box;
+  font-size: 24rpx;
+  color: $text-muted;
+  display: flex;
+  align-items: center;
 }
 
 .form-textarea {

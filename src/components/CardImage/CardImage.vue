@@ -12,37 +12,37 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch } from "vue";
 
 interface Props {
-  src?: string
-  label?: string
-  category?: string
-  mode?: string
+  src?: string;
+  label?: string;
+  category?: string;
+  mode?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  src: '',
-  label: '',
-  category: '',
-  mode: 'aspectFill',
-})
+  src: "",
+  label: "",
+  category: "",
+  mode: "aspectFill",
+});
 
-const hasFailed = ref(false)
+const hasFailed = ref(false);
 
-const resolvedSrc = computed(() => (hasFailed.value ? '' : props.src))
+const resolvedSrc = computed(() => (hasFailed.value ? "" : props.src));
 
 /** 处理错误 */
 function handleError() {
-  hasFailed.value = true
+  hasFailed.value = true;
 }
 
 watch(
   () => [props.src, props.label],
   () => {
-    hasFailed.value = false
+    hasFailed.value = false;
   },
-)
+);
 </script>
 
 <style scoped lang="scss">

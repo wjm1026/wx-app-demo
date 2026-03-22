@@ -1,9 +1,9 @@
 import { computed, ref } from 'vue'
 import { onLoad, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app'
-import { cardApi, type Card } from '@/api'
+import { cardApi, type CardLite } from '@/api'
 import { usePageLayout } from '@/composables/usePageLayout'
 import { usePagedList } from '@/composables/usePagedList'
-import { navigateBack, showToast, switchTab } from '@/utils'
+import { navigateBack, navigateTo, showToast, switchTab } from '@/utils'
 
 interface CategoryCardsQuery {
   categoryId: string
@@ -60,13 +60,13 @@ export function useCategoryCardsPage() {
     hasMore,
     refresh,
     loadMore,
-  } = usePagedList<Card, CategoryCardsQuery>({
+  } = usePagedList<CardLite, CategoryCardsQuery>({
     pageSize: 20,
     initialQuery: {
       categoryId: '',
     },
     fetcher: ({ categoryId: queryCategoryId, page, pageSize }) =>
-      cardApi.getCardsByCategory({
+      cardApi.getCardsByCategoryLite({
         categoryId: queryCategoryId,
         page,
         pageSize,
@@ -83,6 +83,27 @@ export function useCategoryCardsPage() {
   /** 返回上一页 */
   function goBack() {
     fallbackBack()
+  }
+
+  /** 打开卡片详情页 */
+  function openCardDetail(card: CardLite, index: number) {
+    const cardId = String(card?._id || '').trim()
+    if (!categoryId.value || !cardId) {
+      return
+    }
+
+    const resolvedIndex = Number.isFinite(index) ? Math.max(0, Math.trunc(index)) : 0
+
+    const encodedCategoryId = encodeURIComponent(categoryId.value)
+    const encodedCategoryName = encodeURIComponent(String(categoryName.value || '分类图片'))
+    const encodedCardId = encodeURIComponent(cardId)
+
+    navigateTo(
+      `/pages/category/detail?categoryId=${encodedCategoryId}` +
+      `&categoryName=${encodedCategoryName}` +
+      `&cardId=${encodedCardId}` +
+      `&startIndex=${resolvedIndex}`,
+    )
   }
 
   /** 加载第一页 */
@@ -142,6 +163,7 @@ export function useCategoryCardsPage() {
     cards,
     categoryName,
     goBack,
+    openCardDetail,
     hasMore,
     isEmpty,
     isInitialLoading,

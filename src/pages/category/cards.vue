@@ -37,11 +37,16 @@
       </view>
 
       <view v-else class="card-grid">
-        <view v-for="item in cards" :key="item._id" class="card-item">
+        <view
+          v-for="(item, index) in cards"
+          :key="item._id"
+          class="card-item"
+          @tap="openCardDetail(item, index)"
+        >
           <view class="card-media">
             <CardImage
               class="card-image"
-              :src="item.image"
+              :src="item.image_thumb || item.image"
               :label="item.name"
               mode="aspectFill"
             />
@@ -68,6 +73,7 @@ const {
   cards,
   categoryName,
   goBack,
+  openCardDetail,
   hasMore,
   isEmpty,
   isInitialLoading,

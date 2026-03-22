@@ -1,5 +1,5 @@
 import { computed, ref } from 'vue'
-import { onLoad, onReady, onShow } from '@dcloudio/uni-app'
+import { onLoad, onPullDownRefresh, onReady, onShow } from '@dcloudio/uni-app'
 import { cardApi, type Category } from '@/api'
 import { useMeasuredHeight } from '@/composables/useMeasuredHeight'
 import { usePageLayout } from '@/composables/usePageLayout'
@@ -103,6 +103,11 @@ export function useIndexPage() {
 
   onShow(() => {
     updateNavBarHeight()
+  })
+
+  onPullDownRefresh(async () => {
+    await loadCategories()
+    uni.stopPullDownRefresh()
   })
 
   return {

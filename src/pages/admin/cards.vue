@@ -206,6 +206,7 @@
               <text class="form-label">所属分类 *</text>
               <picker
                 mode="selector"
+                :value="formCategoryIndex"
                 range-key="name"
                 :range="categories"
                 @change="handleFormCategoryChange"
@@ -376,6 +377,7 @@ const {
   closeForm,
   deleteCard,
   formModel,
+  formCategoryIndex,
   formSaving,
   formTitle,
   formVisible,

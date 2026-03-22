@@ -71,6 +71,15 @@ export interface Card {
   status?: number
 }
 
+export interface CardLite {
+  _id: string
+  category_id: string
+  name: string
+  image: string
+  image_thumb?: string
+  update_time?: number
+}
+
 export interface PointsLogItem {
   _id: string
   type: string

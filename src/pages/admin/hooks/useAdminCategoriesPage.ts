@@ -19,6 +19,11 @@ import {
 
 type ValueEvent = Event | { detail?: { value?: unknown } }
 type UploadField = 'icon' | 'cover'
+type TouchPoint = { clientY?: number; pageY?: number }
+type TouchValueEvent = ValueEvent & {
+  touches?: TouchPoint[]
+  changedTouches?: TouchPoint[]
+}
 
 interface CategoryFormState {
   _id?: string
@@ -52,6 +57,29 @@ function normalizeSort(value: unknown) {
   return Number.isNaN(parsed) ? 0 : parsed
 }
 
+const SORT_STEP = 10
+const DRAG_MOVE_STEP_PX = 56
+
+/** 分类排序比较器 */
+function compareCategorySort(left: Category, right: Category) {
+  const sortDiff = normalizeSort(right.sort ?? right.sort_order) - normalizeSort(left.sort ?? left.sort_order)
+  if (sortDiff !== 0) {
+    return sortDiff
+  }
+
+  return Number(left.create_time || 0) - Number(right.create_time || 0)
+}
+
+/** 生成排序后的分类列表 */
+function sortCategoryRows(rows: Category[]) {
+  return [...rows].sort(compareCategorySort)
+}
+
+/** 根据位置计算排序值 */
+function computeSortByIndex(index: number, total: number) {
+  return (Math.max(total, 1) - index) * SORT_STEP
+}
+
 /** 判断图片地址 */
 function isImageUrl(value?: string) {
   if (!value) {
@@ -67,23 +95,22 @@ export function useAdminCategoriesPage() {
   const { runConfirmedAction } = useConfirmedAction()
   const loading = ref(false)
   const saving = ref(false)
+  const sortSaving = ref(false)
   const categories = ref<Category[]>([])
   const keyword = ref('')
   const formVisible = ref(false)
   const imageUploading = ref(false)
   const formModel = ref<CategoryFormState>(createDefaultCategoryForm())
+  const draggingCategoryId = ref('')
+  const draggingIndex = ref(-1)
+  const draggingTouchY = ref(0)
+  const dragSnapshot = ref<Category[]>([])
+  const dragOrderSnapshot = ref<string[]>([])
 
   const normalizedKeyword = computed(() => keyword.value.trim().toLowerCase())
 
   const filteredCategories = computed(() => {
-    const rows = [...categories.value].sort((left, right) => {
-      const sortDiff = normalizeSort(right.sort) - normalizeSort(left.sort)
-      if (sortDiff !== 0) {
-        return sortDiff
-      }
-
-      return Number(left.create_time || 0) - Number(right.create_time || 0)
-    })
+    const rows = sortCategoryRows(categories.value)
 
     if (!normalizedKeyword.value) {
       return rows
@@ -99,6 +126,10 @@ export function useAdminCategoriesPage() {
   )
 
   const resultHint = computed(() => {
+    if (sortSaving.value) {
+      return '正在保存拖拽排序'
+    }
+
     if (loading.value) {
       return '正在同步分类数据'
     }
@@ -107,10 +138,22 @@ export function useAdminCategoriesPage() {
       return `关键词：${keyword.value}`
     }
 
-    return '按排序值从高到低展示'
+    return '按住拖拽手柄可调整顺序'
   })
 
   const hasKeyword = computed(() => Boolean(normalizedKeyword.value))
+  const canDragSort = computed(
+    () => !loading.value && !saving.value && !sortSaving.value && !hasKeyword.value,
+  )
+  const dragHint = computed(() => {
+    if (sortSaving.value) {
+      return '排序保存中，请稍候'
+    }
+    if (hasKeyword.value) {
+      return '清空搜索后可拖拽排序'
+    }
+    return '按住“拖拽排序”并上下移动'
+  })
   const isEditMode = computed(() => Boolean(formModel.value._id))
   const formTitle = computed(() => (isEditMode.value ? '编辑分类' : '新增分类'))
 
@@ -122,9 +165,185 @@ export function useAdminCategoriesPage() {
     return undefined
   }
 
+  /** 读取触摸位置 */
+  function readTouchY(event: ValueEvent) {
+    const touchEvent = event as TouchValueEvent
+    const touchPoint = touchEvent.touches?.[0] || touchEvent.changedTouches?.[0]
+    const y = Number(touchPoint?.clientY ?? touchPoint?.pageY)
+    return Number.isFinite(y) ? y : null
+  }
+
   /** 返回上一页 */
   function goBack() {
     navigateBack()
+  }
+
+  /** 重置拖拽上下文 */
+  function resetDragContext() {
+    draggingCategoryId.value = ''
+    draggingIndex.value = -1
+    draggingTouchY.value = 0
+    dragSnapshot.value = []
+    dragOrderSnapshot.value = []
+  }
+
+  /** 应用拖拽排序结果并重算排序值 */
+  function applyDragOrder(rows: Category[]) {
+    const total = rows.length
+    categories.value = rows.map((item, index) => ({
+      ...item,
+      sort: computeSortByIndex(index, total),
+    }))
+  }
+
+  /** 构建拖拽排序保存 payload（避免覆盖字段） */
+  function buildSortPayload(category: Category, sort: number): AdminCategoryPayload {
+    return {
+      _id: category._id,
+      name: String(category.name || '').trim(),
+      icon: String(category.icon || '').trim(),
+      cover: String(category.cover || '').trim(),
+      color: String(category.color || '').trim(),
+      gradient: String(category.gradient || '').trim(),
+      description: String(category.description || '').trim(),
+      sort,
+      status: Number(category.status) === 0 ? 0 : 1,
+    }
+  }
+
+  /** 持久化拖拽后的排序 */
+  async function persistDragOrder(previousRows: Category[]) {
+    if (sortSaving.value) {
+      return
+    }
+
+    const orderedRows = sortCategoryRows(categories.value)
+    const previousSortMap = new Map<string, number>()
+    previousRows.forEach((item) => {
+      previousSortMap.set(item._id, normalizeSort(item.sort ?? item.sort_order))
+    })
+
+    const changedRows = orderedRows
+      .map((item, index) => ({
+        category: item,
+        sort: computeSortByIndex(index, orderedRows.length),
+      }))
+      .filter((item) => previousSortMap.get(item.category._id) !== item.sort)
+
+    if (changedRows.length === 0) {
+      return
+    }
+
+    sortSaving.value = true
+    try {
+      for (const item of changedRows) {
+        await assertApiSuccess(
+          await adminApi.saveCategory(buildSortPayload(item.category, item.sort)),
+          '保存排序失败',
+        )
+      }
+      showToast('排序已更新', 'success')
+    } catch (error) {
+      categories.value = sortCategoryRows(
+        previousRows.map((item) => ({
+          ...item,
+          sort: normalizeSort(item.sort ?? item.sort_order),
+        })),
+      )
+      showToast(getErrorMessage(error, '保存排序失败，已恢复原顺序'))
+    } finally {
+      sortSaving.value = false
+    }
+  }
+
+  /** 开始拖拽排序 */
+  function startDragSort(categoryId: string, event: ValueEvent) {
+    if (!canDragSort.value) {
+      if (hasKeyword.value) {
+        showToast('请先清空关键词后再拖拽排序')
+      }
+      return
+    }
+
+    const touchY = readTouchY(event)
+    if (touchY === null) {
+      return
+    }
+
+    const orderedRows = sortCategoryRows(categories.value)
+    const startIndex = orderedRows.findIndex((item) => item._id === categoryId)
+    if (startIndex < 0) {
+      return
+    }
+
+    dragSnapshot.value = categories.value.map((item) => ({ ...item }))
+    dragOrderSnapshot.value = orderedRows.map((item) => item._id)
+    draggingCategoryId.value = categoryId
+    draggingIndex.value = startIndex
+    draggingTouchY.value = touchY
+  }
+
+  /** 拖拽中调整顺序 */
+  function handleDragSortMove(event: ValueEvent) {
+    if (!draggingCategoryId.value || sortSaving.value) {
+      return
+    }
+
+    const touchY = readTouchY(event)
+    if (touchY === null) {
+      return
+    }
+
+    const deltaY = touchY - draggingTouchY.value
+    if (Math.abs(deltaY) < DRAG_MOVE_STEP_PX) {
+      return
+    }
+
+    const orderedRows = sortCategoryRows(categories.value)
+    const fromIndex = draggingIndex.value
+    if (fromIndex < 0 || fromIndex >= orderedRows.length) {
+      return
+    }
+
+    const toIndex = Math.min(
+      orderedRows.length - 1,
+      Math.max(0, fromIndex + (deltaY > 0 ? 1 : -1)),
+    )
+    if (toIndex === fromIndex) {
+      draggingTouchY.value = touchY
+      return
+    }
+
+    const [moved] = orderedRows.splice(fromIndex, 1)
+    if (!moved) {
+      return
+    }
+
+    orderedRows.splice(toIndex, 0, moved)
+    applyDragOrder(orderedRows)
+    draggingIndex.value = toIndex
+    draggingTouchY.value = touchY
+  }
+
+  /** 结束拖拽并保存排序 */
+  function endDragSort() {
+    if (!draggingCategoryId.value) {
+      return
+    }
+
+    const previousRows = dragSnapshot.value.map((item) => ({ ...item }))
+    const previousOrder = [...dragOrderSnapshot.value]
+    const currentOrder = sortCategoryRows(categories.value).map((item) => item._id)
+    const changed =
+      previousOrder.length !== currentOrder.length ||
+      previousOrder.some((id, index) => id !== currentOrder[index])
+
+    resetDragContext()
+    if (!changed) {
+      return
+    }
+
+    void persistDragOrder(previousRows)
   }
 
   /** 计算新建分类排序值 */
@@ -147,10 +366,14 @@ export function useAdminCategoriesPage() {
         '加载分类失败',
       )
 
-      categories.value = Array.isArray(response.data) ? response.data : []
+      categories.value = sortCategoryRows(Array.isArray(response.data) ? response.data : []).map((item) => ({
+        ...item,
+        sort: normalizeSort(item.sort ?? item.sort_order),
+      }))
     } catch (error) {
       showToast(getErrorMessage(error, '加载分类失败'))
       categories.value = []
+      resetDragContext()
     } finally {
       loading.value = false
     }
@@ -201,14 +424,6 @@ export function useAdminCategoriesPage() {
     formModel.value = {
       ...formModel.value,
       [field]: nextValue,
-    }
-  }
-
-  /** 更新排序字段 */
-  function handleSortInput(event: ValueEvent) {
-    formModel.value = {
-      ...formModel.value,
-      sort: normalizeSort(readEventValue(event)),
     }
   }
 
@@ -381,16 +596,20 @@ export function useAdminCategoriesPage() {
   })
 
   return {
+    canDragSort,
     categories,
     clearKeyword,
     closeForm,
+    dragHint,
     deleteCategory,
+    draggingCategoryId,
+    endDragSort,
     filteredCategories,
     formModel,
     formTitle,
     formVisible,
     goBack,
-    handleSortInput,
+    handleDragSortMove,
     handleStatusChange,
     handleTextInput,
     hasKeyword,
@@ -405,6 +624,8 @@ export function useAdminCategoriesPage() {
     resultSummary,
     saveCategory,
     saving,
+    sortSaving,
+    startDragSort,
     statusBarHeight,
     uploadFieldImage,
   }

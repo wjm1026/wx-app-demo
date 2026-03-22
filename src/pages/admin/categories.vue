@@ -44,7 +44,10 @@
     <template v-else-if="filteredCategories.length > 0">
       <view class="list-section">
         <view class="list-header">
-          <text class="list-title">分类列表</text>
+          <view class="list-copy">
+            <text class="list-title">分类列表</text>
+            <text class="list-subtitle">{{ dragHint }}</text>
+          </view>
           <view class="list-create-btn" @click="openCreateForm">新增</view>
         </view>
 
@@ -53,6 +56,7 @@
             v-for="category in filteredCategories"
             :key="category._id"
             class="category-card"
+            :class="{ dragging: draggingCategoryId === category._id }"
           >
             <view class="category-main">
               <view class="category-icon-shell" :style="{ background: category.gradient || '#eef2ff' }">
@@ -81,6 +85,16 @@
             </view>
 
             <view class="category-actions">
+              <view
+                class="action-btn sort"
+                :class="{ active: draggingCategoryId === category._id, disabled: !canDragSort }"
+                @touchstart.stop="startDragSort(category._id, $event)"
+                @touchmove.stop.prevent="handleDragSortMove($event)"
+                @touchend.stop="endDragSort"
+                @touchcancel.stop="endDragSort"
+              >
+                {{ draggingCategoryId === category._id ? '拖动中...' : '拖拽排序' }}
+              </view>
               <view class="action-btn edit" @click="openEditForm(category)">编辑</view>
               <view class="action-btn delete" @click="deleteCategory(category)">删除</view>
             </view>
@@ -173,14 +187,8 @@
             </view>
 
             <view class="form-item">
-              <text class="form-label">排序值</text>
-              <input
-                class="form-input"
-                type="number"
-                :value="String(formModel.sort)"
-                placeholder="数值越大越靠前"
-                @input="handleSortInput($event)"
-              />
+              <text class="form-label">排序</text>
+              <view class="form-static-value">在分类列表中拖拽调整</view>
             </view>
 
             <view class="form-item span-2">
@@ -231,15 +239,19 @@
 import { useAdminCategoriesPage } from './hooks/useAdminCategoriesPage'
 
 const {
+  canDragSort,
   clearKeyword,
   closeForm,
+  dragHint,
   deleteCategory,
+  draggingCategoryId,
+  endDragSort,
   filteredCategories,
   formModel,
   formTitle,
   formVisible,
   goBack,
-  handleSortInput,
+  handleDragSortMove,
   handleStatusChange,
   handleTextInput,
   hasKeyword,
@@ -254,6 +266,7 @@ const {
   resultSummary,
   saveCategory,
   saving,
+  startDragSort,
   statusBarHeight,
   uploadFieldImage,
 } = useAdminCategoriesPage()
