@@ -5,7 +5,20 @@
         <view class="nav-back" @tap="goBack">
           <image class="nav-back-icon" src="/static/icons/line/chevron-right.svg" mode="aspectFit" />
         </view>
-        <text class="nav-title">{{ categoryName }}</text>
+        <view class="nav-title-wrap">
+          <text class="nav-title">{{ categoryName }}</text>
+          <view
+            v-if="total > 0"
+            class="nav-index-chip"
+            :class="{ 'is-complete': currentDisplayIndex >= total }"
+          >
+            <view
+              class="nav-index-chip-fill"
+              :style="{ width: `${Math.round((currentDisplayIndex / total) * 100)}%` }"
+            ></view>
+            <view class="nav-index-chip-glint"></view>
+          </view>
+        </view>
         <view class="nav-placeholder"></view>
       </view>
     </view>
@@ -28,6 +41,31 @@
       </view>
 
       <view v-else class="detail-shell">
+        <view class="voice-actions">
+          <view
+            class="voice-action tone-cn"
+            :class="[
+              { 'is-disabled': !hasChineseAudio || isDetailLoading || !!detailError },
+              { 'is-playing': playingAudioType === 'cn' },
+            ]"
+            @tap="playChinesePronunciation"
+          >
+            <text class="voice-action-badge">CN</text>
+            <text class="voice-action-label">中文发音</text>
+          </view>
+          <view
+            class="voice-action tone-en"
+            :class="[
+              { 'is-disabled': !hasEnglishAudio || isDetailLoading || !!detailError },
+              { 'is-playing': playingAudioType === 'en' },
+            ]"
+            @tap="playEnglishPronunciation"
+          >
+            <text class="voice-action-badge">EN</text>
+            <text class="voice-action-label">英文发音</text>
+          </view>
+        </view>
+
         <swiper
           class="detail-swiper"
           :current="swiperCurrent"
@@ -55,19 +93,37 @@
           </swiper-item>
         </swiper>
 
-        <view class="detail-meta">
-          <view class="meta-head">
-            <text class="meta-title">{{ currentName || '未命名图片' }}</text>
-            <text class="meta-index">{{ currentDisplayIndex }} / {{ total }}</text>
+        <view
+          class="favorite-action"
+          :class="[
+            { 'is-active': isCurrentFavorited },
+            { 'is-disabled': isFavoriteLoading || isDetailLoading || !!detailError },
+          ]"
+          @tap="toggleCurrentFavorite"
+        >
+          <view class="favorite-action-main">
+            <view class="favorite-action-icon-shell">
+              <image
+                class="favorite-action-icon"
+                :src="isCurrentFavorited ? '/static/icons/line/check-circle.svg' : '/static/icons/line/heart.svg'"
+                mode="aspectFit"
+              />
+            </view>
+            <view class="favorite-action-copy">
+              <text class="favorite-action-title">{{ isCurrentFavorited ? '已收藏到学习夹' : '收藏这张卡片' }}</text>
+              <text class="favorite-action-desc">
+                {{ isCurrentFavorited ? '已加入学习收藏夹，随时复习' : '点击加入收藏夹，方便下次快速学习' }}
+              </text>
+            </view>
           </view>
-          <text v-if="currentDescription" class="meta-description">{{ currentDescription }}</text>
+          <view class="favorite-action-cta">{{ isCurrentFavorited ? '已收藏' : '立即收藏' }}</view>
+        </view>
 
-          <view v-if="isDetailLoading" class="meta-tip">正在加载详情...</view>
+        <view v-if="isDetailLoading" class="meta-tip">正在加载详情...</view>
 
-          <view v-else-if="detailError" class="meta-error">
-            <text class="meta-error-text">{{ detailError }}</text>
-            <view class="meta-retry" @tap="retryCurrentDetail">重试</view>
-          </view>
+        <view v-else-if="detailError" class="meta-error">
+          <text class="meta-error-text">{{ detailError }}</text>
+          <view class="meta-retry" @tap="retryCurrentDetail">重试</view>
         </view>
       </view>
     </view>
@@ -81,20 +137,26 @@ const {
   activeIndex,
   canSwipe,
   categoryName,
-  currentDescription,
   currentDisplayIndex,
-  currentName,
   detailError,
   goBack,
+  hasChineseAudio,
+  hasEnglishAudio,
   handleSwiperChange,
   isDetailLoading,
   isEmpty,
+  isCurrentFavorited,
+  isFavoriteLoading,
   isSnapshotLoading,
+  playChinesePronunciation,
+  playEnglishPronunciation,
+  playingAudioType,
   retryCurrentDetail,
   retrySnapshot,
   snapshotCards,
   snapshotError,
   statusBarHeight,
+  toggleCurrentFavorite,
   resolveCardImage,
   shouldRenderMedia,
   swiperCurrent,
