@@ -3,7 +3,11 @@
     <view class="nav-bar" :style="{ paddingTop: `${statusBarHeight}px` }">
       <view class="nav-content">
         <view class="nav-back" @tap="goBack">
-          <image class="nav-back-icon" src="/static/icons/line/chevron-right.svg" mode="aspectFit" />
+          <image
+            class="nav-back-icon"
+            src="/static/icons/line/chevron-right.svg"
+            mode="aspectFit"
+          />
         </view>
         <view class="nav-title-wrap">
           <text class="nav-title">{{ categoryName }}</text>
@@ -14,7 +18,9 @@
           >
             <view
               class="nav-index-chip-fill"
-              :style="{ width: `${Math.round((currentDisplayIndex / total) * 100)}%` }"
+              :style="{
+                width: `${Math.round((currentDisplayIndex / total) * 100)}%`,
+              }"
             ></view>
             <view class="nav-index-chip-glint"></view>
           </view>
@@ -45,7 +51,10 @@
           <view
             class="voice-action tone-cn"
             :class="[
-              { 'is-disabled': !hasChineseAudio || isDetailLoading || !!detailError },
+              {
+                'is-disabled':
+                  !hasChineseAudio || isDetailLoading || !!detailError,
+              },
               { 'is-playing': playingAudioType === 'cn' },
             ]"
             @tap="playChinesePronunciation"
@@ -56,7 +65,10 @@
           <view
             class="voice-action tone-en"
             :class="[
-              { 'is-disabled': !hasEnglishAudio || isDetailLoading || !!detailError },
+              {
+                'is-disabled':
+                  !hasEnglishAudio || isDetailLoading || !!detailError,
+              },
               { 'is-playing': playingAudioType === 'en' },
             ]"
             @tap="playEnglishPronunciation"
@@ -85,7 +97,6 @@
                 class="detail-media"
                 :src="resolveCardImage(item)"
                 mode="aspectFit"
-                :lazy-load="index !== activeIndex"
                 :show-menu-by-longpress="true"
               />
               <view v-else class="detail-media-empty"></view>
@@ -97,7 +108,10 @@
           class="favorite-action"
           :class="[
             { 'is-active': isCurrentFavorited },
-            { 'is-disabled': isFavoriteLoading || isDetailLoading || !!detailError },
+            {
+              'is-disabled':
+                isFavoriteLoading || isDetailLoading || !!detailError,
+            },
           ]"
           @tap="toggleCurrentFavorite"
         >
@@ -105,18 +119,30 @@
             <view class="favorite-action-icon-shell">
               <image
                 class="favorite-action-icon"
-                :src="isCurrentFavorited ? '/static/icons/line/check-circle.svg' : '/static/icons/line/heart.svg'"
+                :src="
+                  isCurrentFavorited
+                    ? '/static/icons/line/check-circle.svg'
+                    : '/static/icons/line/heart.svg'
+                "
                 mode="aspectFit"
               />
             </view>
             <view class="favorite-action-copy">
-              <text class="favorite-action-title">{{ isCurrentFavorited ? '已收藏到学习夹' : '收藏这张卡片' }}</text>
+              <text class="favorite-action-title">{{
+                isCurrentFavorited ? "已收藏到学习夹" : "收藏这张卡片"
+              }}</text>
               <text class="favorite-action-desc">
-                {{ isCurrentFavorited ? '已加入学习收藏夹，随时复习' : '点击加入收藏夹，方便下次快速学习' }}
+                {{
+                  isCurrentFavorited
+                    ? "已加入学习收藏夹，随时复习"
+                    : "点击加入收藏夹，方便下次快速学习"
+                }}
               </text>
             </view>
           </view>
-          <view class="favorite-action-cta">{{ isCurrentFavorited ? '已收藏' : '立即收藏' }}</view>
+          <view class="favorite-action-cta">{{
+            isCurrentFavorited ? "已收藏" : "立即收藏"
+          }}</view>
         </view>
 
         <view v-if="isDetailLoading" class="meta-tip">正在加载详情...</view>
@@ -131,7 +157,7 @@
 </template>
 
 <script setup lang="ts">
-import { useCategoryDetailPage } from './hooks/useCategoryDetailPage'
+import { useCategoryDetailPage } from "./hooks/useCategoryDetailPage";
 
 const {
   activeIndex,
@@ -161,7 +187,7 @@ const {
   shouldRenderMedia,
   swiperCurrent,
   total,
-} = useCategoryDetailPage()
+} = useCategoryDetailPage();
 </script>
 
 <style src="./styles/detail.scss" scoped lang="scss"></style>

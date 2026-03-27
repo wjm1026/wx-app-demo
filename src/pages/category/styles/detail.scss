@@ -178,6 +178,9 @@
 }
 
 .state-card {
+  width: 100%;
+  box-sizing: border-box;
+  align-self: flex-start;
   margin-top: 80rpx;
   padding: 56rpx $spacing-4;
   border-radius: $radius-xl;

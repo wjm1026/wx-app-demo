@@ -291,7 +291,7 @@ export function useCategoryDetailData(options: DetailDataOptions) {
     cacheVersion.value
     const cardId = String(card?._id || '')
     const detail = cardId ? peekCachedDetail(cardId) : null
-    return detail?.image || card.image_thumb || card.image || ''
+    return detail?.image || card.image || ''
   }
 
   // 对外只暴露页面需要的状态和方法

@@ -46,7 +46,7 @@
           <view class="card-media">
             <CardImage
               class="card-image"
-              :src="item.image_thumb || item.image"
+              :src="item.image"
               :label="item.name"
               mode="aspectFill"
             />

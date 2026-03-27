@@ -76,7 +76,6 @@ export interface CardLite {
   category_id: string
   name: string
   image: string
-  image_thumb?: string
   update_time?: number
 }
 
