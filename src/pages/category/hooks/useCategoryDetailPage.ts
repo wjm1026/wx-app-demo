@@ -86,7 +86,12 @@ export function useCategoryDetailPage() {
     getSource: (type) => (type === 'cn' ? chineseAudioSrc.value : englishAudioSrc.value),
   })
 
-  const { playingAudioType, playChinesePronunciation, playEnglishPronunciation } = audioController
+  const {
+    destroyPlayingAudio,
+    playingAudioType,
+    playChinesePronunciation,
+    playEnglishPronunciation,
+  } = audioController
   stopPlayingAudio = audioController.stopPlayingAudio
 
   /** 返回上一页 */
@@ -155,9 +160,9 @@ export function useCategoryDetailPage() {
     void loadSnapshotCards()
   })
 
-  /** 页面卸载：统一停止音频，避免后台继续播放 */
+  /** 页面卸载：销毁音频实例，避免后台继续播放和旧监听残留 */
   onUnload(() => {
-    stopPlayingAudio()
+    destroyPlayingAudio()
   })
 
   // 仅向模板暴露展示和交互必须的数据/方法

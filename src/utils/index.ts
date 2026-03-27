@@ -284,16 +284,34 @@ export function formatRelativeDate(value: DateValue): string {
 }
 
 let innerAudioContext: UniApp.InnerAudioContext | null = null
+let innerAudioSrc = ''
 
 /** 播放音频 */
 export function playAudio(src: string) {
+  const normalizedSrc = String(src || '').trim()
+  if (!normalizedSrc) {
+    throw new Error('音频地址为空')
+  }
+
+  if (innerAudioContext && innerAudioSrc === normalizedSrc) {
+    try {
+      innerAudioContext.seek(0)
+    } catch {
+      // 某些平台在资源尚未就绪时 seek 可能失败，忽略后直接 play 即可。
+    }
+
+    innerAudioContext.play()
+    return innerAudioContext
+  }
+
   if (innerAudioContext) {
     innerAudioContext.stop()
     innerAudioContext.destroy()
   }
 
   innerAudioContext = uni.createInnerAudioContext()
-  innerAudioContext.src = src
+  innerAudioSrc = normalizedSrc
+  innerAudioContext.src = normalizedSrc
   innerAudioContext.play()
 
   return innerAudioContext
@@ -306,6 +324,17 @@ export function stopAudio() {
   }
 
   innerAudioContext.stop()
+}
+
+/** 销毁音频实例 */
+export function destroyAudio() {
+  if (!innerAudioContext) {
+    innerAudioSrc = ''
+    return
+  }
+
+  innerAudioContext.stop()
   innerAudioContext.destroy()
   innerAudioContext = null
+  innerAudioSrc = ''
 }

@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { getErrorMessage, playAudio, showToast, stopAudio } from '@/utils'
+import { destroyAudio, getErrorMessage, playAudio, showToast, stopAudio } from '@/utils'
 
 type AudioType = '' | 'cn' | 'en'
 type PronunciationType = Exclude<AudioType, ''>
@@ -15,6 +15,7 @@ interface DetailAudioControllerOptions {
 export function useDetailAudioController(options: DetailAudioControllerOptions) {
   const playingAudioType = ref<AudioType>('')
   let activeAudioContext: UniApp.InnerAudioContext | null = null
+  let boundAudioContext: UniApp.InnerAudioContext | null = null
 
   /** 停止当前播放音频 */
   function stopPlayingAudio() {
@@ -23,10 +24,24 @@ export function useDetailAudioController(options: DetailAudioControllerOptions) 
     stopAudio()
   }
 
+  /** 页面卸载时销毁音频实例，避免遗留原生播放器和旧事件监听 */
+  function destroyPlayingAudio() {
+    playingAudioType.value = ''
+    activeAudioContext = null
+    boundAudioContext = null
+    destroyAudio()
+  }
+
   /** 绑定音频状态事件 */
   function bindAudioContext(context: UniApp.InnerAudioContext, type: PronunciationType) {
     activeAudioContext = context
     playingAudioType.value = type
+
+    if (boundAudioContext === context) {
+      return
+    }
+
+    boundAudioContext = context
 
     const clearWhenCurrent = () => {
       if (activeAudioContext !== context) {
@@ -82,6 +97,7 @@ export function useDetailAudioController(options: DetailAudioControllerOptions) 
   }
 
   return {
+    destroyPlayingAudio,
     playingAudioType,
     playChinesePronunciation,
     playEnglishPronunciation,
