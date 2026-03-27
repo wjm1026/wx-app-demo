@@ -2,6 +2,8 @@ import { apiDelete, apiGet, apiPost, apiPut } from './shared'
 import type {
   AdminCardPayload,
   AdminCardListQuery,
+  AdminCardBatchRequest,
+  AdminCardBatchResult,
   AdminCategoryPayload,
   AdminCheckResult,
   InviteTaskConfig,
@@ -66,6 +68,24 @@ export const adminApi = {
   /** 删除卡片 */
   deleteCard: (cardId: string) =>
     apiDelete(`/api/v1/admin/cards/${encodeURIComponent(cardId)}`) as Promise<ApiResponse>,
+  /** 批量中文转英文 */
+  translateCardZhToEn: (payload?: AdminCardBatchRequest) =>
+    apiPost<AdminCardBatchResult>(
+      '/api/v1/admin/cards/translate-zh-to-en',
+      payload,
+    ) as Promise<ApiResponse<AdminCardBatchResult>>,
+  /** 批量生成中文语音 */
+  generateCardCnAudio: (payload?: AdminCardBatchRequest) =>
+    apiPost<AdminCardBatchResult>(
+      '/api/v1/admin/cards/audio/generate-cn',
+      payload,
+    ) as Promise<ApiResponse<AdminCardBatchResult>>,
+  /** 批量生成英文语音（默认不自动翻译） */
+  generateCardEnAudio: (payload?: AdminCardBatchRequest & { autoTranslate?: boolean }) =>
+    apiPost<AdminCardBatchResult>(
+      '/api/v1/admin/cards/audio/generate-en',
+      payload,
+    ) as Promise<ApiResponse<AdminCardBatchResult>>,
   /** 获取分类列表 */
   getCategoryList: () => apiGet<Category[]>('/api/v1/admin/categories') as Promise<ApiResponse<Category[]>>,
   /** 保存分类 */

@@ -175,6 +175,37 @@ export interface AdminLearningLogResetResult {
   achievementsUntouched: boolean
 }
 
+export interface AdminAliyunCredentials {
+  appKey?: string
+  accessKeyId?: string
+  accessKeySecret?: string
+  nlsToken?: string
+}
+
+export interface AdminCardBatchRequest {
+  overwrite?: boolean
+  limit?: number
+  startId?: number
+  onlyEnabled?: boolean
+  credentials?: AdminAliyunCredentials
+}
+
+export interface AdminCardBatchResult {
+  scanned?: number
+  generated?: number
+  translated?: number
+  skipped?: number
+  failed?: number
+  elapsedMs?: number
+  limit?: number
+  overwrite?: boolean
+  onlyEnabled?: boolean
+  startId?: string
+  autoTranslate?: boolean
+  bucket?: string
+  prefix?: string
+}
+
 export interface AdminUserListItem {
   _id: string
   nickname?: string

@@ -60,6 +60,13 @@
       }
     },
     {
+      "path": "pages/admin/batch-runner",
+      "style": {
+        "navigationBarTitleText": "批处理配置",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/admin/users",
       "style": {
         "navigationBarTitleText": "用户管理",

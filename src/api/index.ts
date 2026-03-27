@@ -7,8 +7,11 @@ export { userApi } from './user'
 export type {
   Achievement,
   AchievementsResult,
+  AdminAliyunCredentials,
   AdminCardPayload,
   AdminCardListQuery,
+  AdminCardBatchRequest,
+  AdminCardBatchResult,
   AdminCategoryPayload,
   AdminCheckResult,
   AdminLearningLogResetResult,

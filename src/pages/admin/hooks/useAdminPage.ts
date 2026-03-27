@@ -1,6 +1,10 @@
 import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { adminApi, cardApi, type AdminStatsResult } from '@/api'
+import {
+  adminApi,
+  cardApi,
+  type AdminStatsResult,
+} from '@/api'
 import { useConfirmedAction } from '@/composables/useConfirmedAction'
 import { usePageLayout } from '@/composables/usePageLayout'
 import {
@@ -18,6 +22,8 @@ interface AdminStats {
   todayNewUsers: number
   todayActiveUsers: number
 }
+
+type CardBatchActionType = 'translate-zh-to-en' | 'generate-cn-audio' | 'generate-en-audio'
 
 /** 规范化统计数据 */
 function normalizeStats(data?: AdminStatsResult): AdminStats {
@@ -226,6 +232,36 @@ export function useAdminPage() {
       onClick: repairCardImages,
     },
     {
+      key: 'translate-zh-to-en',
+      title: '中文转英文',
+      desc: '批量将中文名称翻译成英文，仅更新 name_en 字段。',
+      note: '进入配置页填写参数和凭据后执行，支持仅补空值或覆盖已有英文。',
+      buttonLabel: '开始翻译',
+      icon: '/static/icons/line/gift.svg',
+      tone: 'tone-safe',
+      onClick: () => goCardBatchRunner('translate-zh-to-en'),
+    },
+    {
+      key: 'generate-cn-audio',
+      title: '生成中文语音',
+      desc: '批量生成中文发音并写入 audio 字段。',
+      note: '进入配置页填写参数和凭据后执行，缺少中文名的卡片会跳过。',
+      buttonLabel: '开始生成',
+      icon: '/static/icons/line/check-circle.svg',
+      tone: 'tone-safe',
+      onClick: () => goCardBatchRunner('generate-cn-audio'),
+    },
+    {
+      key: 'generate-en-audio',
+      title: '生成英文语音',
+      desc: '按 name_en 批量生成英文发音并写入 audio_en 字段。',
+      note: '进入配置页填写参数和凭据后执行，固定不自动翻译，name_en 为空会跳过。',
+      buttonLabel: '开始生成',
+      icon: '/static/icons/line/ticket.svg',
+      tone: 'tone-safe',
+      onClick: () => goCardBatchRunner('generate-en-audio'),
+    },
+    {
       key: 'clear-learning-log',
       title: '清空学习记录',
       desc: '删除 learning_log 全表，并把用户学习计数统一归零。',
@@ -289,6 +325,11 @@ export function useAdminPage() {
         await loadStats()
       },
     })
+  }
+
+  /** 跳转到批处理配置页 */
+  function goCardBatchRunner(action: CardBatchActionType) {
+    navigateTo(`/pages/admin/batch-runner?action=${encodeURIComponent(action)}`)
   }
 
   /** 初始化数据 */
