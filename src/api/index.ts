@@ -9,6 +9,7 @@ export type {
   AchievementsResult,
   AdminAliyunCredentials,
   AdminCardPayload,
+  AdminCardSortPayload,
   AdminCardListQuery,
   AdminCardBatchRequest,
   AdminCardBatchResult,

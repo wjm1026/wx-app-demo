@@ -62,6 +62,7 @@ export interface Card {
   view_count: number
   favorite_count: number
   is_hot: boolean
+  sort?: number
   category?: Category
   isFavorited?: boolean
   favorite_id?: string
@@ -233,6 +234,11 @@ export interface AdminCardListQuery {
 
 export interface AdminCardPayload extends Partial<Card> {
   _id?: string
+}
+
+export interface AdminCardSortPayload {
+  _id: string
+  sort: number
 }
 
 export interface AdminCategoryPayload {

@@ -158,6 +158,13 @@ $admin-danger: #c2410c;
   min-width: 0;
 }
 
+.section-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
 .section-title {
   display: block;
   font-size: 32rpx;
@@ -198,6 +205,16 @@ $admin-danger: #c2410c;
   border-radius: 18rpx;
   background: linear-gradient(135deg, $admin-primary, $admin-primary-strong);
   color: #fff;
+}
+
+.section-action.warn {
+  border-radius: 18rpx;
+  background: rgba(217, 119, 6, 0.14);
+  color: #9a3412;
+}
+
+.section-action.disabled {
+  opacity: 0.56;
 }
 
 .search-panel,
@@ -478,6 +495,11 @@ $admin-danger: #c2410c;
   padding: 20rpx;
 }
 
+.card-item.dragging {
+  border-color: rgba(29, 78, 216, 0.42);
+  box-shadow: 0 24rpx 56rpx rgba(29, 78, 216, 0.18);
+}
+
 .card-main {
   display: flex;
   gap: 16rpx;
@@ -548,6 +570,11 @@ $admin-danger: #c2410c;
   color: $admin-safe;
 }
 
+.badge.is-sort {
+  background: rgba(29, 78, 216, 0.14);
+  color: $admin-primary-strong;
+}
+
 .card-subtitle {
   display: block;
   margin-top: 8rpx;
@@ -606,6 +633,20 @@ $admin-danger: #c2410c;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+}
+
+.card-action.sort {
+  background: rgba(29, 78, 216, 0.1);
+  color: $admin-primary;
+}
+
+.card-action.sort.active {
+  background: rgba(29, 78, 216, 0.2);
+  color: $admin-primary-strong;
+}
+
+.card-action.sort.disabled {
+  opacity: 0.56;
 }
 
 .card-action.edit {

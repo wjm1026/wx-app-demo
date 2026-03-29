@@ -3,6 +3,7 @@ import { onPullDownRefresh, onReachBottom, onShow } from '@dcloudio/uni-app'
 import {
   adminApi,
   type AdminCardPayload,
+  type AdminCardSortPayload,
   type Card,
   type Category,
 } from '@/api'
@@ -43,6 +44,7 @@ interface CardFormState {
   is_free: boolean
   points_cost: number
   is_hot: boolean
+  sort: number
   status: number
 }
 
@@ -60,9 +62,14 @@ type CardTextField =
   | 'video'
   | 'tagsInput'
 
-type CardNumberField = 'points_cost'
+type CardNumberField = 'points_cost' | 'sort'
 
 type ValueEvent = Event | { detail?: { value?: unknown } }
+type TouchPoint = { clientY?: number; pageY?: number }
+type TouchValueEvent = ValueEvent & {
+  touches?: TouchPoint[]
+  changedTouches?: TouchPoint[]
+}
 
 const STATUS_TABS = [
   { value: -1, label: '全部状态', note: '含启用和禁用' },
@@ -71,9 +78,11 @@ const STATUS_TABS = [
 ] as const
 
 const LAST_SELECTED_CATEGORY_STORAGE_KEY = 'admin:cards:lastSelectedCategoryId'
+const SORT_STEP = 10
+const DRAG_MOVE_STEP_PX = 56
 
 /** 创建默认表单 */
-function createDefaultForm(categoryId = ''): CardFormState {
+function createDefaultForm(categoryId = '', sort = 0): CardFormState {
   return {
     name: '',
     name_en: '',
@@ -90,8 +99,46 @@ function createDefaultForm(categoryId = ''): CardFormState {
     is_free: true,
     points_cost: 0,
     is_hot: false,
+    sort,
     status: 1,
   }
+}
+
+/** 规范化排序值 */
+function normalizeSort(value: unknown) {
+  const parsed = Number.parseInt(String(value ?? '0'), 10)
+  return Number.isNaN(parsed) ? 0 : parsed
+}
+
+/** 从卡片ID解析数值（用于兜底排序） */
+function parseCardNumericId(cardId: unknown) {
+  const parsed = Number.parseInt(String(cardId ?? '0'), 10)
+  return Number.isNaN(parsed) ? 0 : parsed
+}
+
+/** 卡片排序比较器 */
+function compareCardSort(left: Card, right: Card) {
+  const sortDiff = normalizeSort(right.sort) - normalizeSort(left.sort)
+  if (sortDiff !== 0) {
+    return sortDiff
+  }
+
+  const createTimeDiff = Number(right.create_time || 0) - Number(left.create_time || 0)
+  if (createTimeDiff !== 0) {
+    return createTimeDiff
+  }
+
+  return parseCardNumericId(right._id) - parseCardNumericId(left._id)
+}
+
+/** 生成排序后的卡片列表 */
+function sortCardRows(rows: Card[]) {
+  return [...rows].sort(compareCardSort)
+}
+
+/** 根据位置计算排序值 */
+function computeSortByIndex(index: number, total: number) {
+  return (Math.max(total, 1) - index) * SORT_STEP
 }
 
 /** 规范化标签 */
@@ -113,8 +160,15 @@ export function useAdminCardsPage() {
   const categoriesLoading = ref(false)
   const formVisible = ref(false)
   const formSaving = ref(false)
+  const sortSaving = ref(false)
   const imageUploading = ref(false)
   const formModel = ref<CardFormState>(createDefaultForm())
+  const draggingCardId = ref('')
+  const draggingIndex = ref(-1)
+  const draggingTouchY = ref(0)
+  const dragOrderSnapshot = ref<string[]>([])
+  const sortBaselineMap = ref<Map<string, number>>(new Map())
+  const pendingSortMap = ref<Map<string, number>>(new Map())
   const lastSelectedCategoryId = ref(String(uni.getStorageSync(LAST_SELECTED_CATEGORY_STORAGE_KEY) || ''))
 
   const {
@@ -137,6 +191,8 @@ export function useAdminCardsPage() {
   const selectedStatusTab = computed(
     () => STATUS_TABS.find((item) => item.value === activeStatus.value) ?? STATUS_TABS[0],
   )
+  const pendingSortCount = computed(() => pendingSortMap.value.size)
+  const hasPendingSortChanges = computed(() => pendingSortCount.value > 0)
 
   const categoryFilterOptions = computed(() => [
     {
@@ -162,11 +218,54 @@ export function useAdminCardsPage() {
     return '全部分类'
   })
 
+  const dragBlockReason = computed(() => {
+    if (sortSaving.value) {
+      return '排序保存中，请稍候'
+    }
+    if (formSaving.value) {
+      return '表单保存中，请稍候'
+    }
+    if (loading.value) {
+      return '列表加载中，请稍候'
+    }
+    if (!activeCategoryId.value) {
+      return '请先选择单个分类后再拖拽排序'
+    }
+    if (normalizedKeyword.value) {
+      return '请先清空关键词后再拖拽排序'
+    }
+    if (activeStatus.value !== -1) {
+      return '请切换到“全部状态”后再拖拽排序'
+    }
+    if (hasMore.value) {
+      return '请先上拉加载完全部卡片后再拖拽排序'
+    }
+    if (cardList.value.length <= 1) {
+      return '当前分类卡片不足两张，无需调整'
+    }
+    return ''
+  })
+  const canDragSort = computed(() => !dragBlockReason.value)
+  const dragHint = computed(() => {
+    if (dragBlockReason.value) {
+      return dragBlockReason.value
+    }
+    if (hasPendingSortChanges.value) {
+      return `有 ${pendingSortCount.value} 项待保存，点“保存排序”提交`
+    }
+    return '按住“拖拽排序”并上下移动'
+  })
+
   const resultSummary = computed(() =>
     `当前共 ${Number(total.value || cardList.value.length).toLocaleString()} 张卡片`,
   )
-
   const resultHint = computed(() => {
+    if (sortSaving.value) {
+      return '正在批量保存排序'
+    }
+    if (hasPendingSortChanges.value) {
+      return `当前有 ${pendingSortCount.value} 项排序待保存`
+    }
     if (loading.value) {
       return '正在同步最新卡片数据'
     }
@@ -201,7 +300,6 @@ export function useAdminCardsPage() {
     if (!normalized) {
       return
     }
-
     lastSelectedCategoryId.value = normalized
     uni.setStorageSync(LAST_SELECTED_CATEGORY_STORAGE_KEY, normalized)
   }
@@ -212,11 +310,9 @@ export function useAdminCardsPage() {
     if (rememberedCategoryId && hasCategory(rememberedCategoryId)) {
       return rememberedCategoryId
     }
-
     if (activeCategoryId.value && hasCategory(activeCategoryId.value)) {
       return activeCategoryId.value
     }
-
     return ''
   }
 
@@ -226,6 +322,75 @@ export function useAdminCardsPage() {
       return event.detail?.value
     }
     return undefined
+  }
+
+  /** 读取触摸位置 */
+  function readTouchY(event: ValueEvent) {
+    const touchEvent = event as TouchValueEvent
+    const touchPoint = touchEvent.touches?.[0] || touchEvent.changedTouches?.[0]
+    const y = Number(touchPoint?.clientY ?? touchPoint?.pageY)
+    return Number.isFinite(y) ? y : null
+  }
+
+  /** 重置拖拽上下文 */
+  function resetDragContext() {
+    draggingCardId.value = ''
+    draggingIndex.value = -1
+    draggingTouchY.value = 0
+    dragOrderSnapshot.value = []
+  }
+
+  /** 归一化列表排序值并按规则排序 */
+  function normalizeCardListRows(rows: Card[]) {
+    return sortCardRows(rows).map((item) => ({
+      ...item,
+      sort: normalizeSort(item.sort),
+    }))
+  }
+
+  /** 记录排序基线（用于识别待保存项） */
+  function resetSortBaseline(rows: Card[]) {
+    const nextBaseline = new Map<string, number>()
+    rows.forEach((item) => {
+      nextBaseline.set(item._id, normalizeSort(item.sort))
+    })
+    sortBaselineMap.value = nextBaseline
+    pendingSortMap.value = new Map()
+  }
+
+  /** 同步待保存排序项 */
+  function syncPendingSortChanges(rows: Card[] = cardList.value) {
+    const nextPending = new Map<string, number>()
+    rows.forEach((item) => {
+      const currentSort = normalizeSort(item.sort)
+      const baseSort = sortBaselineMap.value.get(item._id)
+      if (baseSort === undefined || baseSort !== currentSort) {
+        nextPending.set(item._id, currentSort)
+      }
+    })
+    pendingSortMap.value = nextPending
+  }
+
+  /** 拦截会刷新查询的动作，避免丢失未保存排序 */
+  function ensureNoPendingSortChanges() {
+    if (!hasPendingSortChanges.value) {
+      return true
+    }
+    showToast('有未保存排序，请先点击“保存排序”')
+    return false
+  }
+
+  /** 计算新建卡片默认排序值 */
+  function computeNextSort(categoryId: string) {
+    if (!categoryId) {
+      return 0
+    }
+
+    const highestSort = cardList.value
+      .filter((item) => item.category_id === categoryId)
+      .reduce((maxValue, item) => Math.max(maxValue, normalizeSort(item.sort)), 0)
+
+    return highestSort + SORT_STEP
   }
 
   /** 返回上一页 */
@@ -249,7 +414,14 @@ export function useAdminCardsPage() {
 
   /** 刷新列表 */
   async function refreshList() {
-    return refresh(buildQuery(), { replaceQuery: true })
+    resetDragContext()
+    const refreshed = await refresh(buildQuery(), { replaceQuery: true })
+    if (refreshed) {
+      const normalizedRows = normalizeCardListRows(cardList.value)
+      cardList.value = normalizedRows
+      resetSortBaseline(normalizedRows)
+    }
+    return refreshed
   }
 
   /** 加载分类列表 */
@@ -278,7 +450,9 @@ export function useAdminCardsPage() {
     if (activeStatus.value === value) {
       return
     }
-
+    if (!ensureNoPendingSortChanges()) {
+      return
+    }
     activeStatus.value = value
     void refreshList()
   }
@@ -288,13 +462,18 @@ export function useAdminCardsPage() {
     if (activeCategoryId.value === value) {
       return
     }
-
+    if (!ensureNoPendingSortChanges()) {
+      return
+    }
     activeCategoryId.value = value
     void refreshList()
   }
 
   /** 搜索 */
   function onSearch() {
+    if (!ensureNoPendingSortChanges()) {
+      return
+    }
     void refreshList()
   }
 
@@ -303,13 +482,18 @@ export function useAdminCardsPage() {
     if (!keyword.value) {
       return
     }
-
+    if (!ensureNoPendingSortChanges()) {
+      return
+    }
     keyword.value = ''
     void refreshList()
   }
 
   /** 重置筛选 */
   function resetFilters() {
+    if (!ensureNoPendingSortChanges()) {
+      return
+    }
     keyword.value = ''
     activeStatus.value = -1
     activeCategoryId.value = ''
@@ -335,13 +519,15 @@ export function useAdminCardsPage() {
       is_free: Boolean(card.is_free),
       points_cost: Number(card.points_cost || 0),
       is_hot: Boolean(card.is_hot),
+      sort: normalizeSort(card.sort),
       status: card.status === 0 ? 0 : 1,
     }
   }
 
   /** 打开新增表单 */
   function openCreateForm() {
-    formModel.value = createDefaultForm(resolveCreateFormCategoryId())
+    const categoryId = resolveCreateFormCategoryId()
+    formModel.value = createDefaultForm(categoryId, computeNextSort(categoryId))
     formVisible.value = true
   }
 
@@ -371,9 +557,15 @@ export function useAdminCardsPage() {
   /** 更新数值字段 */
   function handleFormNumberInput(field: CardNumberField, event: ValueEvent) {
     const parsed = Number.parseInt(String(readEventValue(event) ?? '0'), 10)
+    const nextValue = Number.isNaN(parsed)
+      ? 0
+      : field === 'points_cost'
+        ? Math.max(0, parsed)
+        : parsed
+
     formModel.value = {
       ...formModel.value,
-      [field]: Number.isNaN(parsed) ? 0 : Math.max(0, parsed),
+      [field]: nextValue,
     }
   }
 
@@ -402,9 +594,14 @@ export function useAdminCardsPage() {
 
     const selectedCategory = categories.value[index]
     const selectedCategoryId = selectedCategory?._id || ''
+    const nextSort = isEditMode.value
+      ? formModel.value.sort
+      : computeNextSort(selectedCategoryId)
+
     formModel.value = {
       ...formModel.value,
       category_id: selectedCategoryId,
+      sort: nextSort,
     }
     rememberLastSelectedCategory(selectedCategoryId)
   }
@@ -499,6 +696,7 @@ export function useAdminCardsPage() {
       is_free: current.is_free,
       points_cost: pointsCost,
       is_hot: current.is_hot,
+      sort: normalizeSort(current.sort),
       status: current.status === 0 ? 0 : 1,
     }
   }
@@ -526,6 +724,146 @@ export function useAdminCardsPage() {
     }
 
     return true
+  }
+
+  /** 应用拖拽排序结果并重算排序值（仅本地暂存） */
+  function applyDragOrder(rows: Card[]) {
+    const totalRows = rows.length
+    const reordered = rows.map((item, index) => ({
+      ...item,
+      sort: computeSortByIndex(index, totalRows),
+    }))
+    cardList.value = reordered
+    syncPendingSortChanges(reordered)
+  }
+
+  /** 提示拖拽阻塞原因 */
+  function handleSortActionTap() {
+    if (dragBlockReason.value) {
+      showToast(dragBlockReason.value)
+    }
+  }
+
+  /** 开始拖拽排序 */
+  function startDragSort(cardId: string, event: ValueEvent) {
+    if (dragBlockReason.value) {
+      showToast(dragBlockReason.value)
+      return
+    }
+
+    const touchY = readTouchY(event)
+    if (touchY === null) {
+      return
+    }
+
+    const orderedRows = [...cardList.value]
+    const startIndex = orderedRows.findIndex((item) => item._id === cardId)
+    if (startIndex < 0) {
+      return
+    }
+
+    dragOrderSnapshot.value = orderedRows.map((item) => item._id)
+    draggingCardId.value = cardId
+    draggingIndex.value = startIndex
+    draggingTouchY.value = touchY
+  }
+
+  /** 拖拽中调整顺序 */
+  function handleDragSortMove(event: ValueEvent) {
+    if (!draggingCardId.value || sortSaving.value) {
+      return
+    }
+
+    const touchY = readTouchY(event)
+    if (touchY === null) {
+      return
+    }
+
+    const deltaY = touchY - draggingTouchY.value
+    if (Math.abs(deltaY) < DRAG_MOVE_STEP_PX) {
+      return
+    }
+
+    const orderedRows = [...cardList.value]
+    const fromIndex = draggingIndex.value
+    if (fromIndex < 0 || fromIndex >= orderedRows.length) {
+      return
+    }
+
+    const toIndex = Math.min(
+      orderedRows.length - 1,
+      Math.max(0, fromIndex + (deltaY > 0 ? 1 : -1)),
+    )
+    if (toIndex === fromIndex) {
+      draggingTouchY.value = touchY
+      return
+    }
+
+    const [moved] = orderedRows.splice(fromIndex, 1)
+    if (!moved) {
+      return
+    }
+
+    orderedRows.splice(toIndex, 0, moved)
+    applyDragOrder(orderedRows)
+    draggingIndex.value = toIndex
+    draggingTouchY.value = touchY
+  }
+
+  /** 结束拖拽（仅暂存，不自动保存） */
+  function endDragSort() {
+    if (!draggingCardId.value) {
+      return
+    }
+
+    const previousOrder = [...dragOrderSnapshot.value]
+    const currentOrder = cardList.value.map((item) => item._id)
+    const changed =
+      previousOrder.length !== currentOrder.length ||
+      previousOrder.some((id, index) => id !== currentOrder[index])
+
+    resetDragContext()
+    if (changed) {
+      showToast('排序已暂存，点击“保存排序”后生效')
+    }
+  }
+
+  /** 批量保存当前排序 */
+  async function saveDragSortOrder() {
+    if (sortSaving.value) {
+      return
+    }
+
+    if (!hasPendingSortChanges.value) {
+      showToast('当前没有待保存的排序变化')
+      return
+    }
+
+    const items: AdminCardSortPayload[] = cardList.value
+      .filter((item) => pendingSortMap.value.has(item._id))
+      .map((item) => ({
+        _id: item._id,
+        sort: normalizeSort(item.sort),
+      }))
+
+    if (items.length === 0) {
+      showToast('当前没有待保存的排序变化')
+      return
+    }
+
+    sortSaving.value = true
+    try {
+      const response = assertApiSuccess(
+        await adminApi.saveCardSortBatch(items),
+        '保存排序失败',
+      )
+      showToast(response.msg || '排序已保存', 'success')
+      resetSortBaseline(cardList.value)
+    } catch (error) {
+      showToast(getErrorMessage(error, '保存排序失败'))
+    } finally {
+      sortSaving.value = false
+    }
   }
 
   /** 保存卡片 */
@@ -614,19 +952,36 @@ export function useAdminCardsPage() {
   })
 
   onPullDownRefresh(async () => {
+    if (!ensureNoPendingSortChanges()) {
+      uni.stopPullDownRefresh()
+      return
+    }
     await bootstrap()
     uni.stopPullDownRefresh()
   })
 
   onReachBottom(() => {
-    if (hasMore.value && !loading.value) {
-      void loadMore()
+    if (hasMore.value && !loading.value && !sortSaving.value && !draggingCardId.value) {
+      void loadMore().then((loaded) => {
+        if (!loaded) {
+          return
+        }
+
+        const normalizedRows = normalizeCardListRows(cardList.value)
+        cardList.value = normalizedRows
+        if (hasPendingSortChanges.value) {
+          syncPendingSortChanges(normalizedRows)
+          return
+        }
+        resetSortBaseline(normalizedRows)
+      })
     }
   })
 
   return {
     activeCategoryId,
     activeStatus,
+    canDragSort,
     cardList,
     categoriesLoading,
     categories,
@@ -634,39 +989,49 @@ export function useAdminCardsPage() {
     clearKeyword,
     closeForm,
     deleteCard,
+    dragHint,
+    draggingCardId,
+    endDragSort,
     formModel,
     formCategoryIndex,
     formSaving,
     formTitle,
     formVisible,
-    imageUploading,
     formatCardDate,
     formatTags,
     getCategoryName,
     goBack,
-    hasFilters,
-    hasMore,
+    handleDragSortMove,
     handleFormBooleanChange,
     handleFormCategoryChange,
     handleFormNumberInput,
     handleFormTextInput,
+    handleSortActionTap,
     handleStatusChange,
+    hasFilters,
+    hasMore,
+    hasPendingSortChanges,
+    imageUploading,
     isEditMode,
     keyword,
     loading,
     onSearch,
     openCreateForm,
     openEditForm,
-    uploadFormImage,
+    pendingSortCount,
     resetFilters,
     resultHint,
     resultSummary,
     saveCardForm,
+    saveDragSortOrder,
     selectedStatusTab,
+    sortSaving,
+    startDragSort,
     statusBarHeight,
     statusTabs: STATUS_TABS,
     switchCategory,
     switchStatus,
     total,
+    uploadFormImage,
   }
 }

@@ -102,12 +102,28 @@
           <view class="section-copy">
             <text class="section-title">卡片列表</text>
             <text class="section-subtitle">点击编辑可修改字段，删除操作会同步清理关联收藏。</text>
+            <text class="section-subtitle">{{ dragHint }}</text>
           </view>
-          <view class="section-action primary" @click="openCreateForm">新增</view>
+          <view class="section-actions">
+            <view
+              v-if="hasPendingSortChanges"
+              class="section-action warn"
+              :class="{ disabled: sortSaving }"
+              @click="saveDragSortOrder"
+            >
+              {{ sortSaving ? '保存中...' : `保存排序(${pendingSortCount})` }}
+            </view>
+            <view class="section-action primary" @click="openCreateForm">新增</view>
+          </view>
         </view>
 
         <view class="card-list">
-          <view v-for="card in cardList" :key="card._id" class="card-item">
+          <view
+            v-for="card in cardList"
+            :key="card._id"
+            class="card-item"
+            :class="{ dragging: draggingCardId === card._id }"
+          >
             <view class="card-main">
               <image class="card-cover" :src="card.image" mode="aspectFill" />
 
@@ -115,6 +131,7 @@
                 <view class="card-title-row">
                   <text class="card-title">{{ card.name || '未命名卡片' }}</text>
                   <view class="badge-row">
+                    <text class="badge is-sort">排序 {{ card.sort || 0 }}</text>
                     <text class="badge" :class="card.status === 0 ? 'is-muted' : 'is-ready'">
                       {{ card.status === 0 ? '禁用' : '启用' }}
                     </text>
@@ -139,6 +156,17 @@
             </view>
 
             <view class="card-actions">
+              <view
+                class="card-action sort"
+                :class="{ active: draggingCardId === card._id, disabled: !canDragSort }"
+                @click="handleSortActionTap"
+                @touchstart.stop="startDragSort(card._id, $event)"
+                @touchmove.stop.prevent="handleDragSortMove($event)"
+                @touchend.stop="endDragSort"
+                @touchcancel.stop="endDragSort"
+              >
+                {{ draggingCardId === card._id ? '拖动中...' : sortSaving ? '保存中...' : '拖拽排序' }}
+              </view>
               <view class="card-action edit" @click="openEditForm(card)">编辑</view>
               <view class="card-action delete" @click="deleteCard(card)">删除</view>
             </view>
@@ -323,6 +351,17 @@
               />
             </view>
 
+            <view class="form-item">
+              <text class="form-label">排序值</text>
+              <input
+                class="form-input"
+                type="number"
+                :value="String(formModel.sort)"
+                placeholder="值越大越靠前"
+                @input="handleFormNumberInput('sort', $event)"
+              />
+            </view>
+
             <view class="form-item switch-item">
               <text class="form-label">免费卡片</text>
               <switch
@@ -369,6 +408,7 @@ import { useAdminCardsPage } from './hooks/useAdminCardsPage'
 const {
   activeCategoryId,
   activeStatus,
+  canDragSort,
   cardList,
   categories,
   categoriesLoading,
@@ -376,16 +416,21 @@ const {
   clearKeyword,
   closeForm,
   deleteCard,
+  dragHint,
+  draggingCardId,
+  endDragSort,
   formModel,
   formCategoryIndex,
   formSaving,
   formTitle,
   formVisible,
   imageUploading,
+  handleDragSortMove,
   formatCardDate,
   formatTags,
   getCategoryName,
   goBack,
+  handleSortActionTap,
   hasFilters,
   hasMore,
   handleFormBooleanChange,
@@ -399,10 +444,15 @@ const {
   onSearch,
   openCreateForm,
   openEditForm,
+  hasPendingSortChanges,
+  pendingSortCount,
   resetFilters,
   resultHint,
   resultSummary,
   saveCardForm,
+  saveDragSortOrder,
+  sortSaving,
+  startDragSort,
   statusBarHeight,
   statusTabs,
   switchCategory,

@@ -1,6 +1,7 @@
 import { apiDelete, apiGet, apiPost, apiPut } from './shared'
 import type {
   AdminCardPayload,
+  AdminCardSortPayload,
   AdminCardListQuery,
   AdminCardBatchRequest,
   AdminCardBatchResult,
@@ -65,6 +66,11 @@ export const adminApi = {
     }
     return apiPost('/api/v1/admin/cards', payload) as Promise<ApiResponse>
   },
+  /** 批量保存卡片排序 */
+  saveCardSortBatch: (items: AdminCardSortPayload[]) =>
+    apiPost<{ updatedCount: number }>('/api/v1/admin/cards/sort/batch', { items }) as Promise<
+      ApiResponse<{ updatedCount: number }>
+    >,
   /** 删除卡片 */
   deleteCard: (cardId: string) =>
     apiDelete(`/api/v1/admin/cards/${encodeURIComponent(cardId)}`) as Promise<ApiResponse>,
