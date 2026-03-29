@@ -13,6 +13,12 @@ export const TABBAR_ITEMS: TabbarItem[] = [
     activeIcon: '/static/icons/tabbar/home-solid.svg'
   },
   {
+    pagePath: '/pages/game/game',
+    text: '游戏',
+    icon: '/static/icons/tabbar/game-line.svg',
+    activeIcon: '/static/icons/tabbar/game-solid.svg'
+  },
+  {
     pagePath: '/pages/user/user',
     text: '我的',
     icon: '/static/icons/tabbar/user-line.svg',

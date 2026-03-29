@@ -1,0 +1,8 @@
+.page.game-page {
+  min-height: 100vh;
+  background: $color-bg-primary;
+}
+
+.game-placeholder {
+  min-height: calc(100vh - 160rpx - env(safe-area-inset-bottom));
+}

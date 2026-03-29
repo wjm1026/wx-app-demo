@@ -24,6 +24,13 @@
       }
     },
     {
+      "path": "pages/game/game",
+      "style": {
+        "navigationBarTitleText": "游戏",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/user/user",
       "style": {
         "navigationBarTitleText": "我的",
@@ -127,7 +134,7 @@
   "tabBar": {
     "custom": true,
     "color": "#8D98AB",
-    "selectedColor": "#FF5D6E",
+    "selectedColor": "#A16207",
     "borderStyle": "black",
     "backgroundColor": "#FFFFFF",
     "list": [
@@ -136,6 +143,12 @@
         "text": "首页",
         "iconPath": "static/tabbar/home.png",
         "selectedIconPath": "static/tabbar/home-active.png"
+      },
+      {
+        "pagePath": "pages/game/game",
+        "text": "游戏",
+        "iconPath": "static/tabbar/game.png",
+        "selectedIconPath": "static/tabbar/game-active.png"
       },
       {
         "pagePath": "pages/user/user",
