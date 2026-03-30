@@ -17,7 +17,7 @@
       <text class="hero-title">{{ actionMeta.title }}</text>
       <text class="hero-desc">{{ actionMeta.subtitle }}</text>
       <text class="hero-note">{{ actionMeta.requirement }}</text>
-      <text v-if="isAudioAction" class="hero-warning">英文语音固定 autoTranslate=false，name_en 为空会跳过。</text>
+      <text v-if="actionTag === 'EN TTS'" class="hero-warning">英文语音固定 autoTranslate=false，name_en 为空会跳过。</text>
     </view>
 
     <view class="section-card">
@@ -121,6 +121,126 @@
           <switch :checked="params.overwrite" color="#f97316" @change="handleOverwriteChange" />
         </view>
       </view>
+
+      <view v-if="isGamePromptAction" class="game-extra">
+        <view class="section-head compact">
+          <text class="section-title">游戏语音参数</text>
+        </view>
+        <text class="section-subtitle">选择分类后将按题干模板批量生成到 `game/&lt;游戏名&gt;/` 目录。</text>
+
+        <view class="form-grid">
+          <view class="form-item">
+            <text class="form-label">分类</text>
+            <picker
+              :range="categoryOptions"
+              range-key="name"
+              :value="categoryPickerIndex"
+              @change="handleCategoryChange"
+            >
+              <view class="form-picker">
+                <text class="form-picker-text" :class="{ placeholder: !selectedCategoryName }">
+                  {{ selectedCategoryName || (categoriesLoading ? '分类加载中...' : '请选择分类') }}
+                </text>
+              </view>
+            </picker>
+          </view>
+
+          <view class="form-item">
+            <text class="form-label">游戏名（目录）</text>
+            <input
+              class="form-input"
+              :value="params.gameName"
+              placeholder="如 listen-pick"
+              @input="handleGameParamInput('gameName', $event)"
+            />
+          </view>
+
+          <view class="form-item full">
+            <text class="form-label">模板（每行一条）</text>
+            <textarea
+              class="form-textarea"
+              :value="params.template"
+              maxlength="400"
+              placeholder="小朋友，请问下面哪一张是“%s”呢？\n请指出下面“%s”的图片。"
+              @input="handleGameParamInput('template', $event)"
+            />
+          </view>
+
+          <view class="form-item">
+            <text class="form-label">音色</text>
+            <input
+              class="form-input"
+              :value="params.voice"
+              placeholder="zhibei_emo"
+              @input="handleGameParamInput('voice', $event)"
+            />
+          </view>
+
+          <view class="form-item">
+            <text class="form-label">情感</text>
+            <input
+              class="form-input"
+              :value="params.emotionCategory"
+              placeholder="happy / 开心"
+              @input="handleGameParamInput('emotionCategory', $event)"
+            />
+          </view>
+
+          <view class="form-item">
+            <text class="form-label">语速 (-500~500)</text>
+            <input
+              class="form-input"
+              type="number"
+              :value="params.speechRate"
+              placeholder="46"
+              @input="handleGameParamInput('speechRate', $event)"
+            />
+          </view>
+
+          <view class="form-item">
+            <text class="form-label">语调 (-500~500)</text>
+            <input
+              class="form-input"
+              type="number"
+              :value="params.pitchRate"
+              placeholder="0"
+              @input="handleGameParamInput('pitchRate', $event)"
+            />
+          </view>
+
+          <view class="form-item">
+            <text class="form-label">音量 (0~100)</text>
+            <input
+              class="form-input"
+              type="number"
+              :value="params.volume"
+              placeholder="100"
+              @input="handleGameParamInput('volume', $event)"
+            />
+          </view>
+
+          <view class="form-item">
+            <text class="form-label">采样率</text>
+            <input
+              class="form-input"
+              type="number"
+              :value="params.sampleRate"
+              placeholder="16000"
+              @input="handleGameParamInput('sampleRate', $event)"
+            />
+          </view>
+
+          <view class="form-item">
+            <text class="form-label">格式</text>
+            <input
+              class="form-input"
+              :value="params.format"
+              placeholder="mp3"
+              @input="handleGameParamInput('format', $event)"
+            />
+          </view>
+        </view>
+      </view>
     </view>
 
     <view class="action-bar">
@@ -166,21 +286,27 @@ import { useAdminBatchRunnerPage } from './hooks/useAdminBatchRunnerPage'
 const {
   actionMeta,
   actionTag,
+  categoriesLoading,
+  categoryOptions,
+  categoryPickerIndex,
   clearCredentials,
   credentials,
   goBack,
+  handleCategoryChange,
   handleCredentialInput,
+  handleGameParamInput,
   handleLimitInput,
   handleOnlyEnabledChange,
   handleOverwriteChange,
   handleStartIdInput,
-  isAudioAction,
+  isGamePromptAction,
   params,
   revealSecrets,
   result,
   resultMessage,
   resultSummary,
   running,
+  selectedCategoryName,
   statusBarHeight,
   submitBatch,
   toggleSecretVisibility,

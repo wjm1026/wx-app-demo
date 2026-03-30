@@ -4,6 +4,7 @@ import type {
   AdminCardSortPayload,
   AdminCardListQuery,
   AdminCardBatchRequest,
+  AdminGamePromptAudioRequest,
   AdminCardBatchResult,
   AdminCategoryPayload,
   AdminCheckResult,
@@ -90,6 +91,12 @@ export const adminApi = {
   generateCardEnAudio: (payload?: AdminCardBatchRequest & { autoTranslate?: boolean }) =>
     apiPost<AdminCardBatchResult>(
       '/api/v1/admin/cards/audio/generate-en',
+      payload,
+    ) as Promise<ApiResponse<AdminCardBatchResult>>,
+  /** 批量生成游戏题干语音（支持按分类） */
+  generateGamePromptAudio: (payload?: AdminGamePromptAudioRequest) =>
+    apiPost<AdminCardBatchResult>(
+      '/api/v1/admin/games/audio/generate-animal-prompts',
       payload,
     ) as Promise<ApiResponse<AdminCardBatchResult>>,
   /** 获取分类列表 */

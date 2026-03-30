@@ -31,6 +31,20 @@
       }
     },
     {
+      "path": "pages/game/listen-pick",
+      "style": {
+        "navigationBarTitleText": "听音选图",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/game/coming-soon",
+      "style": {
+        "navigationBarTitleText": "小游戏",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/user/user",
       "style": {
         "navigationBarTitleText": "我的",

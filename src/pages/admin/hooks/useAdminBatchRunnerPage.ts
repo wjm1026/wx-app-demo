@@ -5,12 +5,19 @@ import {
   type AdminAliyunCredentials,
   type AdminCardBatchRequest,
   type AdminCardBatchResult,
+  type AdminGamePromptAudioRequest,
+  type AdminGamePromptTemplateItem,
+  type Category,
 } from '@/api'
 import { useConfirmedAction } from '@/composables/useConfirmedAction'
 import { usePageLayout } from '@/composables/usePageLayout'
 import { assertApiSuccess, navigateBack, showToast } from '@/utils'
 
-type BatchActionType = 'translate-zh-to-en' | 'generate-cn-audio' | 'generate-en-audio'
+type BatchActionType =
+  | 'translate-zh-to-en'
+  | 'generate-cn-audio'
+  | 'generate-en-audio'
+  | 'generate-game-prompts'
 
 interface BatchActionMeta {
   title: string
@@ -26,10 +33,26 @@ interface BatchParamsForm {
   startId: string
   onlyEnabled: boolean
   overwrite: boolean
+  categoryId: string
+  gameName: string
+  template: string
+  voice: string
+  speechRate: string
+  pitchRate: string
+  volume: string
+  format: string
+  sampleRate: string
+  emotionCategory: string
 }
 
 const CREDENTIALS_STORAGE_KEY = 'ADMIN_BATCH_ALIYUN_CREDENTIALS_V1'
 const ACTION_PARAMS_STORAGE_PREFIX = 'ADMIN_BATCH_PARAMS_V1_'
+const DEFAULT_GAME_TEMPLATES = [
+  '小朋友，请问下面哪一张是“%s”呢？',
+  '请指出下面“%s”的图片。',
+  '点一点“%s”吧。',
+  '“%s”在哪里？请选出来。',
+]
 
 const ACTION_META: Record<BatchActionType, BatchActionMeta> = {
   'translate-zh-to-en': {
@@ -56,6 +79,14 @@ const ACTION_META: Record<BatchActionType, BatchActionMeta> = {
     fallbackSuccessText: '英文语音生成完成',
     requirement: '需要 AppKey，且必须提供 Token 或 AK+Secret。',
   },
+  'generate-game-prompts': {
+    title: '生成游戏题干语音',
+    subtitle: '按分类批量生成“哪一张是 xxx”题干语音，并上传到 OSS game 目录。',
+    loadingText: '游戏题干语音生成中...',
+    errorText: '游戏题干语音生成失败',
+    fallbackSuccessText: '游戏题干语音生成完成',
+    requirement: '需要 AppKey，且必须提供 Token 或 AK+Secret。',
+  },
 }
 
 const DEFAULT_PARAMS: BatchParamsForm = {
@@ -63,12 +94,23 @@ const DEFAULT_PARAMS: BatchParamsForm = {
   startId: '',
   onlyEnabled: true,
   overwrite: false,
+  categoryId: '',
+  gameName: 'listen-pick',
+  template: DEFAULT_GAME_TEMPLATES.join('\n'),
+  voice: 'zhibei_emo',
+  speechRate: '46',
+  pitchRate: '0',
+  volume: '100',
+  format: 'mp3',
+  sampleRate: '16000',
+  emotionCategory: 'happy',
 }
 
 function isBatchActionType(value: unknown): value is BatchActionType {
   return value === 'translate-zh-to-en'
     || value === 'generate-cn-audio'
     || value === 'generate-en-audio'
+    || value === 'generate-game-prompts'
 }
 
 function safeText(value: unknown): string {
@@ -93,6 +135,17 @@ function writeJsonStorage(key: string, value: unknown) {
 
 function parseUnsignedInteger(value: string): number | null {
   if (!/^\d+$/.test(value)) {
+    return null
+  }
+  const parsed = Number(value)
+  if (!Number.isSafeInteger(parsed)) {
+    return null
+  }
+  return parsed
+}
+
+function parseInteger(value: string): number | null {
+  if (!/^-?\d+$/.test(value)) {
     return null
   }
   const parsed = Number(value)
@@ -138,6 +191,19 @@ function formatSummary(data?: AdminCardBatchResult): string {
   return segments.join(' / ')
 }
 
+function parseTemplateItems(rawText: string): AdminGamePromptTemplateItem[] {
+  const lines = rawText
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean)
+
+  const deduped = Array.from(new Set(lines))
+  return deduped.map((text, index) => ({
+    templateId: `t${index + 1}`,
+    templateText: text,
+  }))
+}
+
 /** 封装批处理配置页面逻辑 */
 export function useAdminBatchRunnerPage() {
   const { statusBarHeight } = usePageLayout()
@@ -147,6 +213,8 @@ export function useAdminBatchRunnerPage() {
   const revealSecrets = ref(false)
   const result = ref<AdminCardBatchResult | null>(null)
   const resultMessage = ref('')
+  const categories = ref<Category[]>([])
+  const categoriesLoading = ref(false)
 
   const credentials = reactive<AdminAliyunCredentials>({
     appKey: '',
@@ -161,7 +229,24 @@ export function useAdminBatchRunnerPage() {
 
   const actionMeta = computed(() => ACTION_META[action.value])
   const isAudioAction = computed(() => action.value !== 'translate-zh-to-en')
+  const isGamePromptAction = computed(() => action.value === 'generate-game-prompts')
   const resultSummary = computed(() => formatSummary(result.value || undefined))
+
+  const categoryOptions = computed(() =>
+    categories.value
+      .filter(item => hasText(item?._id) && hasText(item?.name))
+      .map(item => ({ id: String(item._id), name: String(item.name) })),
+  )
+
+  const categoryPickerIndex = computed(() => {
+    const idx = categoryOptions.value.findIndex(item => item.id === params.categoryId)
+    return idx >= 0 ? idx : 0
+  })
+
+  const selectedCategoryName = computed(() => {
+    const selected = categoryOptions.value.find(item => item.id === params.categoryId)
+    return selected?.name || ''
+  })
 
   const actionTag = computed(() => {
     if (action.value === 'translate-zh-to-en') {
@@ -170,7 +255,10 @@ export function useAdminBatchRunnerPage() {
     if (action.value === 'generate-cn-audio') {
       return 'CN TTS'
     }
-    return 'EN TTS'
+    if (action.value === 'generate-en-audio') {
+      return 'EN TTS'
+    }
+    return 'GAME TTS'
   })
 
   function goBack() {
@@ -190,11 +278,22 @@ export function useAdminBatchRunnerPage() {
   }
 
   function loadActionParams(nextAction: BatchActionType) {
-    const stored = readJsonStorage<BatchParamsForm>(ACTION_PARAMS_STORAGE_PREFIX + nextAction)
+    const stored = readJsonStorage<Partial<BatchParamsForm>>(ACTION_PARAMS_STORAGE_PREFIX + nextAction)
     params.limit = safeText(stored?.limit) || DEFAULT_PARAMS.limit
     params.startId = safeText(stored?.startId)
     params.onlyEnabled = stored?.onlyEnabled !== false
     params.overwrite = stored?.overwrite === true
+
+    params.categoryId = safeText(stored?.categoryId)
+    params.gameName = safeText(stored?.gameName) || DEFAULT_PARAMS.gameName
+    params.template = safeText(stored?.template) || DEFAULT_PARAMS.template
+    params.voice = safeText(stored?.voice) || DEFAULT_PARAMS.voice
+    params.speechRate = safeText(stored?.speechRate) || DEFAULT_PARAMS.speechRate
+    params.pitchRate = safeText(stored?.pitchRate) || DEFAULT_PARAMS.pitchRate
+    params.volume = safeText(stored?.volume) || DEFAULT_PARAMS.volume
+    params.format = safeText(stored?.format) || DEFAULT_PARAMS.format
+    params.sampleRate = safeText(stored?.sampleRate) || DEFAULT_PARAMS.sampleRate
+    params.emotionCategory = safeText(stored?.emotionCategory) || DEFAULT_PARAMS.emotionCategory
   }
 
   function persistCredentials() {
@@ -212,7 +311,46 @@ export function useAdminBatchRunnerPage() {
       startId: safeText(params.startId),
       onlyEnabled: params.onlyEnabled,
       overwrite: params.overwrite,
+      categoryId: safeText(params.categoryId),
+      gameName: safeText(params.gameName),
+      template: safeText(params.template),
+      voice: safeText(params.voice),
+      speechRate: safeText(params.speechRate),
+      pitchRate: safeText(params.pitchRate),
+      volume: safeText(params.volume),
+      format: safeText(params.format),
+      sampleRate: safeText(params.sampleRate),
+      emotionCategory: safeText(params.emotionCategory),
     })
+  }
+
+  async function loadCategories() {
+    if (categoriesLoading.value) {
+      return
+    }
+
+    categoriesLoading.value = true
+    try {
+      const res = assertApiSuccess(await adminApi.getCategoryList(), '加载分类失败')
+      const list = Array.isArray(res.data) ? res.data : []
+      categories.value = list
+      if (!params.categoryId && list.length > 0) {
+        params.categoryId = String(list[0]?._id || '')
+      }
+      if (params.categoryId) {
+        const exists = list.some(item => String(item?._id || '') === params.categoryId)
+        if (!exists && list.length > 0) {
+          params.categoryId = String(list[0]?._id || '')
+        }
+      }
+    } catch {
+      categories.value = []
+      if (isGamePromptAction.value) {
+        showToast('加载分类失败，请稍后重试')
+      }
+    } finally {
+      categoriesLoading.value = false
+    }
   }
 
   function normalizeCredentialsForPayload(): AdminAliyunCredentials | undefined {
@@ -235,7 +373,7 @@ export function useAdminBatchRunnerPage() {
     return normalized
   }
 
-  function buildBatchPayload(): (AdminCardBatchRequest & { autoTranslate?: boolean }) | null {
+  function buildBatchPayload(): (AdminCardBatchRequest & { autoTranslate?: boolean }) | AdminGamePromptAudioRequest | null {
     const limit = parseUnsignedInteger(safeText(params.limit))
     if (limit === null || limit < 1 || limit > 1000) {
       showToast('limit 必须是 1-1000 的整数')
@@ -263,7 +401,7 @@ export function useAdminBatchRunnerPage() {
       return null
     }
 
-    if (action.value !== 'translate-zh-to-en') {
+    if (isAudioAction.value) {
       if (!hasAppKey) {
         showToast('语音生成需要填写 AppKey')
         return null
@@ -274,26 +412,96 @@ export function useAdminBatchRunnerPage() {
       }
     }
 
-    return {
+    const commonPayload: AdminCardBatchRequest = {
       overwrite: params.overwrite,
       limit,
       startId,
       onlyEnabled: params.onlyEnabled,
       credentials: normalizedCredentials,
     }
+
+    if (action.value !== 'generate-game-prompts') {
+      return commonPayload
+    }
+
+    const categoryId = parseUnsignedInteger(safeText(params.categoryId))
+    if (!categoryId || categoryId < 1) {
+      showToast('请选择要生成的分类')
+      return null
+    }
+
+    const speechRate = parseInteger(safeText(params.speechRate))
+    if (speechRate === null || speechRate < -500 || speechRate > 500) {
+      showToast('语速范围必须是 -500 到 500')
+      return null
+    }
+
+    const pitchRate = parseInteger(safeText(params.pitchRate))
+    if (pitchRate === null || pitchRate < -500 || pitchRate > 500) {
+      showToast('语调范围必须是 -500 到 500')
+      return null
+    }
+
+    const volume = parseUnsignedInteger(safeText(params.volume))
+    if (volume === null || volume < 0 || volume > 100) {
+      showToast('音量范围必须是 0 到 100')
+      return null
+    }
+
+    const sampleRate = parseUnsignedInteger(safeText(params.sampleRate))
+    if (sampleRate !== 8000 && sampleRate !== 16000 && sampleRate !== 24000 && sampleRate !== 48000) {
+      showToast('采样率仅支持 8000 / 16000 / 24000 / 48000')
+      return null
+    }
+
+    const format = safeText(params.format).toLowerCase()
+    if (format !== 'mp3' && format !== 'wav' && format !== 'pcm') {
+      showToast('格式仅支持 mp3 / wav / pcm')
+      return null
+    }
+
+    const voice = safeText(params.voice) || DEFAULT_PARAMS.voice
+    const gameName = safeText(params.gameName) || DEFAULT_PARAMS.gameName
+    const templateTextRaw = safeText(params.template) || DEFAULT_PARAMS.template
+    const templates = parseTemplateItems(templateTextRaw)
+    if (templates.length === 0) {
+      showToast('请至少填写 1 条模板（每行一条）')
+      return null
+    }
+    const emotionCategory = safeText(params.emotionCategory) || DEFAULT_PARAMS.emotionCategory
+
+    const gamePayload: AdminGamePromptAudioRequest = {
+      ...commonPayload,
+      categoryId,
+      gameName,
+      template: templates[0]?.templateText || DEFAULT_GAME_TEMPLATES[0],
+      templates,
+      voice,
+      speechRate,
+      pitchRate,
+      volume,
+      sampleRate,
+      format: format as 'mp3' | 'wav' | 'pcm',
+      emotionCategory,
+    }
+
+    return gamePayload
   }
 
-  async function executeBatch(payload: AdminCardBatchRequest & { autoTranslate?: boolean }) {
+  async function executeBatch(payload: (AdminCardBatchRequest & { autoTranslate?: boolean }) | AdminGamePromptAudioRequest) {
     if (action.value === 'translate-zh-to-en') {
-      return adminApi.translateCardZhToEn(payload)
+      return adminApi.translateCardZhToEn(payload as AdminCardBatchRequest)
     }
     if (action.value === 'generate-cn-audio') {
-      return adminApi.generateCardCnAudio(payload)
+      return adminApi.generateCardCnAudio(payload as AdminCardBatchRequest)
     }
-    return adminApi.generateCardEnAudio({
-      ...payload,
-      autoTranslate: false,
-    })
+    if (action.value === 'generate-en-audio') {
+      return adminApi.generateCardEnAudio({
+        ...(payload as AdminCardBatchRequest),
+        autoTranslate: false,
+      })
+    }
+    return adminApi.generateGamePromptAudio(payload as AdminGamePromptAudioRequest)
   }
 
   async function submitBatch() {
@@ -365,6 +573,21 @@ export function useAdminBatchRunnerPage() {
     params.overwrite = Boolean(getEventValue(event))
   }
 
+  function handleGameParamInput(field: keyof Pick<BatchParamsForm,
+    'gameName' | 'template' | 'voice' | 'speechRate' | 'pitchRate' | 'volume' | 'format' | 'sampleRate' | 'emotionCategory'>,
+    event: Event,
+  ) {
+    params[field] = String(getEventValue(event) || '')
+  }
+
+  function handleCategoryChange(event: Event) {
+    const rawIndex = Number(getEventValue(event))
+    if (!Number.isInteger(rawIndex) || rawIndex < 0 || rawIndex >= categoryOptions.value.length) {
+      return
+    }
+    params.categoryId = categoryOptions.value[rawIndex]?.id || ''
+  }
+
   function toggleSecretVisibility() {
     revealSecrets.value = !revealSecrets.value
   }
@@ -380,26 +603,36 @@ export function useAdminBatchRunnerPage() {
     action.value = rawAction
     loadCredentials()
     loadActionParams(rawAction)
+    if (rawAction === 'generate-game-prompts') {
+      void loadCategories()
+    }
   })
 
   return {
     actionMeta,
     actionTag,
+    categoriesLoading,
+    categoryOptions,
+    categoryPickerIndex,
     clearCredentials,
     credentials,
     goBack,
+    handleCategoryChange,
     handleCredentialInput,
+    handleGameParamInput,
     handleLimitInput,
     handleOnlyEnabledChange,
     handleOverwriteChange,
     handleStartIdInput,
     isAudioAction,
+    isGamePromptAction,
     params,
     revealSecrets,
     result,
     resultSummary,
     resultMessage,
     running,
+    selectedCategoryName,
     statusBarHeight,
     submitBatch,
     toggleSecretVisibility,

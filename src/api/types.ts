@@ -190,6 +190,34 @@ export interface AdminCardBatchRequest {
   credentials?: AdminAliyunCredentials
 }
 
+export interface AdminGamePromptAudioRequest extends AdminCardBatchRequest {
+  gameName?: string
+  template?: string
+  templates?: AdminGamePromptTemplateItem[]
+  categoryId?: number
+  categoryKeyword?: string
+  voice?: string
+  speechRate?: number
+  pitchRate?: number
+  volume?: number
+  format?: 'mp3' | 'wav' | 'pcm'
+  sampleRate?: 8000 | 16000 | 24000 | 48000
+  emotionCategory?: string
+}
+
+export interface AdminGamePromptTemplateItem {
+  templateId?: string
+  templateText: string
+}
+
+export interface AdminGamePromptAudioItem {
+  cardId?: string
+  templateId?: string
+  name?: string
+  text?: string
+  objectKey?: string
+}
+
 export interface AdminCardBatchResult {
   scanned?: number
   generated?: number
@@ -204,6 +232,19 @@ export interface AdminCardBatchResult {
   autoTranslate?: boolean
   bucket?: string
   prefix?: string
+  categoryId?: string
+  categoryKeyword?: string
+  gameName?: string
+  voice?: string
+  speechRate?: number
+  pitchRate?: number
+  volume?: number
+  format?: string
+  sampleRate?: number
+  emotionCategory?: string
+  template?: string
+  items?: AdminGamePromptAudioItem[]
+  errors?: Array<Record<string, unknown>>
 }
 
 export interface AdminUserListItem {

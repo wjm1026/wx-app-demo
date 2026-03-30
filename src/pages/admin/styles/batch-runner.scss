@@ -133,6 +133,10 @@
   gap: 20rpx;
 }
 
+.section-head.compact {
+  margin-top: 18rpx;
+}
+
 .section-title {
   font-size: 30rpx;
   font-weight: 700;
@@ -177,6 +181,10 @@
   gap: 10rpx;
 }
 
+.form-item.full {
+  grid-column: span 2;
+}
+
 .form-label {
   font-size: 23rpx;
   font-weight: 600;
@@ -198,6 +206,46 @@
 .form-input:focus {
   border-color: rgba(25, 118, 210, 0.45);
   background: #fff;
+}
+
+.form-picker {
+  min-height: 88rpx;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 20rpx;
+  padding: 0 22rpx;
+  background: #f3f7fd;
+  border: 2rpx solid transparent;
+  display: flex;
+  align-items: center;
+}
+
+.form-picker-text {
+  font-size: 26rpx;
+  color: #10243c;
+}
+
+.form-picker-text.placeholder {
+  color: #7a8ea8;
+}
+
+.form-textarea {
+  min-height: 120rpx;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 20rpx;
+  padding: 18rpx 22rpx;
+  background: #f3f7fd;
+  border: 2rpx solid transparent;
+  font-size: 26rpx;
+  color: #10243c;
+  line-height: 1.6;
+}
+
+.game-extra {
+  margin-top: 24rpx;
+  padding-top: 14rpx;
+  border-top: 2rpx dashed rgba(61, 91, 126, 0.18);
 }
 
 .switch-list {

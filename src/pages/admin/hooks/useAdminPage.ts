@@ -23,7 +23,7 @@ interface AdminStats {
   todayActiveUsers: number
 }
 
-type CardBatchActionType = 'translate-zh-to-en' | 'generate-cn-audio' | 'generate-en-audio'
+type CardBatchActionType = 'translate-zh-to-en' | 'generate-cn-audio' | 'generate-en-audio' | 'generate-game-prompts'
 
 /** 规范化统计数据 */
 function normalizeStats(data?: AdminStatsResult): AdminStats {
@@ -260,6 +260,16 @@ export function useAdminPage() {
       icon: '/static/icons/line/ticket.svg',
       tone: 'tone-safe',
       onClick: () => goCardBatchRunner('generate-en-audio'),
+    },
+    {
+      key: 'generate-game-prompts',
+      title: '生成游戏题干语音',
+      desc: '按分类批量生成“哪一张是 xxx”题干语音，写入 OSS game 目录。',
+      note: '进入配置页可选择分类、模板与语音参数，支持动物或其它分类。',
+      buttonLabel: '选择分类并生成',
+      icon: '/static/icons/line/grid.svg',
+      tone: 'tone-safe',
+      onClick: () => goCardBatchRunner('generate-game-prompts'),
     },
     {
       key: 'clear-learning-log',
