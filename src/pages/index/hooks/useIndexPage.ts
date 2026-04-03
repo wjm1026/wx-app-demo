@@ -70,19 +70,23 @@ export function useIndexPage() {
   }
 
   /** 加载分类列表 */
-  async function loadCategories() {
+  async function loadCategories(options: { showLoadingState?: boolean } = {}) {
     if (isCategoryLoading.value) {
       return
     }
 
+    const { showLoadingState = categories.value.length === 0 } = options
+
     isCategoryLoading.value = true
-    isInitialLoading.value = true
+    if (showLoadingState) {
+      isInitialLoading.value = true
+    }
 
     try {
       const res = await cardApi.getCategories()
 
-      if (res.code === 0 && res.data) {
-        categories.value = res.data
+      if (res.code === 0) {
+        categories.value = Array.isArray(res.data) ? res.data : []
       }
     } catch (error) {
       console.error('加载分类失败:', error)
@@ -102,6 +106,7 @@ export function useIndexPage() {
   })
 
   onShow(() => {
+    void loadCategories({ showLoadingState: false })
     updateNavBarHeight()
   })
 

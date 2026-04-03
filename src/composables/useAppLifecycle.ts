@@ -1,4 +1,5 @@
 import { onLaunch, onShow } from '@dcloudio/uni-app'
+import { ensureAutoLogin } from '@/auth/session'
 import { appStore, initStore } from '@/store'
 import { isInviteBindingWindowOpen, storeInviteCodeFromQuery } from '@/utils'
 
@@ -18,10 +19,12 @@ export function useAppLifecycle() {
     initStore()
     // 好友从分享卡片首次打开小程序时，会先走这里把邀请码落到本地。
     syncInviteCodeFromQuery(options?.query)
+    void ensureAutoLogin()
   })
 
   onShow((options) => {
     // 已打开的小程序再次通过分享链接进入时，不会重新 launch，需要在 show 阶段补接一次参数。
     syncInviteCodeFromQuery(options?.query)
+    void ensureAutoLogin()
   })
 }

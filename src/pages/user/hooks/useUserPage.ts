@@ -1,23 +1,20 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { onShareAppMessage, onShow } from '@dcloudio/uni-app'
-import { pointsApi, userApi, type LoginByWeixinResult } from '@/api'
+import { pointsApi, userApi } from '@/api'
 import { uploadApiFile } from '@/api/shared'
+import { loginWithWeixin } from '@/auth/session'
 import { useMeasuredHeight } from '@/composables/useMeasuredHeight'
 import { usePageLayout } from '@/composables/usePageLayout'
 import { useStore } from '@/store'
 import {
   DEFAULT_AVATAR,
-  clearStoredInviteCode,
   getErrorMessage,
-  getStoredInviteCode,
   hideLoading,
-  isInviteBindingWindowOpen,
   navigateTo,
   showLoading,
   showToast,
 } from '@/utils'
 import {
-  buildLoginSuccessMessage,
   buildUserPageViewModel,
   buildUserSharePayload,
   isRewardedAdCompleted,
@@ -383,29 +380,6 @@ export function useUserPage() {
     }
   }
 
-  // 只有拿到可用 token，前端才真正写入登录态。
-  // 这样可以保证页面上的“已登录”与云端鉴权结果始终一致。
-  function persistLoginResult(data: LoginByWeixinResult) {
-    if (!data.token) {
-      store.logout()
-      uni.hideToast()
-      showToast('登录态创建失败，请稍后重试')
-      return false
-    }
-
-    store.setToken(data.token, data.tokenExpired)
-    store.setUserInfo(data.userInfo)
-    // 已经绑定成功或已超出补绑窗口的账号，不需要继续保留待处理邀请码；
-    // 只有仍处于补绑窗口且尚未绑定邀请人的新用户，才保留它用于后续手动补填。
-    if (!isInviteBindingWindowOpen(data.userInfo)) {
-      clearStoredInviteCode()
-    }
-    uni.hideToast()
-    showToast(buildLoginSuccessMessage(data.isNewUser), 'success')
-    void refreshAuthenticatedState()
-    return true
-  }
-
   /** 执行登录 */
   async function doLogin() {
     if (isLoading.value) {
@@ -415,32 +389,16 @@ export function useUserPage() {
     isLoading.value = true
 
     try {
-      const loginRes = await new Promise<UniApp.LoginRes>((resolve, reject) => {
-        uni.login({
-          provider: 'weixin',
-          success: resolve,
-          fail: reject,
-        })
+      const success = await loginWithWeixin({
+        force: true,
+        showFailureToast: true,
+        showLoadingToast: true,
+        showSuccessToast: true,
       })
 
-      if (!loginRes.code) {
-        showToast('获取登录凭证失败')
-        return
+      if (success) {
+        void refreshAuthenticatedState()
       }
-
-      showToast('登录中...', 'loading')
-      // 分享链接落地后的邀请码会先缓存在本地，这里统一在真正登录时再消费给后端。
-      const inviteCode = getStoredInviteCode() || undefined
-      const res = await userApi.loginByWeixin(loginRes.code, inviteCode)
-
-      if (res.code === 0 && res.data) {
-        persistLoginResult(res.data)
-        return
-      }
-
-      showToast(res.msg || '登录失败')
-    } catch (error) {
-      showToast(getErrorMessage(error, '登录失败，请重试'))
     } finally {
       isLoading.value = false
     }
