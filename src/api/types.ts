@@ -148,6 +148,62 @@ export interface SaveInviteTaskConfigsResult {
   tasks: InviteTaskConfig[]
 }
 
+export type DisplayGameTone =
+  | 'gold'
+  | 'blue'
+  | 'green'
+  | 'pink'
+  | 'purple'
+  | 'teal'
+
+export type DisplayGameLaunchMode =
+  | 'listen-pick-category'
+  | 'direct'
+
+export interface DisplayMiniAppConfig {
+  icon: string
+}
+
+export interface DisplayGameConfig {
+  _id?: string
+  key: string
+  title: string
+  desc: string
+  icon: string
+  cover: string
+  entryTag: string
+  tone: DisplayGameTone
+  routePath: string
+  launchMode: DisplayGameLaunchMode
+  available: boolean
+  enabled: boolean
+  sortOrder: number
+}
+
+export interface DisplayConfigResult {
+  miniApp: DisplayMiniAppConfig
+  games: DisplayGameConfig[]
+}
+
+export interface AdminDisplayConfigPayload {
+  miniApp: DisplayMiniAppConfig
+  games: Array<{
+    _id?: string
+    key: string
+    title: string
+    desc: string
+    icon: string
+    cover: string
+    entryTag: string
+    tone: DisplayGameTone
+    routePath: string
+    launchMode: DisplayGameLaunchMode
+    available: boolean
+    enabled: boolean
+    sortOrder: number
+  }>
+}
+
 export interface AdminCheckResult {
   isAdmin: boolean
   nickname: string

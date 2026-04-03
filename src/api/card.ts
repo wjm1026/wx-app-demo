@@ -5,10 +5,14 @@ import type {
   Card,
   CardLite,
   Category,
+  DisplayConfigResult,
   PagedResult,
 } from './types'
 
 export const cardApi = {
+  /** 获取首页 Logo + 游戏配置 */
+  getDisplayConfig: () =>
+    apiGet<DisplayConfigResult>('/api/v1/display-config') as Promise<ApiResponse<DisplayConfigResult>>,
   /** 获取分类列表 */
   getCategories: () => apiGet<Category[]>('/api/v1/categories') as Promise<ApiResponse<Category[]>>,
   /** 按分类获取卡片列表 */

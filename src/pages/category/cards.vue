@@ -41,6 +41,10 @@
           v-for="(item, index) in cards"
           :key="item._id"
           class="card-item"
+          :class="'delay-' + (index % 8)"
+          hover-class="card-item--pressed"
+          :hover-start-time="20"
+          :hover-stay-time="90"
           @tap="openCardDetail(item, index)"
         >
           <view class="card-media">

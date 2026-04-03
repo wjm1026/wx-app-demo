@@ -75,6 +75,31 @@
   flex-direction: column;
   gap: $spacing-2;
   min-width: 0;
+  transition: transform $duration-fast $ease-out;
+
+  &:active,
+  &.card-item--pressed {
+    transform: translateY(4rpx) scale(0.985);
+  }
+
+  &:active .card-media,
+  &.card-item--pressed .card-media {
+    box-shadow:
+      0 10rpx 20rpx rgba(15, 23, 42, 0.1),
+      inset 0 1rpx 0 rgba(255, 255, 255, 0.84);
+  }
+
+  &:active .card-image,
+  &.card-item--pressed .card-image {
+    transform: scale(0.982);
+  }
+
+  @for $i from 0 through 7 {
+    &.delay-#{$i} {
+      animation: bounce-in 0.48s $ease-bounce backwards;
+      animation-delay: #{$i * 0.06}s;
+    }
+  }
 }
 
 .card-media {
@@ -86,6 +111,7 @@
   box-shadow:
     0 14rpx 30rpx rgba(15, 23, 42, 0.1),
     inset 0 1rpx 0 rgba(255, 255, 255, 0.88);
+  transition: box-shadow $duration-fast $ease-out;
 }
 
 .card-media::before {
@@ -100,6 +126,8 @@
   inset: 0;
   width: 100%;
   height: 100%;
+  transition: transform $duration-fast $ease-out;
+  transform-origin: center;
 }
 
 .skeleton-card {
@@ -182,5 +210,19 @@
 
   100% {
     background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-item,
+  .skeleton-media,
+  .skeleton-line {
+    animation: none;
+    transition: none;
+  }
+
+  .card-media,
+  .card-image {
+    transition: none;
   }
 }

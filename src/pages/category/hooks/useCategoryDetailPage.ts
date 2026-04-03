@@ -1,13 +1,15 @@
 import { computed, ref } from 'vue'
-import { onLoad, onUnload } from '@dcloudio/uni-app'
+import { onLoad, onShareAppMessage, onShareTimeline, onUnload } from '@dcloudio/uni-app'
 import { cardApi } from '@/api'
 import { useLoginGuard } from '@/composables/useLoginGuard'
 import { usePageLayout } from '@/composables/usePageLayout'
-import { getErrorMessage, showToast } from '@/utils'
+import { getErrorMessage, normalizeInviteCode, showToast } from '@/utils'
 import { useDetailAudioController } from './category-detail.audio'
 import { useCategoryDetailData } from './category-detail.data'
 import { useCategoryLearningRecorder } from './category-detail.learning'
 import { decodeQueryValue, fallbackBack, parseStartIndex, type DetailQuery } from './category-detail.query'
+
+const SWIPE_GUIDE_STORAGE_KEY = 'CATEGORY_DETAIL_SWIPE_GUIDE_SHOWN_V1'
 
 /**
  * 分类详情页主编排 Hook：
@@ -15,7 +17,7 @@ import { decodeQueryValue, fallbackBack, parseStartIndex, type DetailQuery } fro
  */
 export function useCategoryDetailPage() {
   const { statusBarHeight } = usePageLayout()
-  const { ensureLoggedIn, isLoggedIn } = useLoginGuard()
+  const { ensureLoggedIn, isLoggedIn, store } = useLoginGuard()
 
   // 路由入参状态
   const categoryId = ref('')
@@ -24,6 +26,8 @@ export function useCategoryDetailPage() {
   const startIndex = ref(0)
   // 收藏按钮 loading 态
   const isFavoriteLoading = ref(false)
+  // 新用户首次进入时显示的左右滑动引导
+  const showSwipeGuide = ref(false)
 
   // 学习记录上报与成就提示
   const { notifyUnlockedAchievements, recordLearningForCard } =
@@ -54,7 +58,7 @@ export function useCategoryDetailPage() {
     currentDetail, // 当前卡片详情
     currentDisplayIndex, // UI 展示用的序号（从 1 开始）
     detailError, // 详情加载错误信息
-    handleSwiperChange, // 轮播切换处理器
+    handleSwiperChange: handleSwiperChangeInternal, // 轮播切换处理器
     isCurrentFavorited, // 当前卡片是否已收藏
     isDetailLoading, // 详情加载中状态
     isEmpty, // 分类下是否为空
@@ -79,6 +83,7 @@ export function useCategoryDetailPage() {
 
   const hasChineseAudio = computed(() => !!chineseAudioSrc.value)
   const hasEnglishAudio = computed(() => !!englishAudioSrc.value)
+  const ownInviteCode = computed(() => normalizeInviteCode(store.userInfo?.invite_code))
 
   // 音频控制层：只关心“能不能播”和“播哪个地址”
   const audioController = useDetailAudioController({
@@ -94,9 +99,102 @@ export function useCategoryDetailPage() {
   } = audioController
   stopPlayingAudio = audioController.stopPlayingAudio
 
+  /** 关闭左右滑动引导 */
+  function dismissSwipeGuide() {
+    if (!showSwipeGuide.value) {
+      return
+    }
+
+    showSwipeGuide.value = false
+  }
+
+  /** 判断是否已经展示过左右滑动引导 */
+  function hasShownSwipeGuide() {
+    return String(uni.getStorageSync(SWIPE_GUIDE_STORAGE_KEY) || '') === '1'
+  }
+
+  /** 标记左右滑动引导已展示 */
+  function markSwipeGuideShown() {
+    uni.setStorageSync(SWIPE_GUIDE_STORAGE_KEY, '1')
+  }
+
+  /** 首次进入详情页时尝试展示左右滑动引导 */
+  function maybeShowSwipeGuide() {
+    if (!canSwipe.value || hasShownSwipeGuide()) {
+      return
+    }
+
+    showSwipeGuide.value = true
+  }
+
+  /** 轮播切换：用户真正滑动后再关闭引导并记忆 */
+  async function handleSwiperChange(event: { detail?: { current?: number } }) {
+    const previousIndex = activeIndex.value
+
+    await handleSwiperChangeInternal(event)
+
+    if (showSwipeGuide.value && activeIndex.value !== previousIndex) {
+      dismissSwipeGuide()
+      markSwipeGuideShown()
+    }
+  }
+
   /** 返回上一页 */
   function goBack() {
     fallbackBack()
+  }
+
+  /** 构建详情页分享 query，保留当前卡片上下文并附带邀请码 */
+  function buildDetailShareQuery(inviteCode?: string) {
+    const queryItems: string[] = []
+
+    if (categoryId.value) {
+      queryItems.push(`categoryId=${encodeURIComponent(categoryId.value)}`)
+    }
+
+    if (categoryName.value) {
+      queryItems.push(`categoryName=${encodeURIComponent(categoryName.value)}`)
+    }
+
+    const resolvedCardId = currentCardId.value || startCardId.value
+    if (resolvedCardId) {
+      queryItems.push(`cardId=${encodeURIComponent(resolvedCardId)}`)
+    }
+
+    queryItems.push(`startIndex=${Math.max(0, activeIndex.value)}`)
+
+    const normalizedInviteCode = normalizeInviteCode(inviteCode)
+    if (normalizedInviteCode) {
+      queryItems.push(`inviteCode=${encodeURIComponent(normalizedInviteCode)}`)
+    }
+
+    return queryItems.join('&')
+  }
+
+  /** 构建详情页分享 path */
+  function buildDetailSharePath(inviteCode?: string) {
+    const query = buildDetailShareQuery(inviteCode)
+    return query ? `/pages/category/detail?${query}` : '/pages/category/detail'
+  }
+
+  /** 构建详情页分享标题 */
+  function buildDetailShareTitle(inviteCode?: string) {
+    const cardName = String(currentDetail.value?.name || '').trim()
+    const normalizedInviteCode = normalizeInviteCode(inviteCode)
+
+    if (cardName && normalizedInviteCode) {
+      return `我在学「${cardName}」，输入邀请码 ${normalizedInviteCode} 一起学习`
+    }
+
+    if (cardName) {
+      return `我在学「${cardName}」，一起来看看`
+    }
+
+    if (normalizedInviteCode) {
+      return `输入邀请码 ${normalizedInviteCode}，一起加入学习计划`
+    }
+
+    return '来宝宝识物，一起学认知'
   }
 
   /** 切换当前卡片收藏状态 */
@@ -157,11 +255,33 @@ export function useCategoryDetailPage() {
     startCardId.value = decodeQueryValue(resolvedQuery.cardId)
     startIndex.value = parseStartIndex(resolvedQuery.startIndex)
 
-    void loadSnapshotCards()
+    void (async () => {
+      const loaded = await loadSnapshotCards()
+      if (loaded) {
+        maybeShowSwipeGuide()
+      }
+    })()
+  })
+
+  onShareAppMessage(() => {
+    const inviteCode = ownInviteCode.value
+    return {
+      title: buildDetailShareTitle(inviteCode),
+      path: buildDetailSharePath(inviteCode),
+    }
+  })
+
+  onShareTimeline(() => {
+    const inviteCode = ownInviteCode.value
+    return {
+      title: buildDetailShareTitle(inviteCode),
+      query: buildDetailShareQuery(inviteCode),
+    }
   })
 
   /** 页面卸载：销毁音频实例，避免后台继续播放和旧监听残留 */
   onUnload(() => {
+    dismissSwipeGuide()
     destroyPlayingAudio()
   })
 
@@ -188,6 +308,7 @@ export function useCategoryDetailPage() {
     retrySnapshot,
     snapshotCards,
     snapshotError,
+    showSwipeGuide,
     statusBarHeight,
     toggleCurrentFavorite,
     resolveCardImage,

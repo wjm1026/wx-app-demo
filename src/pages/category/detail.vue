@@ -78,31 +78,48 @@
           </view>
         </view>
 
-        <swiper
-          class="detail-swiper"
-          :current="swiperCurrent"
-          :circular="canSwipe"
-          :disable-touch="!canSwipe"
-          :duration="250"
-          @change="handleSwiperChange"
-        >
-          <swiper-item
-            v-for="(item, index) in snapshotCards"
-            :key="item._id"
-            class="detail-swiper-item"
+        <view class="detail-swiper-wrap">
+          <swiper
+            class="detail-swiper"
+            :current="swiperCurrent"
+            :circular="canSwipe"
+            :disable-touch="!canSwipe"
+            :duration="250"
+            @change="handleSwiperChange"
           >
-            <view class="detail-media-shell">
-              <image
-                v-if="item.image && shouldRenderMedia(index)"
-                class="detail-media"
-                :src="resolveCardImage(item)"
-                mode="aspectFit"
-                :show-menu-by-longpress="true"
-              />
-              <view v-else class="detail-media-empty"></view>
+            <swiper-item
+              v-for="(item, index) in snapshotCards"
+              :key="item._id"
+              class="detail-swiper-item"
+            >
+              <view class="detail-media-shell">
+                <image
+                  v-if="item.image && shouldRenderMedia(index)"
+                  class="detail-media"
+                  :src="resolveCardImage(item)"
+                  mode="aspectFit"
+                  :show-menu-by-longpress="true"
+                />
+                <view v-else class="detail-media-empty"></view>
+              </view>
+            </swiper-item>
+          </swiper>
+
+          <view v-if="showSwipeGuide" class="swipe-guide" aria-hidden="true">
+            <view class="swipe-guide-side is-left">
+              <view class="swipe-guide-chevron"></view>
             </view>
-          </swiper-item>
-        </swiper>
+            <view class="swipe-guide-side is-right">
+              <view class="swipe-guide-chevron"></view>
+            </view>
+            <view class="swipe-guide-chip">
+              <view class="swipe-guide-track">
+                <view class="swipe-guide-track-dot"></view>
+              </view>
+              <text class="swipe-guide-tip">左右轻扫切换卡片</text>
+            </view>
+          </view>
+        </view>
 
         <view
           class="favorite-action"
@@ -135,14 +152,19 @@
                 {{
                   isCurrentFavorited
                     ? "已加入学习收藏夹，随时复习"
-                    : "点击加入收藏夹，方便下次快速学习"
+                    : "加入收藏夹，方便下次快速学习"
                 }}
               </text>
             </view>
           </view>
-          <view class="favorite-action-cta">{{
-            isCurrentFavorited ? "已收藏" : "立即收藏"
-          }}</view>
+          <view class="favorite-action-side">
+            <view class="favorite-action-cta">{{
+              isCurrentFavorited ? "已收藏" : "立即收藏"
+            }}</view>
+            <button class="favorite-action-share" open-type="share" @tap.stop>
+              <text class="favorite-action-share-text">分享</text>
+            </button>
+          </view>
         </view>
 
         <view v-if="isDetailLoading" class="meta-tip">正在加载详情...</view>
@@ -181,6 +203,7 @@ const {
   retrySnapshot,
   snapshotCards,
   snapshotError,
+  showSwipeGuide,
   statusBarHeight,
   toggleCurrentFavorite,
   resolveCardImage,

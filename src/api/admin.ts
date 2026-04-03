@@ -7,7 +7,9 @@ import type {
   AdminGamePromptAudioRequest,
   AdminCardBatchResult,
   AdminCategoryPayload,
+  AdminDisplayConfigPayload,
   AdminCheckResult,
+  DisplayConfigResult,
   InviteTaskConfig,
   AdminLearningLogResetResult,
   AdminStatsResult,
@@ -28,6 +30,15 @@ export const adminApi = {
   /** 获取邀请任务配置 */
   getInviteTaskConfigs: () =>
     apiGet<InviteTaskConfig[]>('/api/v1/admin/invite-task-configs') as Promise<ApiResponse<InviteTaskConfig[]>>,
+  /** 获取首页 Logo + 游戏配置 */
+  getDisplayConfig: () =>
+    apiGet<DisplayConfigResult>('/api/v1/admin/display-config') as Promise<ApiResponse<DisplayConfigResult>>,
+  /** 保存首页 Logo + 游戏配置 */
+  saveDisplayConfig: (payload: AdminDisplayConfigPayload) =>
+    apiPut<DisplayConfigResult>(
+      '/api/v1/admin/display-config',
+      payload,
+    ) as Promise<ApiResponse<DisplayConfigResult>>,
   /** 保存邀请任务配置 */
   saveInviteTaskConfigs: (configs: InviteTaskConfig[]) =>
     apiPut<SaveInviteTaskConfigsResult>(

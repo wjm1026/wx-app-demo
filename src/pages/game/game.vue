@@ -2,9 +2,7 @@
   <view class="page game-hub-page">
     <view class="hub-stage" :style="stageStyle">
       <view class="hub-header">
-        <text class="hub-kicker">Game Center</text>
         <text class="hub-title">小游戏乐园</text>
-        <text class="hub-subtitle">选择一个板块开始体验，当前共 6 个玩法入口。</text>
       </view>
 
       <view class="hub-grid">
@@ -12,24 +10,29 @@
           v-for="item in gameBlocks"
           :key="item.key"
           class="hub-card"
-          :class="[`tone-${item.tone}`, { 'is-live': item.available }]"
+          :class="[
+            `tone-${item.tone}`,
+            { 'is-live': item.available, 'is-featured': !!item.coverImage },
+          ]"
           @click="openGame(item)"
         >
-          <view class="hub-card-top">
-            <view class="hub-icon-shell">
+          <view v-if="item.coverImage" class="hub-cover-shell">
+            <image class="hub-cover-image" :src="item.coverImage" mode="aspectFit" />
+          </view>
+
+          <view class="hub-card-top" :class="{ 'with-cover': !!item.coverImage }">
+            <view v-if="item.coverImage" class="hub-feature-chip">
+              {{ item.entryTag || '热门玩法' }}
+            </view>
+            <view v-else class="hub-icon-shell">
               <image class="hub-icon" :src="item.icon" mode="aspectFit" />
             </view>
             <view class="hub-status" :class="{ 'is-live': item.available }">
               {{ item.available ? '可玩' : '即将上线' }}
             </view>
           </view>
-          <text class="hub-card-title">{{ item.title }}</text>
-          <text class="hub-card-desc">{{ item.desc }}</text>
+          <text v-if="!item.coverImage" class="hub-card-title">{{ item.title }}</text>
         </view>
-      </view>
-
-      <view class="hub-footer">
-        <text class="hub-footer-text">推荐先玩「听音选图」，当前已接入交互和成功烟花反馈。</text>
       </view>
     </view>
 
@@ -91,18 +94,39 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import CustomTabbar from '@/components/CustomTabbar/CustomTabbar.vue'
-import { cardApi, type Category } from '@/api'
-import { getErrorMessage, getNavBarHeight, getSafeAreaBottom, navigateTo, showToast } from '@/utils'
+import {
+  cardApi,
+  type Category,
+  type DisplayConfigResult,
+  type DisplayGameConfig,
+  type DisplayGameLaunchMode,
+  type DisplayGameTone,
+} from '@/api'
+import { TABBAR_ITEMS } from '@/config/tabbar'
+import {
+  getErrorMessage,
+  getNavBarHeight,
+  getSafeAreaBottom,
+  navigateTo,
+  showToast,
+  switchTab,
+} from '@/utils'
 
 interface GameBlock {
   key: string
   title: string
   desc: string
   icon: string
+  coverImage?: string
+  entryTag?: string
   tone: 'gold' | 'blue' | 'green' | 'pink' | 'purple' | 'teal'
+  routePath: string
+  launchMode: 'listen-pick-category' | 'direct'
   available: boolean
-  gameName?: string
+  enabled: boolean
+  sortOrder: number
 }
 
 interface GameCategoryOption {
@@ -112,15 +136,21 @@ interface GameCategoryOption {
   cardCountText: string
 }
 
-const gameBlocks: GameBlock[] = [
+const DEFAULT_LISTEN_PICK_ROUTE = '/pages/game/listen-pick'
+const DEFAULT_GAME_BLOCKS: GameBlock[] = [
   {
     key: 'listen-pick',
     title: '听音选图',
-    desc: '听问题后在卡片中选对答案',
+    desc: '先听题目，再从图片里快速选中正确答案',
     icon: '/static/icons/line/message.svg',
+    coverImage: '/static/game/listen-pick-entry.png',
+    entryTag: '推荐先玩',
     tone: 'gold',
+    routePath: '/pages/game/listen-pick',
+    launchMode: 'listen-pick-category',
     available: true,
-    gameName: 'listen-pick',
+    enabled: true,
+    sortOrder: 10,
   },
   {
     key: 'picture-word',
@@ -128,7 +158,11 @@ const gameBlocks: GameBlock[] = [
     desc: '根据图片选择正确文字',
     icon: '/static/icons/line/grid.svg',
     tone: 'blue',
+    routePath: '/pages/game/coming-soon',
+    launchMode: 'direct',
     available: false,
+    enabled: true,
+    sortOrder: 20,
   },
   {
     key: 'true-false',
@@ -136,7 +170,11 @@ const gameBlocks: GameBlock[] = [
     desc: '快速判断陈述是否正确',
     icon: '/static/icons/line/check-circle.svg',
     tone: 'green',
+    routePath: '/pages/game/coming-soon',
+    launchMode: 'direct',
     available: false,
+    enabled: true,
+    sortOrder: 30,
   },
   {
     key: 'memory-flip',
@@ -144,7 +182,11 @@ const gameBlocks: GameBlock[] = [
     desc: '翻牌配对，训练短时记忆',
     icon: '/static/icons/line/crown.svg',
     tone: 'pink',
+    routePath: '/pages/game/coming-soon',
+    launchMode: 'direct',
     available: false,
+    enabled: true,
+    sortOrder: 40,
   },
   {
     key: 'drag-match',
@@ -152,7 +194,11 @@ const gameBlocks: GameBlock[] = [
     desc: '把动物和名称拖到一起',
     icon: '/static/icons/line/share.svg',
     tone: 'purple',
+    routePath: '/pages/game/coming-soon',
+    launchMode: 'direct',
     available: false,
+    enabled: true,
+    sortOrder: 50,
   },
   {
     key: 'time-rush',
@@ -160,9 +206,107 @@ const gameBlocks: GameBlock[] = [
     desc: '计时连击，冲击更高分',
     icon: '/static/icons/line/trophy.svg',
     tone: 'teal',
+    routePath: '/pages/game/coming-soon',
+    launchMode: 'direct',
     available: false,
+    enabled: true,
+    sortOrder: 60,
   },
 ]
+const ALLOWED_TONES = new Set<DisplayGameTone>(['gold', 'blue', 'green', 'pink', 'purple', 'teal'])
+const ALLOWED_LAUNCH_MODES = new Set<DisplayGameLaunchMode>(['listen-pick-category', 'direct'])
+const TABBAR_ROUTE_SET = new Set(TABBAR_ITEMS.map((item) => item.pagePath))
+const gameBlocks = ref<GameBlock[]>([...DEFAULT_GAME_BLOCKS])
+const displayConfigLoading = ref(false)
+const listenPickRoutePath = ref(DEFAULT_LISTEN_PICK_ROUTE)
+
+function normalizeTone(value: unknown): GameBlock['tone'] {
+  const tone = String(value || '').trim() as DisplayGameTone
+  if (ALLOWED_TONES.has(tone)) {
+    return tone
+  }
+  return 'blue'
+}
+
+function normalizeLaunchMode(value: unknown): GameBlock['launchMode'] {
+  const launchMode = String(value || '').trim() as DisplayGameLaunchMode
+  if (ALLOWED_LAUNCH_MODES.has(launchMode)) {
+    return launchMode
+  }
+  return 'direct'
+}
+
+function normalizeRoutePath(path: unknown, fallback = '/pages/game/coming-soon') {
+  const normalized = String(path || '').trim()
+  if (normalized.startsWith('/pages/')) {
+    return normalized
+  }
+  return fallback
+}
+
+function mapDisplayGame(item: DisplayGameConfig): GameBlock | null {
+  const key = String(item.key || '').trim()
+  const title = String(item.title || '').trim()
+  if (!key || !title) {
+    return null
+  }
+
+  const launchMode = normalizeLaunchMode(item.launchMode)
+  const routePath = normalizeRoutePath(
+    item.routePath,
+    launchMode === 'listen-pick-category' ? DEFAULT_LISTEN_PICK_ROUTE : '/pages/game/coming-soon',
+  )
+
+  return {
+    key,
+    title,
+    desc: String(item.desc || '').trim(),
+    icon: String(item.icon || '').trim() || '/static/icons/line/grid.svg',
+    coverImage: String(item.cover || '').trim(),
+    entryTag: String(item.entryTag || '').trim(),
+    tone: normalizeTone(item.tone),
+    routePath,
+    launchMode,
+    available: Boolean(item.available),
+    enabled: item.enabled !== false,
+    sortOrder: Number(item.sortOrder || 0),
+  }
+}
+
+function applyDisplayConfig(data?: DisplayConfigResult) {
+  const sourceGames = Array.isArray(data?.games) ? (data?.games || []) : []
+  const mappedGames = sourceGames
+    .map(mapDisplayGame)
+    .filter((item): item is GameBlock => !!item)
+    .filter((item) => item.enabled)
+    .sort((left, right) => left.sortOrder - right.sortOrder)
+
+  if (mappedGames.length <= 0) {
+    gameBlocks.value = [...DEFAULT_GAME_BLOCKS]
+    return
+  }
+  gameBlocks.value = mappedGames
+}
+
+async function loadDisplayConfig() {
+  if (displayConfigLoading.value) {
+    return
+  }
+  displayConfigLoading.value = true
+
+  try {
+    const res = await cardApi.getDisplayConfig()
+    if (res.code !== 0) {
+      gameBlocks.value = [...DEFAULT_GAME_BLOCKS]
+      return
+    }
+    applyDisplayConfig(res.data)
+  } catch {
+    gameBlocks.value = [...DEFAULT_GAME_BLOCKS]
+  } finally {
+    displayConfigLoading.value = false
+  }
+}
 
 const stageStyle = computed<Record<string, string>>(() => {
   const topInset = getNavBarHeight() + uni.upx2px(20)
@@ -181,19 +325,35 @@ const categoryOptions = ref<GameCategoryOption[]>([])
 const categoryPickerScrollTop = ref(0)
 
 function openGame(item: GameBlock) {
-  if (item.available) {
-    if ((item.gameName || item.key) === 'listen-pick') {
-      openCategoryPicker()
+  if (item.launchMode === 'listen-pick-category') {
+    if (!item.available) {
+      openComingSoon(item)
       return
     }
-
-    navigateTo(`/pages/game/${encodeURIComponent(item.gameName || item.key)}`)
+    listenPickRoutePath.value = normalizeRoutePath(item.routePath, DEFAULT_LISTEN_PICK_ROUTE)
+    openCategoryPicker()
     return
   }
 
-  navigateTo(
-    `/pages/game/coming-soon?title=${encodeURIComponent(item.title)}&desc=${encodeURIComponent(item.desc)}`,
-  )
+  if (item.launchMode === 'direct' && item.available) {
+    openConfiguredRoute(item.routePath)
+    return
+  }
+
+  openComingSoon(item)
+}
+
+function openComingSoon(item: GameBlock) {
+  navigateTo(`/pages/game/coming-soon?title=${encodeURIComponent(item.title)}&desc=${encodeURIComponent(item.desc)}`)
+}
+
+function openConfiguredRoute(routePath: string) {
+  const normalized = normalizeRoutePath(routePath)
+  if (TABBAR_ROUTE_SET.has(normalized)) {
+    switchTab(normalized)
+    return
+  }
+  navigateTo(normalized)
 }
 
 function closeCategoryPicker() {
@@ -272,8 +432,16 @@ function enterListenPick(option: GameCategoryOption) {
     `categoryName=${encodeURIComponent(option.name)}`,
   ]
   closeCategoryPicker()
-  navigateTo(`/pages/game/listen-pick?${queryParts.join('&')}`)
+  navigateTo(`${listenPickRoutePath.value}?${queryParts.join('&')}`)
 }
+
+onLoad(() => {
+  void loadDisplayConfig()
+})
+
+onShow(() => {
+  void loadDisplayConfig()
+})
 </script>
 
 <style src="./styles/game.scss" scoped lang="scss"></style>

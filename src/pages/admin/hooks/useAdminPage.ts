@@ -187,6 +187,17 @@ export function useAdminPage() {
       onClick: goTasks,
     },
     {
+      key: 'display-config',
+      title: '游戏配置',
+      metric: 'Logo + 游戏卡片',
+      desc: '配置首页 Logo 和游戏列表展示与跳转策略',
+      badge: '运营',
+      icon: '/static/icons/line/video.svg',
+      available: true,
+      tone: 'tone-indigo',
+      onClick: goDisplayConfig,
+    },
+    {
       key: 'categories',
       title: '分类管理',
       metric: `${formatNumber(stats.value.categoryCount)} 个分类`,
@@ -391,6 +402,11 @@ export function useAdminPage() {
   /** 跳转到任务列表 */
   function goTasks() {
     navigateTo('/pages/admin/tasks')
+  }
+
+  /** 跳转到展示配置 */
+  function goDisplayConfig() {
+    navigateTo('/pages/admin/display-config')
   }
 
   /** 跳转到分类列表 */

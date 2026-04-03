@@ -116,6 +116,13 @@
       }
     },
     {
+      "path": "pages/admin/display-config",
+      "style": {
+        "navigationBarTitleText": "游戏配置",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/admin/cards",
       "style": {
         "navigationBarTitleText": "卡片管理",
