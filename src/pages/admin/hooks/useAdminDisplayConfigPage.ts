@@ -12,7 +12,6 @@ import { uploadApiFile } from '@/api/shared'
 import { usePageLayout } from '@/composables/usePageLayout'
 import { getErrorMessage, hideLoading, navigateBack, showLoading, showToast } from '@/utils'
 
-const DEFAULT_LOGO = '/static/icons/brands/app-logo.png'
 const GAME_KEY_PATTERN = /^[a-z0-9-]{2,32}$/
 
 const TONE_OPTIONS: Array<{ label: string; value: DisplayGameTone }> = [
@@ -127,7 +126,7 @@ export function useAdminDisplayConfigPage() {
   const toneRange = TONE_OPTIONS.map((item) => item.label)
   const launchModeRange = LAUNCH_MODE_OPTIONS.map((item) => item.label)
 
-  const previewLogo = computed(() => miniAppIcon.value || DEFAULT_LOGO)
+  const previewLogo = computed(() => miniAppIcon.value)
   const enabledGameCount = computed(() => gameForms.value.filter((item) => item.enabled).length)
   const hasPendingChanges = computed(() => JSON.stringify(buildPayload()) !== lastSavedSnapshot.value)
 

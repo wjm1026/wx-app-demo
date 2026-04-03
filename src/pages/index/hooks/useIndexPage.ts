@@ -11,7 +11,6 @@ import {
 
 const CONTENT_TOP_GAP_PX = uni.upx2px(32)
 const TABBAR_SPACER_PX = uni.upx2px(160)
-const DEFAULT_APP_LOGO = '/static/icons/brands/app-logo.png'
 const CATEGORY_FALLBACK_GRADIENTS = [
   'linear-gradient(145deg, #fff4dc 0%, #ffe8b8 100%)',
   'linear-gradient(145deg, #edf5ff 0%, #dceafe 100%)',
@@ -128,7 +127,7 @@ export function useIndexPage() {
   const safeBottomStyle = computed(() => ({
     height: `${TABBAR_SPACER_PX + getSafeAreaBottom()}px`,
   }))
-  const resolvedAppLogo = computed(() => miniAppIcon.value || DEFAULT_APP_LOGO)
+  const resolvedAppLogo = computed(() => miniAppIcon.value )
   const totalCardCount = computed(() =>
     categories.value.reduce((sum, item) => sum + Math.max(Number(item.card_count || 0), 0), 0),
   )
