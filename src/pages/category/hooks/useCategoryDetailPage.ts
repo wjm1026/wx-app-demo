@@ -10,6 +10,11 @@ import { useCategoryLearningRecorder } from './category-detail.learning'
 import { decodeQueryValue, fallbackBack, parseStartIndex, type DetailQuery } from './category-detail.query'
 
 const SWIPE_GUIDE_STORAGE_KEY = 'CATEGORY_DETAIL_SWIPE_GUIDE_SHOWN_V1'
+const AUTO_PLAY_STORAGE_KEY = 'CATEGORY_DETAIL_AUTO_PLAY_ENABLED_V1'
+const AUTO_PLAY_GUIDE_STORAGE_KEY = 'CATEGORY_DETAIL_AUTO_PLAY_GUIDE_SHOWN_V1'
+const AUTO_PLAY_LANGUAGE_GAP_MS = 180
+const AUTO_PLAY_NEXT_GAP_MS = 220
+const AUTO_PLAY_PAUSED_TOAST = '已暂停自动播放'
 
 /**
  * 分类详情页主编排 Hook：
@@ -28,6 +33,15 @@ export function useCategoryDetailPage() {
   const isFavoriteLoading = ref(false)
   // 新用户首次进入时显示的左右滑动引导
   const showSwipeGuide = ref(false)
+  // 首次进入时显示“自动播放胶囊”提示
+  const showAutoPlayGuide = ref(false)
+  // 自动播放状态
+  const isAutoPlayEnabled = ref(false)
+  const isAutoRunning = ref(false)
+  const isAutoAdvancing = ref(false)
+  let autoPlayTimer: ReturnType<typeof setTimeout> | null = null
+  let autoPlayDelayResolver: ((shouldContinue: boolean) => void) | null = null
+  let autoPlayTaskId = 0
 
   // 学习记录上报与成就提示
   const { notifyUnlockedAchievements, recordLearningForCard } =
@@ -58,6 +72,7 @@ export function useCategoryDetailPage() {
     currentDetail, // 当前卡片详情
     currentDisplayIndex, // UI 展示用的序号（从 1 开始）
     detailError, // 详情加载错误信息
+    goToNextCard, // 自动播放程序化切换下一张
     handleSwiperChange: handleSwiperChangeInternal, // 轮播切换处理器
     isCurrentFavorited, // 当前卡片是否已收藏
     isDetailLoading, // 详情加载中状态
@@ -65,8 +80,8 @@ export function useCategoryDetailPage() {
     isSnapshotLoading, // 快照列表加载中状态
     loadSnapshotCards, // 拉取快照列表
     resolveCardImage, // 解析卡片展示图地址
-    retryCurrentDetail, // 重试当前详情加载
-    retrySnapshot, // 重试快照加载
+    retryCurrentDetail: retryCurrentDetailInternal, // 重试当前详情加载
+    retrySnapshot: retrySnapshotInternal, // 重试快照加载
     shouldRenderMedia, // 是否渲染某个轮播项媒体
     snapshotCards, // 快照卡片列表
     snapshotError, // 快照加载错误信息
@@ -94,10 +109,268 @@ export function useCategoryDetailPage() {
   const {
     destroyPlayingAudio,
     playingAudioType,
-    playChinesePronunciation,
-    playEnglishPronunciation,
+    playChinesePronunciation: playChinesePronunciationInternal,
+    playEnglishPronunciation: playEnglishPronunciationInternal,
+    playPronunciationOnce,
   } = audioController
   stopPlayingAudio = audioController.stopPlayingAudio
+
+  /** 是否已记住自动播放开启 */
+  function hasAutoPlayEnabled() {
+    return String(uni.getStorageSync(AUTO_PLAY_STORAGE_KEY) || '') === '1'
+  }
+
+  /** 是否已经展示过自动播放提示 */
+  function hasShownAutoPlayGuide() {
+    return String(uni.getStorageSync(AUTO_PLAY_GUIDE_STORAGE_KEY) || '') === '1'
+  }
+
+  /** 写入自动播放偏好 */
+  function persistAutoPlayEnabled(enabled: boolean) {
+    uni.setStorageSync(AUTO_PLAY_STORAGE_KEY, enabled ? '1' : '0')
+  }
+
+  /** 标记自动播放提示已展示 */
+  function markAutoPlayGuideShown() {
+    uni.setStorageSync(AUTO_PLAY_GUIDE_STORAGE_KEY, '1')
+  }
+
+  /** 关闭自动播放提示 */
+  function dismissAutoPlayGuide(optionsForDismiss: { remember?: boolean } = {}) {
+    showAutoPlayGuide.value = false
+
+    if (optionsForDismiss.remember) {
+      markAutoPlayGuideShown()
+    }
+  }
+
+  /** 首次进入详情页时展示“自动播放胶囊”提示 */
+  function maybeShowAutoPlayGuide() {
+    if (total.value <= 0 || hasShownAutoPlayGuide()) {
+      return
+    }
+
+    showAutoPlayGuide.value = true
+  }
+
+  /** 清理自动播放延时器 */
+  function clearAutoPlayTimer() {
+    if (autoPlayTimer) {
+      clearTimeout(autoPlayTimer)
+      autoPlayTimer = null
+    }
+
+    if (autoPlayDelayResolver) {
+      autoPlayDelayResolver(false)
+      autoPlayDelayResolver = null
+    }
+  }
+
+  /** 等待自动播放节奏延时，可被 stop 动作打断 */
+  function waitForAutoPlayDelay(delay: number, taskId: number) {
+    if (delay <= 0) {
+      return Promise.resolve(isAutoPlayEnabled.value && autoPlayTaskId === taskId)
+    }
+
+    clearAutoPlayTimer()
+
+    return new Promise<boolean>((resolve) => {
+      autoPlayDelayResolver = resolve
+      autoPlayTimer = setTimeout(() => {
+        autoPlayTimer = null
+        autoPlayDelayResolver = null
+        resolve(isAutoPlayEnabled.value && autoPlayTaskId === taskId)
+      }, delay)
+    })
+  }
+
+  /** 清理自动播放运行态，不改持久化偏好 */
+  function cleanupAutoPlayRuntime() {
+    autoPlayTaskId += 1
+    isAutoRunning.value = false
+    isAutoAdvancing.value = false
+    clearAutoPlayTimer()
+    stopPlayingAudio()
+  }
+
+  /** 关闭自动播放（可选提示与持久化） */
+  function stopAutoPlay(optionsForStop: { showToast?: boolean; persist?: boolean; message?: string } = {}) {
+    const hadAutoPlay = isAutoPlayEnabled.value || isAutoRunning.value
+    isAutoPlayEnabled.value = false
+
+    if (optionsForStop.persist !== false) {
+      persistAutoPlayEnabled(false)
+    }
+
+    cleanupAutoPlayRuntime()
+
+    if (!hadAutoPlay) {
+      return
+    }
+
+    if (optionsForStop.message) {
+      showToast(optionsForStop.message)
+      return
+    }
+
+    if (optionsForStop.showToast) {
+      showToast(AUTO_PLAY_PAUSED_TOAST)
+    }
+  }
+
+  /** 自动播放单卡循环：中文 -> 英文 -> 下一张 */
+  async function runCurrentCardCycle(taskId: number) {
+    if (!isAutoPlayEnabled.value || autoPlayTaskId !== taskId) {
+      return false
+    }
+
+    if (detailError.value || isDetailLoading.value) {
+      stopAutoPlay({ message: '当前卡片不可用，已暂停自动播放' })
+      return false
+    }
+
+    const playOrder: Array<'cn' | 'en'> = ['cn', 'en']
+    for (let index = 0; index < playOrder.length; index += 1) {
+      const result = await playPronunciationOnce(playOrder[index], {
+        silentWhenMissing: true,
+        suppressErrorToast: true,
+      })
+
+      if (!isAutoPlayEnabled.value || autoPlayTaskId !== taskId) {
+        return false
+      }
+
+      if (result === 'failed') {
+        stopAutoPlay({ message: '音频播放失败，已暂停自动播放' })
+        return false
+      }
+
+      if (result === 'played-stopped') {
+        return false
+      }
+
+      const isNotLastLanguage = index < playOrder.length - 1
+      if (isNotLastLanguage && result === 'played-ended') {
+        const canContinue = await waitForAutoPlayDelay(AUTO_PLAY_LANGUAGE_GAP_MS, taskId)
+        if (!canContinue) {
+          return false
+        }
+      }
+    }
+
+    const canAdvance = await waitForAutoPlayDelay(AUTO_PLAY_NEXT_GAP_MS, taskId)
+    if (!canAdvance) {
+      return false
+    }
+
+    if (total.value <= 1) {
+      stopAutoPlay({ message: '当前分类卡片不足 2 张，已暂停自动播放' })
+      return false
+    }
+
+    isAutoAdvancing.value = true
+    try {
+      const moved = await goToNextCard()
+      if (!moved) {
+        stopAutoPlay({ message: '切换下一张失败，已暂停自动播放' })
+        return false
+      }
+    } finally {
+      isAutoAdvancing.value = false
+    }
+
+    return true
+  }
+
+  /** 启动自动播放循环（从当前卡片开始） */
+  async function startAutoPlayFromCurrent() {
+    if (!isAutoPlayEnabled.value || isAutoRunning.value) {
+      return
+    }
+
+    if (
+      total.value <= 0 ||
+      isSnapshotLoading.value ||
+      !!snapshotError.value ||
+      isDetailLoading.value ||
+      !!detailError.value
+    ) {
+      return
+    }
+
+    const taskId = ++autoPlayTaskId
+    isAutoRunning.value = true
+
+    try {
+      while (isAutoPlayEnabled.value && autoPlayTaskId === taskId) {
+        const shouldContinue = await runCurrentCardCycle(taskId)
+        if (!shouldContinue) {
+          break
+        }
+      }
+    } finally {
+      if (autoPlayTaskId === taskId) {
+        isAutoRunning.value = false
+        clearAutoPlayTimer()
+      }
+    }
+  }
+
+  /** 满足条件时触发自动播放 */
+  function triggerAutoPlayIfNeeded() {
+    if (!isAutoPlayEnabled.value || isAutoRunning.value) {
+      return
+    }
+
+    void startAutoPlayFromCurrent()
+  }
+
+  /** 右上胶囊开关：切换自动播放 */
+  function toggleAutoPlay() {
+    dismissAutoPlayGuide({ remember: true })
+
+    if (isAutoPlayEnabled.value) {
+      stopAutoPlay()
+      return
+    }
+
+    isAutoPlayEnabled.value = true
+    persistAutoPlayEnabled(true)
+    triggerAutoPlayIfNeeded()
+  }
+
+  /** 手动操作前打断自动播放 */
+  function interruptAutoPlayForManualAction() {
+    if (!isAutoPlayEnabled.value && !isAutoRunning.value) {
+      return
+    }
+
+    stopAutoPlay({ showToast: true })
+  }
+
+  /** 手动播放中文：先打断自动播放 */
+  function playChinesePronunciation() {
+    interruptAutoPlayForManualAction()
+    playChinesePronunciationInternal()
+  }
+
+  /** 手动播放英文：先打断自动播放 */
+  function playEnglishPronunciation() {
+    interruptAutoPlayForManualAction()
+    playEnglishPronunciationInternal()
+  }
+
+  /** 重试快照后，若开关开启则继续自动播放 */
+  async function retrySnapshot() {
+    await retrySnapshotInternal()
+    triggerAutoPlayIfNeeded()
+  }
+
+  /** 重试当前详情后，若开关开启则继续自动播放 */
+  async function retryCurrentDetail() {
+    await retryCurrentDetailInternal()
+    triggerAutoPlayIfNeeded()
+  }
 
   /** 关闭左右滑动引导 */
   function dismissSwipeGuide() {
@@ -133,7 +406,13 @@ export function useCategoryDetailPage() {
 
     await handleSwiperChangeInternal(event)
 
-    if (showSwipeGuide.value && activeIndex.value !== previousIndex) {
+    const hasChanged = activeIndex.value !== previousIndex
+
+    if (hasChanged && !isAutoAdvancing.value && (isAutoPlayEnabled.value || isAutoRunning.value)) {
+      stopAutoPlay({ showToast: true })
+    }
+
+    if (showSwipeGuide.value && hasChanged) {
       dismissSwipeGuide()
       markSwipeGuideShown()
     }
@@ -254,11 +533,14 @@ export function useCategoryDetailPage() {
 
     startCardId.value = decodeQueryValue(resolvedQuery.cardId)
     startIndex.value = parseStartIndex(resolvedQuery.startIndex)
+    isAutoPlayEnabled.value = hasAutoPlayEnabled()
 
     void (async () => {
       const loaded = await loadSnapshotCards()
       if (loaded) {
         maybeShowSwipeGuide()
+        maybeShowAutoPlayGuide()
+        triggerAutoPlayIfNeeded()
       }
     })()
   })
@@ -282,6 +564,9 @@ export function useCategoryDetailPage() {
   /** 页面卸载：销毁音频实例，避免后台继续播放和旧监听残留 */
   onUnload(() => {
     dismissSwipeGuide()
+    dismissAutoPlayGuide()
+    isAutoPlayEnabled.value = false
+    cleanupAutoPlayRuntime()
     destroyPlayingAudio()
   })
 
@@ -296,6 +581,8 @@ export function useCategoryDetailPage() {
     hasChineseAudio,
     hasEnglishAudio,
     handleSwiperChange,
+    isAutoPlayEnabled,
+    isAutoRunning,
     isDetailLoading,
     isEmpty,
     isCurrentFavorited,
@@ -308,8 +595,10 @@ export function useCategoryDetailPage() {
     retrySnapshot,
     snapshotCards,
     snapshotError,
+    showAutoPlayGuide,
     showSwipeGuide,
     statusBarHeight,
+    toggleAutoPlay,
     toggleCurrentFavorite,
     resolveCardImage,
     shouldRenderMedia,

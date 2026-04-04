@@ -43,7 +43,10 @@ export function useUserPage() {
   const hasSigned = ref(false)
   const isLoading = ref(false)
   const isUpdatingProfile = ref(false)
-  const nicknameDraft = ref('')
+  const isProfileEditorVisible = ref(false)
+  const profileNicknameDraft = ref('')
+  const profileAvatarDraft = ref('')
+  const profileAvatarTempFilePath = ref('')
 
   const isLoggedIn = computed(() => store.isLoggedIn)
   const userInfo = computed(() => buildUserPageViewModel(store.userInfo))
@@ -51,6 +54,9 @@ export function useUserPage() {
     marginTop: `${headerHeight.value}px`,
     height: `calc(100vh - ${headerHeight.value}px)`,
   }))
+  const profileAvatarSource = computed(
+    () => profileAvatarDraft.value || userInfo.value.avatar || DEFAULT_AVATAR,
+  )
 
   // 用户资料和签到状态都依赖登录态。只要接口返回 401/404，就说明本地 token 已失效
   // 或服务端已不存在当前用户，页面应该立刻回退到未登录状态，避免前后端口径不一致。
@@ -147,16 +153,6 @@ export function useUserPage() {
     return value.trim().slice(0, PROFILE_NICKNAME_MAX_LENGTH)
   }
 
-  /** 提取输入内容值 */
-  function extractInputValue(event: unknown) {
-    if (!event || typeof event !== 'object') {
-      return ''
-    }
-
-    const detail = (event as { detail?: { value?: unknown } }).detail
-    return typeof detail?.value === 'string' ? detail.value : ''
-  }
-
   /** 提取头像文件路径 */
   function extractAvatarFilePath(event: unknown) {
     if (!event || typeof event !== 'object') {
@@ -234,149 +230,135 @@ export function useUserPage() {
     return uploadUrl
   }
 
-  /** 从路径更新头像 */
-  async function updateAvatarFromPath(filePath: string) {
-    try {
-      if (!filePath) {
-        return
-      }
-
-      isUpdatingProfile.value = true
-      showLoading('上传头像中...')
-      const avatar = await uploadAvatar(filePath)
-      const result = await commitUserProfilePatch(
-        { avatar },
-        {
-          success: '头像已更新',
-          failure: '更新头像失败',
-        },
-      )
-      hideLoading()
-      if (result.message) {
-        showToast(result.message, result.ok ? 'success' : 'none')
-      }
-    } catch (error) {
-      if (!isCancelledAction(error)) {
-        hideLoading()
-        showToast(getErrorMessage(error, '更新头像失败'))
-      }
-    } finally {
-      hideLoading()
-      isUpdatingProfile.value = false
-    }
+  /** 同步资料编辑器草稿 */
+  function syncProfileEditorDraft() {
+    profileNicknameDraft.value = normalizeNickname(store.userInfo?.nickname)
+    profileAvatarDraft.value = store.userInfo?.avatar || ''
+    profileAvatarTempFilePath.value = ''
   }
 
-  /** 选择头像 */
-  async function chooseAvatar() {
+  /** 打开资料编辑器 */
+  function openProfileEditor() {
     if (triggerLoginIfNeeded() || isUpdatingProfile.value) {
+      return
+    }
+
+    syncProfileEditorDraft()
+    isProfileEditorVisible.value = true
+  }
+
+  /** 关闭资料编辑器 */
+  function closeProfileEditor(forceOrEvent?: unknown) {
+    const force = typeof forceOrEvent === 'boolean' ? forceOrEvent : false
+
+    if (!force && isUpdatingProfile.value) {
+      return
+    }
+
+    isProfileEditorVisible.value = false
+    syncProfileEditorDraft()
+  }
+
+  /** 设置资料编辑器头像 */
+  function setProfileEditorAvatar(filePath: string) {
+    if (!filePath) {
+      return
+    }
+
+    profileAvatarDraft.value = filePath
+    profileAvatarTempFilePath.value = filePath
+  }
+
+  /** 资料编辑器选择头像 */
+  async function chooseProfileEditorAvatar() {
+    if (triggerLoginIfNeeded() || isUpdatingProfile.value || !isProfileEditorVisible.value) {
       return
     }
 
     try {
       const filePath = await selectAvatarFile()
-      await updateAvatarFromPath(filePath)
+      setProfileEditorAvatar(filePath)
     } catch (error) {
       if (!isCancelledAction(error)) {
-        hideLoading()
-        showToast(getErrorMessage(error, '更新头像失败'))
+        showToast(getErrorMessage(error, '选择头像失败'))
       }
     }
   }
 
-  /** 处理选择头像 */
-  async function handleChooseAvatar(event: unknown) {
+  /** 资料编辑器处理微信头像选择 */
+  function handleProfileEditorChooseAvatar(event: unknown) {
+    if (triggerLoginIfNeeded() || isUpdatingProfile.value || !isProfileEditorVisible.value) {
+      return
+    }
+
+    setProfileEditorAvatar(extractAvatarFilePath(event))
+  }
+
+  /** 保存资料编辑器内容 */
+  async function saveProfileEditor() {
     if (triggerLoginIfNeeded() || isUpdatingProfile.value) {
       return
     }
 
-    await updateAvatarFromPath(extractAvatarFilePath(event))
-  }
+    const currentNickname = normalizeNickname(store.userInfo?.nickname)
+    const currentAvatar = store.userInfo?.avatar || ''
+    const nickname = normalizeNickname(profileNicknameDraft.value)
 
-  /** 保存昵称 */
-  async function saveNickname(nextNickname: unknown) {
-    const currentNickname = store.userInfo?.nickname || ''
-    const nickname = normalizeNickname(nextNickname)
-
-    nicknameDraft.value = nickname
+    profileNicknameDraft.value = nickname
 
     if (!nickname) {
-      nicknameDraft.value = currentNickname
       showToast('昵称不能为空')
       return
     }
 
-    if (nickname === currentNickname || isUpdatingProfile.value) {
-      return
-    }
-
     isUpdatingProfile.value = true
-    showLoading('保存昵称中...')
+    showLoading('保存资料中...')
+
     try {
+      let avatar = currentAvatar
+
+      if (profileAvatarTempFilePath.value) {
+        avatar = await uploadAvatar(profileAvatarTempFilePath.value)
+      }
+
+      const patch: UserProfilePatch = {}
+
+      if (nickname !== currentNickname) {
+        patch.nickname = nickname
+      }
+
+      if (avatar && avatar !== currentAvatar) {
+        patch.avatar = avatar
+      }
+
+      if (Object.keys(patch).length === 0) {
+        closeProfileEditor(true)
+        showToast('资料已是最新', 'success')
+        return
+      }
+
       const result = await commitUserProfilePatch(
-        { nickname },
+        patch,
         {
-          success: '昵称已更新',
-          failure: '更新昵称失败',
+          success: '资料已更新',
+          failure: '更新资料失败',
         },
       )
-      hideLoading()
-      if (!result.ok) {
-        nicknameDraft.value = currentNickname
+
+      if (result.ok) {
+        closeProfileEditor(true)
       }
+
       if (result.message) {
         showToast(result.message, result.ok ? 'success' : 'none')
       }
     } catch (error) {
-      hideLoading()
-      nicknameDraft.value = currentNickname
-      showToast(getErrorMessage(error, '更新昵称失败'))
+      if (!isCancelledAction(error)) {
+        showToast(getErrorMessage(error, '更新资料失败'))
+      }
     } finally {
       hideLoading()
       isUpdatingProfile.value = false
-    }
-  }
-
-  /** 处理昵称提交 */
-  async function handleNicknameSubmit(event?: unknown) {
-    if (triggerLoginIfNeeded()) {
-      return
-    }
-
-    const nextNickname = extractInputValue(event) || nicknameDraft.value
-    await saveNickname(nextNickname)
-  }
-
-  /** 处理编辑昵称 */
-  async function editNickname() {
-    if (triggerLoginIfNeeded() || isUpdatingProfile.value) {
-      return
-    }
-
-    const currentNickname = store.userInfo?.nickname || ''
-
-    try {
-      const modalRes = await new Promise<UniApp.ShowModalRes>((resolve, reject) => {
-        uni.showModal({
-          title: '修改昵称',
-          content: currentNickname || '请输入新的昵称',
-          editable: true,
-          placeholderText: currentNickname || '请输入昵称',
-          confirmText: '保存',
-          success: resolve,
-          fail: reject,
-        })
-      })
-
-      if (!modalRes.confirm) {
-        return
-      }
-
-      await saveNickname(modalRes.content)
-    } catch (error) {
-      if (!isCancelledAction(error)) {
-        hideLoading()
-        showToast(getErrorMessage(error, '更新昵称失败'))
-      }
     }
   }
 
@@ -583,14 +565,18 @@ export function useUserPage() {
   })
 
   watch(
-    () => store.userInfo?.nickname,
-    (value) => {
-      nicknameDraft.value = normalizeNickname(value)
+    [() => store.userInfo?.nickname, () => store.userInfo?.avatar],
+    () => {
+      if (!isProfileEditorVisible.value) {
+        syncProfileEditorDraft()
+      }
     },
     { immediate: true },
   )
 
   return {
+    chooseProfileEditorAvatar,
+    closeProfileEditor,
     contentScrollStyle,
     defaultAvatar: DEFAULT_AVATAR,
     doLogin,
@@ -602,17 +588,19 @@ export function useUserPage() {
     goFeedback,
     goInvite,
     goPointsLog,
-    handleChooseAvatar,
-    handleNicknameSubmit,
+    handleProfileEditorChooseAvatar,
     hasSigned,
     isLoading,
     isLoggedIn,
-    nicknameDraft,
+    isProfileEditorVisible,
+    isUpdatingProfile,
+    openProfileEditor,
+    profileAvatarSource,
+    profileNicknameDraft,
+    saveProfileEditor,
     statusBarHeight,
     store,
     userInfo,
     watchAd,
-    chooseAvatar,
-    editNickname,
   }
 }

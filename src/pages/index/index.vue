@@ -29,7 +29,8 @@
         <view class="hero-card">
           <view class="hero-copy">
             <text class="hero-kicker">陪宝宝认识世界</text>
-            <text class="hero-title-main">从熟悉的小事物开始，边看边听边开口</text>
+            <text class="hero-title-main">熟悉身边小事物</text>
+            <text class="hero-title-main">边看边听边开口</text>
             <text class="hero-description">{{ heroDescription }}</text>
 
             <view class="hero-chip-row">
@@ -89,7 +90,9 @@
                 :src="getCategoryImage(item)"
                 mode="aspectFit"
               />
-              <text v-else class="merged-category-monogram">{{ getCategoryMonogram(item) }}</text>
+              <text v-else class="merged-category-monogram">{{
+                getCategoryMonogram(item)
+              }}</text>
             </view>
 
             <view class="merged-category-content">
@@ -104,11 +107,15 @@
                 </view>
               </view>
 
-              <text class="merged-category-description">{{ getCategoryDescription(item) }}</text>
+              <text class="merged-category-description">{{
+                getCategoryDescription(item)
+              }}</text>
 
               <view class="merged-category-footer">
                 <view class="merged-category-chip">
-                  <text class="merged-category-chip-text">{{ getCategoryCountText(item) }}</text>
+                  <text class="merged-category-chip-text">{{
+                    getCategoryCountText(item)
+                  }}</text>
                 </view>
                 <text class="merged-category-footer-text">点击进入</text>
               </view>
@@ -117,12 +124,22 @@
         </view>
 
         <view v-else class="merged-category-grid">
-          <view v-for="n in 6" :key="n" class="merged-category-card merged-skeleton-card">
+          <view
+            v-for="n in 6"
+            :key="n"
+            class="merged-category-card merged-skeleton-card"
+          >
             <view class="merged-category-icon merged-skeleton-shimmer"></view>
             <view class="merged-category-content">
-              <view class="merged-skeleton-line merged-skeleton-line--title"></view>
-              <view class="merged-skeleton-line merged-skeleton-line--body"></view>
-              <view class="merged-skeleton-line merged-skeleton-line--chip"></view>
+              <view
+                class="merged-skeleton-line merged-skeleton-line--title"
+              ></view>
+              <view
+                class="merged-skeleton-line merged-skeleton-line--body"
+              ></view>
+              <view
+                class="merged-skeleton-line merged-skeleton-line--chip"
+              ></view>
             </view>
           </view>
         </view>
@@ -136,8 +153,8 @@
 </template>
 
 <script setup lang="ts">
-import CustomTabbar from '@/components/CustomTabbar/CustomTabbar.vue'
-import { useIndexPage } from './hooks/useIndexPage'
+import CustomTabbar from "@/components/CustomTabbar/CustomTabbar.vue";
+import { useIndexPage } from "./hooks/useIndexPage";
 
 const {
   categoryCountText,
@@ -159,7 +176,7 @@ const {
   safeBottomStyle,
   statusBarHeight,
   totalCardCountText,
-} = useIndexPage()
+} = useIndexPage();
 </script>
 
 <style src="./styles/index.scss" scoped lang="scss"></style>

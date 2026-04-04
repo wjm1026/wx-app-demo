@@ -11,18 +11,30 @@
         </view>
         <view class="nav-title-wrap">
           <text class="nav-title">{{ categoryName }}</text>
-          <view
-            v-if="total > 0"
-            class="nav-index-chip"
-            :class="{ 'is-complete': currentDisplayIndex >= total }"
-          >
+          <view v-if="total > 0" class="nav-index-chip-anchor">
             <view
-              class="nav-index-chip-fill"
-              :style="{
-                width: `${Math.round((currentDisplayIndex / total) * 100)}%`,
+              class="nav-index-chip"
+              :class="{
+                'is-complete': currentDisplayIndex >= total,
+                'is-auto-enabled': isAutoPlayEnabled,
+                'is-auto-running': isAutoRunning,
               }"
-            ></view>
-            <view class="nav-index-chip-glint"></view>
+              @tap="toggleAutoPlay"
+            >
+              <view
+                class="nav-index-chip-fill"
+                :style="{
+                  width: `${Math.round((currentDisplayIndex / total) * 100)}%`,
+                }"
+              ></view>
+              <view class="nav-index-chip-glint"></view>
+            </view>
+            <view v-if="showAutoPlayGuide" class="auto-play-guide" aria-hidden="true">
+              <view class="auto-play-guide-focus"></view>
+              <view class="auto-play-guide-bubble">
+                <text class="auto-play-guide-text">点胶囊开启自动播放（中文→英文→下一张）</text>
+              </view>
+            </view>
           </view>
         </view>
         <view class="nav-placeholder"></view>
@@ -152,7 +164,7 @@
                 {{
                   isCurrentFavorited
                     ? "已加入学习收藏夹，随时复习"
-                    : "加入收藏夹，方便下次快速学习"
+                    : "方便下次快速学习"
                 }}
               </text>
             </view>
@@ -196,6 +208,8 @@ const {
   isCurrentFavorited,
   isFavoriteLoading,
   isSnapshotLoading,
+  isAutoPlayEnabled,
+  isAutoRunning,
   playChinesePronunciation,
   playEnglishPronunciation,
   playingAudioType,
@@ -203,8 +217,10 @@ const {
   retrySnapshot,
   snapshotCards,
   snapshotError,
+  showAutoPlayGuide,
   showSwipeGuide,
   statusBarHeight,
+  toggleAutoPlay,
   toggleCurrentFavorite,
   resolveCardImage,
   shouldRenderMedia,

@@ -244,9 +244,14 @@ export function useCategoryDetailData(options: DetailDataOptions) {
       return
     }
 
-    const normalized = normalizeIndex(Math.trunc(nextCurrent))
+    await activateIndex(Math.trunc(nextCurrent))
+  }
+
+  /** 激活指定索引并完成详情预热 */
+  async function activateIndex(index: number) {
+    const normalized = normalizeIndex(index)
     if (normalized === activeIndex.value) {
-      return
+      return true
     }
 
     // 切换前先清理副作用（例如音频播放）
@@ -255,10 +260,27 @@ export function useCategoryDetailData(options: DetailDataOptions) {
     swiperCurrent.value = normalized
 
     const result = await ensureDetailByIndex(activeIndex.value, { active: true })
-    if (result) {
-      prefetchNeighborDetails()
-      notifyCurrentCardReady()
+    if (!result) {
+      return false
     }
+
+    prefetchNeighborDetails()
+    notifyCurrentCardReady()
+    return true
+  }
+
+  /** 程序化切到下一张卡片（供自动播放调用） */
+  async function goToNextCard() {
+    if (total.value <= 1) {
+      return false
+    }
+
+    const nextIndex = normalizeIndex(activeIndex.value + 1)
+    if (nextIndex === activeIndex.value) {
+      return false
+    }
+
+    return activateIndex(nextIndex)
   }
 
   /** 更新当前卡片收藏态并同步缓存 */
@@ -315,6 +337,7 @@ export function useCategoryDetailData(options: DetailDataOptions) {
     snapshotCards,
     snapshotError,
     swiperCurrent,
+    goToNextCard,
     syncCurrentFavorite,
     total,
   }

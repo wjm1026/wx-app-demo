@@ -11,21 +11,7 @@
 
       <!-- 用户信息 -->
       <view class="user-info">
-        <!-- #ifdef MP-WEIXIN -->
-        <button
-          v-if="isLoggedIn"
-          class="avatar-wrapper avatar-button"
-          open-type="chooseAvatar"
-          @chooseavatar="handleChooseAvatar"
-        >
-          <image
-            class="avatar"
-            :src="userInfo.avatar || defaultAvatar"
-            mode="aspectFill"
-          />
-          <view v-if="userInfo.isVip" class="vip-badge">VIP</view>
-        </button>
-        <view v-else class="avatar-wrapper" @click="chooseAvatar">
+        <view class="avatar-wrapper" @click="openProfileEditor">
           <image
             class="avatar"
             :src="userInfo.avatar || defaultAvatar"
@@ -33,60 +19,12 @@
           />
           <view v-if="userInfo.isVip" class="vip-badge">VIP</view>
         </view>
-        <!-- #endif -->
-
-        <!-- #ifndef MP-WEIXIN -->
-        <view class="avatar-wrapper" @click="chooseAvatar">
-          <image
-            class="avatar"
-            :src="userInfo.avatar || defaultAvatar"
-            mode="aspectFill"
-          />
-          <view v-if="userInfo.isVip" class="vip-badge">VIP</view>
-        </view>
-        <!-- #endif -->
 
         <view class="info-content">
-          <!-- #ifdef MP-WEIXIN -->
-          <view v-if="isLoggedIn" class="nickname-row editable official">
-            <input
-              v-model="nicknameDraft"
-              class="nickname-input"
-              type="nickname"
-              maxlength="20"
-              confirm-type="done"
-              placeholder="请输入昵称"
-              placeholder-style="color: #94A3B8;"
-              @blur="handleNicknameSubmit"
-              @confirm="handleNicknameSubmit"
-            />
-            <view v-if="userInfo.isVip" class="vip-tag">
-              <image
-                class="vip-icon-image"
-                src="/static/icons/line/crown.svg"
-                mode="aspectFit"
-              />
-              <text class="vip-text">尊贵会员</text>
-            </view>
-          </view>
-          <view v-else class="nickname-row" @click="editNickname">
-            <text class="nickname">{{ userInfo.nickname || "点击登录" }}</text>
-            <view v-if="userInfo.isVip" class="vip-tag">
-              <image
-                class="vip-icon-image"
-                src="/static/icons/line/crown.svg"
-                mode="aspectFit"
-              />
-              <text class="vip-text">尊贵会员</text>
-            </view>
-          </view>
-          <!-- #endif -->
-
-          <!-- #ifndef MP-WEIXIN -->
           <view
             class="nickname-row"
             :class="{ editable: isLoggedIn }"
-            @click="editNickname"
+            @click="openProfileEditor"
           >
             <text class="nickname">{{ userInfo.nickname || "点击登录" }}</text>
             <view v-if="userInfo.isVip" class="vip-tag">
@@ -97,16 +35,7 @@
               />
               <text class="vip-text">尊贵会员</text>
             </view>
-            <text v-if="isLoggedIn" class="edit-trigger">修改</text>
           </view>
-          <!-- #endif -->
-
-          <text class="user-id" v-if="isLoggedIn"
-            >ID: {{ userInfo.inviteCode }}</text
-          >
-          <!-- #ifndef MP-WEIXIN -->
-          <text v-if="isLoggedIn" class="profile-tip">点击头像或昵称可自定义资料</text>
-          <!-- #endif -->
         </view>
       </view>
 
@@ -352,6 +281,92 @@
       <view class="safe-bottom"></view>
     </scroll-view>
 
+    <view
+      v-if="isProfileEditorVisible"
+      class="profile-editor-mask"
+      @click="closeProfileEditor"
+      @touchmove.stop.prevent=""
+    >
+      <view class="profile-editor-panel" @click.stop>
+        <view class="profile-editor-header">
+          <view class="profile-editor-copy">
+            <text class="profile-editor-title">完善个人资料</text>
+            <text class="profile-editor-subtitle"
+              >为了更好的学习体验，请完善你的资料。</text
+            >
+          </view>
+          <view class="profile-editor-close" @click="closeProfileEditor"
+            >关闭</view
+          >
+        </view>
+
+        <view class="profile-editor-body">
+          <view class="profile-editor-avatar-section">
+            <!-- #ifdef MP-WEIXIN -->
+            <button
+              class="profile-editor-avatar-btn avatar-button"
+              open-type="chooseAvatar"
+              @chooseavatar="handleProfileEditorChooseAvatar"
+            >
+              <image
+                class="profile-editor-avatar-image"
+                :src="profileAvatarSource"
+                mode="aspectFill"
+              />
+              <view class="profile-editor-avatar-glow"></view>
+            </button>
+            <!-- #endif -->
+
+            <!-- #ifndef MP-WEIXIN -->
+            <view
+              class="profile-editor-avatar-btn"
+              @click="chooseProfileEditorAvatar"
+            >
+              <image
+                class="profile-editor-avatar-image"
+                :src="profileAvatarSource"
+                mode="aspectFill"
+              />
+              <view class="profile-editor-avatar-glow"></view>
+            </view>
+            <!-- #endif -->
+
+            <text class="profile-editor-avatar-tip">点击更换头像</text>
+          </view>
+
+          <view class="profile-editor-form">
+            <text class="profile-editor-label">昵称</text>
+            <input
+              v-model="profileNicknameDraft"
+              class="profile-editor-input"
+              type="nickname"
+              maxlength="20"
+              confirm-type="done"
+              placeholder="请输入昵称"
+              placeholder-style="color: #9AA8BC;"
+              @confirm="saveProfileEditor"
+            />
+            <!-- <text class="profile-editor-helper"
+              >建议使用 2-20 个字符，方便在学习榜单里识别。</text
+            > -->
+          </view>
+        </view>
+
+        <view class="profile-editor-actions">
+          <view class="profile-editor-btn cancel" @click="closeProfileEditor"
+            >取消</view
+          >
+          <view
+            class="profile-editor-btn confirm"
+            :class="{ disabled: isUpdatingProfile }"
+            @click="saveProfileEditor"
+          >
+            {{ isUpdatingProfile ? "保存中..." : "确定保存" }}
+          </view>
+        </view>
+      </view>
+    </view>
+
     <CustomTabbar :current="2" :reserve-space="false" />
   </view>
 </template>
@@ -361,12 +376,12 @@ import CustomTabbar from "@/components/CustomTabbar/CustomTabbar.vue";
 import { useUserPage } from "./hooks/useUserPage";
 
 const {
-  chooseAvatar,
+  chooseProfileEditorAvatar,
+  closeProfileEditor,
   contentScrollStyle,
   defaultAvatar,
   doLogin,
   doSignIn,
-  editNickname,
   goAbout,
   goAchievements,
   goAdmin,
@@ -374,11 +389,15 @@ const {
   goFeedback,
   goInvite,
   goPointsLog,
-  handleChooseAvatar,
-  handleNicknameSubmit,
+  handleProfileEditorChooseAvatar,
   hasSigned,
   isLoggedIn,
-  nicknameDraft,
+  isProfileEditorVisible,
+  isUpdatingProfile,
+  openProfileEditor,
+  profileAvatarSource,
+  profileNicknameDraft,
+  saveProfileEditor,
   statusBarHeight,
   store,
   userInfo,
