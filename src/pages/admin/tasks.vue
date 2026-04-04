@@ -18,7 +18,7 @@
 
       <text class="hero-title">把任务文案和积分交给后台维护</text>
       <text class="hero-desc">
-        固定任务键继续控制前台动作逻辑，这里只维护展示字段、排序和启用状态。
+        固定任务键继续控制前台动作逻辑，这里维护任务展示字段和积分扣费规则。
       </text>
 
       <view class="hero-stats">
@@ -51,6 +51,35 @@
     </view>
 
     <view v-else class="content">
+      <view class="points-rule-card">
+        <view class="points-rule-head">
+          <text class="points-rule-title">积分扣费规则</text>
+          <text class="points-rule-subtitle">用于卡片浏览与游戏开局，后端实时生效</text>
+        </view>
+        <view class="task-grid">
+          <view class="form-item">
+            <text class="form-label">卡片浏览扣分</text>
+            <input
+              class="form-input"
+              type="number"
+              :value="String(pointsRuleForm.card_view_cost)"
+              placeholder="例如 2"
+              @input="handlePointsRuleNumberInput('card_view_cost', $event)"
+            />
+          </view>
+          <view class="form-item">
+            <text class="form-label">游戏每局扣分</text>
+            <input
+              class="form-input"
+              type="number"
+              :value="String(pointsRuleForm.game_round_cost)"
+              placeholder="例如 10"
+              @input="handlePointsRuleNumberInput('game_round_cost', $event)"
+            />
+          </view>
+        </view>
+      </view>
+
       <view v-for="(task, index) in taskForms" :key="task.key" class="task-card">
         <view class="task-card-head">
           <view class="task-card-title-wrap">
@@ -176,11 +205,13 @@ const {
   enabledTaskCount,
   getTaskMetaByKey,
   goBack,
+  handlePointsRuleNumberInput,
   handleTaskEnabledChange,
   handleTaskFieldInput,
   handleTaskNumberInput,
   hasPendingChanges,
   loading,
+  pointsRuleForm,
   restoreDefaults,
   saveTaskConfigs,
   saving,

@@ -1,5 +1,5 @@
 import { computed, ref, type Ref } from 'vue'
-import { cardApi, type CardLite } from '@/api'
+import { cardApi, pointsApi, type CardLite } from '@/api'
 import { getErrorMessage, showToast } from '@/utils'
 import { createCardDetailCache } from './category-detail.cache'
 import {
@@ -109,19 +109,16 @@ export function useCategoryDetailData(options: DetailDataOptions) {
   /** 确保索引对应卡片详情已加载 */
   async function ensureDetailByIndex(
     index: number,
-    optionsForEnsure: { active?: boolean; silent?: boolean; fallbackOnError?: boolean } = {},
+    optionsForEnsure: {
+      active?: boolean
+      silent?: boolean
+      fallbackOnError?: boolean
+      chargeCardView?: boolean
+    } = {},
   ) {
     const target = getSnapshotByIndex(index)
     if (!target?._id) {
       return null
-    }
-
-    const cached = getCachedDetail(target._id)
-    if (cached) {
-      if (optionsForEnsure.active) {
-        detailError.value = ''
-      }
-      return cached
     }
 
     const requestId = optionsForEnsure.active ? ++currentDetailRequestId : currentDetailRequestId
@@ -132,6 +129,25 @@ export function useCategoryDetailData(options: DetailDataOptions) {
     }
 
     try {
+      if (optionsForEnsure.chargeCardView) {
+        const consumeResponse = await pointsApi.consumeAction({
+          actionType: 'card_view',
+          cardId: target._id,
+        })
+
+        if (consumeResponse.code !== 0 || !consumeResponse.data) {
+          throw new Error(consumeResponse.msg || '卡片解锁失败')
+        }
+      }
+
+      const cached = getCachedDetail(target._id)
+      if (cached) {
+        if (optionsForEnsure.active) {
+          detailError.value = ''
+        }
+        return cached
+      }
+
       return await fetchCardDetail(target._id)
     } catch (error) {
       const message = getErrorMessage(error, '加载图片详情失败')
@@ -205,7 +221,7 @@ export function useCategoryDetailData(options: DetailDataOptions) {
 
       const currentDetailResult = await ensureDetailByIndex(activeIndex.value, {
         active: true,
-        fallbackOnError: true,
+        chargeCardView: true,
       })
 
       if (currentDetailResult) {
@@ -230,7 +246,7 @@ export function useCategoryDetailData(options: DetailDataOptions) {
 
   /** 重新加载当前详情 */
   async function retryCurrentDetail() {
-    const result = await ensureDetailByIndex(activeIndex.value, { active: true })
+    const result = await ensureDetailByIndex(activeIndex.value, { active: true, chargeCardView: true })
     if (result) {
       prefetchNeighborDetails()
       notifyCurrentCardReady()
@@ -259,8 +275,8 @@ export function useCategoryDetailData(options: DetailDataOptions) {
     activeIndex.value = normalized
     swiperCurrent.value = normalized
 
-    const result = await ensureDetailByIndex(activeIndex.value, { active: true })
-    if (!result) {
+    const chargedResult = await ensureDetailByIndex(activeIndex.value, { active: true, chargeCardView: true })
+    if (!chargedResult) {
       return false
     }
 

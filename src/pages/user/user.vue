@@ -53,18 +53,6 @@
           <text class="stat-label">积分</text>
         </view>
         <view class="stat-divider"></view>
-        <view class="stat-item">
-          <view class="stat-icon-wrapper views">
-            <image
-              class="stat-icon-image"
-              src="/static/icons/line/ticket.svg"
-              mode="aspectFit"
-            />
-          </view>
-          <text class="stat-value">{{ userInfo.freeViews }}</text>
-          <text class="stat-label">免费次数</text>
-        </view>
-        <view class="stat-divider"></view>
         <view class="stat-item" @click="goInvite">
           <view class="stat-icon-wrapper invite">
             <image

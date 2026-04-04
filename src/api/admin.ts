@@ -8,6 +8,7 @@ import type {
   AdminCardBatchResult,
   AdminCategoryPayload,
   AdminDisplayConfigPayload,
+  AdminPointsRuleConfigPayload,
   AdminCheckResult,
   DisplayConfigResult,
   InviteTaskConfig,
@@ -19,6 +20,7 @@ import type {
   Card,
   Category,
   PagedResult,
+  PointsRuleConfig,
   SaveInviteTaskConfigsResult,
 } from './types'
 
@@ -33,6 +35,12 @@ export const adminApi = {
   /** 获取首页 Logo + 游戏配置 */
   getDisplayConfig: () =>
     apiGet<DisplayConfigResult>('/api/v1/admin/display-config') as Promise<ApiResponse<DisplayConfigResult>>,
+  /** 获取积分扣费规则 */
+  getPointsRules: () =>
+    apiGet<PointsRuleConfig>('/api/v1/admin/points-rules') as Promise<ApiResponse<PointsRuleConfig>>,
+  /** 保存积分扣费规则 */
+  savePointsRules: (payload: AdminPointsRuleConfigPayload) =>
+    apiPut<PointsRuleConfig>('/api/v1/admin/points-rules', payload) as Promise<ApiResponse<PointsRuleConfig>>,
   /** 保存首页 Logo + 游戏配置 */
   saveDisplayConfig: (payload: AdminDisplayConfigPayload) =>
     apiPut<DisplayConfigResult>(

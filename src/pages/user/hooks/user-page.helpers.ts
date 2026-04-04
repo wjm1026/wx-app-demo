@@ -19,7 +19,6 @@ export interface UserPageViewModel {
   nickname: string
   avatar: string
   points: number
-  freeViews: number
   inviteCount: number
   inviteCode: string
   isVip: boolean
@@ -47,7 +46,6 @@ export function buildUserPageViewModel(
     nickname: userInfo?.nickname || '点击登录',
     avatar: userInfo?.avatar || '',
     points: userInfo?.points || 0,
-    freeViews: userInfo?.free_views || 0,
     inviteCount: userInfo?.invite_count || 0,
     inviteCode: userInfo?.invite_code || '',
     isVip: userInfo?.is_vip || false,

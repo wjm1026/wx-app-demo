@@ -16,7 +16,6 @@ export interface UserInfo {
   nickname: string
   avatar: string
   points: number
-  free_views: number
   invite_code: string
   inviter_id?: string
   invite_count: number
@@ -91,6 +90,16 @@ export interface PointsLogItem {
   create_time: number
 }
 
+export type ConsumeActionType = 'card_view' | 'game_round'
+
+export interface ConsumeActionResult {
+  actionType: ConsumeActionType
+  consumedPoints: number
+  balance: number
+  charged: boolean
+  biz_date?: number
+}
+
 export interface LoginByWeixinResult {
   token: string
   tokenExpired?: number
@@ -146,6 +155,12 @@ export interface BindInviteCodeResult {
 
 export interface SaveInviteTaskConfigsResult {
   tasks: InviteTaskConfig[]
+}
+
+export interface PointsRuleConfig {
+  card_view_cost: number
+  game_round_cost: number
+  update_time?: number
 }
 
 export type DisplayGameTone =
@@ -349,6 +364,11 @@ export interface AdminCategoryPayload {
   sort?: number
   sort_order?: number
   status?: number
+}
+
+export interface AdminPointsRuleConfigPayload {
+  card_view_cost: number
+  game_round_cost: number
 }
 
 export interface Achievement {

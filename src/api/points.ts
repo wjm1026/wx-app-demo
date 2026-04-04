@@ -1,5 +1,5 @@
 import { apiGet, apiPost } from './shared'
-import type { Achievement, ApiResponse } from './types'
+import type { Achievement, ApiResponse, ConsumeActionResult, ConsumeActionType } from './types'
 
 export const pointsApi = {
   /** 通过广告获取 */
@@ -18,15 +18,13 @@ export const pointsApi = {
   /** 消耗积分 */
   consumePoints: (cardId: string, points: number) =>
     apiPost('/api/v1/points/consume', { cardId, points }) as Promise<ApiResponse>,
+  /** 按动作扣费（后端权威） */
+  consumeAction: (payload: { actionType: ConsumeActionType; cardId?: string; roundKey?: string }) =>
+    apiPost<ConsumeActionResult>(
+      '/api/v1/points/consume-action',
+      payload,
+    ) as Promise<ApiResponse<ConsumeActionResult>>,
   /** 获取签到状态 */
   getSignInStatus: () =>
     apiGet<{ hasSigned: boolean }>('/api/v1/points/sign-in-status') as Promise<ApiResponse<{ hasSigned: boolean }>>,
-  /** 新增免费次数 */
-  addFreeViews: () =>
-    apiPost<{ addViews: number; freeViews: number }>(
-      '/api/v1/points/free-views/add',
-    ) as Promise<ApiResponse<{ addViews: number; freeViews: number }>>,
-  /** 消耗免费查看次数 */
-  consumeFreeView: () =>
-    apiPost<{ remaining: number }>('/api/v1/points/free-views/consume') as Promise<ApiResponse<{ remaining: number }>>,
 }

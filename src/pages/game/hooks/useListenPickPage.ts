@@ -1,11 +1,12 @@
 import { computed, onBeforeUnmount, reactive, toRefs } from 'vue'
 import { onLoad, onUnload } from '@dcloudio/uni-app'
-import { cardApi } from '@/api'
+import { cardApi, pointsApi } from '@/api'
 import {
   getErrorMessage,
   getStatusBarHeight,
   getSafeAreaBottom,
   navigateBack,
+  showToast,
   switchTab,
 } from '@/utils'
 import {
@@ -299,11 +300,11 @@ export function useListenPickPage() {
     }, NEXT_BUTTON_ACTIVE_MS)
   }
 
-  function handleNextRound() {
+  async function handleNextRound() {
     markNextPressed()
 
     if (shouldShowReloadAction.value) {
-      void initializeGame()
+      await initializeGame()
       return
     }
 
@@ -317,8 +318,14 @@ export function useListenPickPage() {
     }
 
     round.value += 1
-    if (setupNextRound()) {
-      scheduleAutoPlay()
+    try {
+      if (await setupNextRound()) {
+        scheduleAutoPlay()
+      }
+    } catch (error) {
+      round.value = Math.max(1, round.value - 1)
+      loadError.value = getErrorMessage(error, '本局开局失败')
+      showToast(loadError.value)
     }
   }
 
@@ -358,7 +365,7 @@ export function useListenPickPage() {
       streak.value = 0
       score.value = 0
 
-      if (setupNextRound()) {
+      if (await setupNextRound()) {
         scheduleAutoPlay(320)
       }
     } catch (error) {
@@ -369,11 +376,13 @@ export function useListenPickPage() {
     }
   }
 
-  function setupNextRound() {
+  async function setupNextRound() {
     if (allCards.value.length < 2) {
       resetRoundBoard()
       return false
     }
+
+    await consumeGameRound()
 
     const nextTargetId = remainingTargetIds.value.shift()
     if (!nextTargetId) {
@@ -398,6 +407,21 @@ export function useListenPickPage() {
     currentTemplateText.value = template.templateText
     resetRoundSelection()
     return true
+  }
+
+  async function consumeGameRound() {
+    const response = await pointsApi.consumeAction({
+      actionType: 'game_round',
+      roundKey: createRoundKey(),
+    })
+    if (response.code !== 0 || !response.data) {
+      throw new Error(response.msg || '本局积分扣费失败')
+    }
+  }
+
+  function createRoundKey() {
+    const randomPart = Math.random().toString(36).slice(2, 10)
+    return `${Date.now()}-${round.value}-${remainingTargetIds.value.length}-${randomPart}`
   }
 
   function pickTemplate(): GameTemplate {
