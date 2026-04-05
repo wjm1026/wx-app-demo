@@ -15,11 +15,8 @@ export const pointsApi = {
     ) as Promise<
       ApiResponse<{ earnPoints: number; balance: number; signStreak: number; newAchievements?: Achievement[] }>
     >,
-  /** 消耗积分 */
-  consumePoints: (cardId: string, points: number) =>
-    apiPost('/api/v1/points/consume', { cardId, points }) as Promise<ApiResponse>,
   /** 按动作扣费（后端权威） */
-  consumeAction: (payload: { actionType: ConsumeActionType; cardId?: string; roundKey?: string }) =>
+  consumeAction: (payload: { actionType: ConsumeActionType; roundKey?: string }) =>
     apiPost<ConsumeActionResult>(
       '/api/v1/points/consume-action',
       payload,

@@ -71,6 +71,23 @@ export interface Card {
   status?: number
 }
 
+export interface OpenCardResult extends Card {
+  charged: boolean
+  consumed_points?: number
+  balance?: number
+  biz_date?: number
+}
+
+export interface FavoritesSummary {
+  favoriteCount: number
+  categoryCoverage: number
+  latestFavoritedAt?: number
+}
+
+export interface FavoritesPageResult extends PagedResult<Card> {
+  summary: FavoritesSummary
+}
+
 export interface CardLite {
   _id: string
   category_id: string
@@ -90,7 +107,7 @@ export interface PointsLogItem {
   create_time: number
 }
 
-export type ConsumeActionType = 'card_view' | 'game_round'
+export type ConsumeActionType = 'game_round'
 
 export interface ConsumeActionResult {
   actionType: ConsumeActionType

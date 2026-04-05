@@ -1,4 +1,4 @@
-import { cardApi, type CardLite } from '@/api'
+import { cardApi, type Card, type CardLite } from '@/api'
 
 // 单页快照容量。详情页会在进入时一次性分页拉全量快照，便于轮播顺滑切换。
 const SNAPSHOT_PAGE_SIZE = 100
@@ -73,6 +73,17 @@ export function resolveInitialSnapshotIndex(
   return normalizeCircularIndex(startIndex, list.length)
 }
 
+/** 将收藏卡片映射为详情页快照 */
+function mapFavoriteCardToSnapshot(item: Card): CardLite {
+  return {
+    _id: item._id,
+    category_id: item.category_id,
+    name: item.name,
+    image: item.image,
+    update_time: item.update_time,
+  }
+}
+
 /** 拉取分类快照列表（分页拼接 + 去重） */
 export async function fetchCategorySnapshotCards(categoryId: string) {
   if (!categoryId) {
@@ -100,6 +111,49 @@ export async function fetchCategorySnapshotCards(categoryId: string) {
     }
 
     mergedList.push(...rows)
+
+    if (rows.length <= 0) {
+      break
+    }
+
+    if (expectedTotal > 0 && mergedList.length >= expectedTotal) {
+      break
+    }
+
+    if (rows.length < SNAPSHOT_PAGE_SIZE) {
+      break
+    }
+
+    page += 1
+  }
+
+  return Array.from(
+    new Map(mergedList.map((item) => [item._id, item])).values(),
+  )
+}
+
+/** 拉取收藏快照列表（分页拼接 + 去重） */
+export async function fetchFavoriteSnapshotCards() {
+  const mergedList: CardLite[] = []
+  let page = 1
+  let expectedTotal = 0
+
+  while (page <= SNAPSHOT_MAX_PAGES) {
+    const response = await cardApi.getFavorites({
+      page,
+      pageSize: SNAPSHOT_PAGE_SIZE,
+    })
+
+    if (response.code !== 0 || !response.data) {
+      throw new Error(response.msg || '加载收藏列表失败')
+    }
+
+    const rows = Array.isArray(response.data.list) ? response.data.list : []
+    if (page === 1) {
+      expectedTotal = Math.max(0, Number(response.data.total || response.data.summary?.favoriteCount || 0))
+    }
+
+    mergedList.push(...rows.map(mapFavoriteCardToSnapshot))
 
     if (rows.length <= 0) {
       break

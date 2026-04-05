@@ -6,6 +6,8 @@ import type {
   CardLite,
   Category,
   DisplayConfigResult,
+  FavoritesPageResult,
+  OpenCardResult,
   PagedResult,
 } from './types'
 
@@ -29,9 +31,12 @@ export const cardApi = {
       ...params,
       fields: 'lite',
     }) as Promise<ApiResponse<PagedResult<CardLite>>>,
-  /** 获取卡片详情 */
-  getCardDetail: (cardId: string) =>
-    apiGet<Card>(`/api/v1/cards/${encodeURIComponent(cardId)}`) as Promise<ApiResponse<Card>>,
+  /** 打开卡片详情（必要时解锁） */
+  openCard: (cardId: string, payload?: { track_view?: boolean }) =>
+    apiPost<OpenCardResult>(
+      `/api/v1/cards/${encodeURIComponent(cardId)}:open`,
+      payload,
+    ) as Promise<ApiResponse<OpenCardResult>>,
   /** 切换收藏 */
   toggleFavorite: (cardId: string) =>
     apiPost<{ isFavorited: boolean; newAchievements?: Achievement[] }>(
@@ -41,7 +46,7 @@ export const cardApi = {
     >,
   /** 获取收藏列表 */
   getFavorites: (params?: { page?: number; pageSize?: number }) =>
-    apiGet<PagedResult<Card>>('/api/v1/cards/favorites', params) as Promise<ApiResponse<PagedResult<Card>>>,
+    apiGet<FavoritesPageResult>('/api/v1/cards/favorites', params) as Promise<ApiResponse<FavoritesPageResult>>,
   /** 初始化数据 */
   initData: () => apiPost('/api/v1/cards/init-data') as Promise<ApiResponse>,
   /** 修复卡片图片 */

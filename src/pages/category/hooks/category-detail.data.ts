@@ -1,18 +1,29 @@
 import { computed, ref, type Ref } from 'vue'
-import { cardApi, pointsApi, type CardLite } from '@/api'
+import { cardApi, type CardLite, type OpenCardResult } from '@/api'
+import { updatePoints } from '@/store'
 import { getErrorMessage, showToast } from '@/utils'
 import { createCardDetailCache } from './category-detail.cache'
 import {
+  fetchFavoriteSnapshotCards,
   fetchCategorySnapshotCards,
   getSnapshotByCircularIndex,
   normalizeCircularIndex,
   resolveInitialSnapshotIndex,
   shouldRenderCircularMedia,
 } from './category-detail.snapshot'
+import type { DetailSource } from './category-detail.query'
 
 const DETAIL_CACHE_LIMIT = 20
+const PREFETCH_RADIUS = 1
+
+interface PendingOpenEntry {
+  promise: Promise<OpenCardResult>
+  trackView: boolean
+}
 
 interface DetailDataOptions {
+  /** 快照来源：分类 or 我的收藏 */
+  source: Ref<DetailSource>
   /** 当前分类 ID（来自路由参数） */
   categoryId: Ref<string>
   /** 路由指定的起始卡片 ID */
@@ -43,6 +54,9 @@ export function useCategoryDetailData(options: DetailDataOptions) {
   // 详情缓存（LRU）
   const { cacheVersion, getCachedDetail, peekCachedDetail, setCachedDetail } =
     createCardDetailCache(DETAIL_CACHE_LIMIT)
+  const pendingOpenByCardId = new Map<string, PendingOpenEntry>()
+  const prefetchedCardIds = new Set<string>()
+  const activatedCardIds = new Set<string>()
 
   // 仅允许“最新一次 active 详情请求”回写 loading/error，避免请求乱序覆盖状态。
   let currentDetailRequestId = 0
@@ -95,15 +109,94 @@ export function useCategoryDetailData(options: DetailDataOptions) {
     options.onCardReady?.(cardId)
   }
 
-  /** 拉取单卡详情 */
-  async function fetchCardDetail(cardId: string) {
-    const response = await cardApi.getCardDetail(cardId)
-    if (response.code !== 0 || !response.data) {
-      throw new Error(response.msg || '加载图片详情失败')
+  /** 更新积分余额 */
+  function syncBalance(balance?: number) {
+    if (typeof balance === 'number' && Number.isFinite(balance)) {
+      updatePoints(balance)
+    }
+  }
+
+  /** 将已预解锁卡片提升为当前已激活状态，不再补发额外 open 请求 */
+  function markCardActivated(cardId: string) {
+    const normalizedCardId = String(cardId || '').trim()
+    if (!normalizedCardId) {
+      return
     }
 
-    setCachedDetail(cardId, response.data)
-    return response.data
+    prefetchedCardIds.delete(normalizedCardId)
+    activatedCardIds.add(normalizedCardId)
+  }
+
+  /** 清理因 LRU 淘汰导致失效的本地状态标记 */
+  function resetCardTrackingState(cardId: string) {
+    const normalizedCardId = String(cardId || '').trim()
+    if (!normalizedCardId) {
+      return
+    }
+
+    prefetchedCardIds.delete(normalizedCardId)
+    activatedCardIds.delete(normalizedCardId)
+  }
+
+  /** 统一打开卡片（必要时解锁），并对同一卡请求去重 */
+  async function requestOpenCard(cardId: string, trackView: boolean): Promise<OpenCardResult> {
+    const normalizedCardId = String(cardId || '').trim()
+    if (!normalizedCardId) {
+      throw new Error('缺少卡片ID')
+    }
+
+    const pending = pendingOpenByCardId.get(normalizedCardId)
+    if (pending) {
+      try {
+        const pendingResult = await pending.promise
+        if (trackView && !pending.trackView && !activatedCardIds.has(normalizedCardId)) {
+          markCardActivated(normalizedCardId)
+        }
+        return pendingResult
+      } catch (error) {
+        const currentPending = pendingOpenByCardId.get(normalizedCardId)
+        if (currentPending?.promise === pending.promise) {
+          pendingOpenByCardId.delete(normalizedCardId)
+        }
+        if (trackView && !pending.trackView) {
+          return requestOpenCard(normalizedCardId, true)
+        }
+        throw error
+      }
+    }
+
+    const promise = (async () => {
+      const response = await cardApi.openCard(normalizedCardId, { track_view: trackView })
+      if (response.code !== 0 || !response.data) {
+        throw new Error(response.msg || '加载图片详情失败')
+      }
+
+      const detail = response.data
+      setCachedDetail(normalizedCardId, detail)
+      syncBalance(detail.balance)
+
+      if (trackView) {
+        markCardActivated(normalizedCardId)
+      } else {
+        prefetchedCardIds.add(normalizedCardId)
+      }
+
+      return detail
+    })()
+
+    pendingOpenByCardId.set(normalizedCardId, {
+      promise,
+      trackView,
+    })
+
+    try {
+      return await promise
+    } finally {
+      const currentPending = pendingOpenByCardId.get(normalizedCardId)
+      if (currentPending?.promise === promise) {
+        pendingOpenByCardId.delete(normalizedCardId)
+      }
+    }
   }
 
   /** 确保索引对应卡片详情已加载 */
@@ -113,7 +206,7 @@ export function useCategoryDetailData(options: DetailDataOptions) {
       active?: boolean
       silent?: boolean
       fallbackOnError?: boolean
-      chargeCardView?: boolean
+      trackView?: boolean
     } = {},
   ) {
     const target = getSnapshotByIndex(index)
@@ -121,6 +214,8 @@ export function useCategoryDetailData(options: DetailDataOptions) {
       return null
     }
 
+    const cardId = String(target._id)
+    const trackView = optionsForEnsure.trackView !== false
     const requestId = optionsForEnsure.active ? ++currentDetailRequestId : currentDetailRequestId
 
     if (optionsForEnsure.active) {
@@ -129,26 +224,29 @@ export function useCategoryDetailData(options: DetailDataOptions) {
     }
 
     try {
-      if (optionsForEnsure.chargeCardView) {
-        const consumeResponse = await pointsApi.consumeAction({
-          actionType: 'card_view',
-          cardId: target._id,
-        })
-
-        if (consumeResponse.code !== 0 || !consumeResponse.data) {
-          throw new Error(consumeResponse.msg || '卡片解锁失败')
+      const cached = getCachedDetail(cardId)
+      const hasActivated = activatedCardIds.has(cardId)
+      const hasPrefetched = prefetchedCardIds.has(cardId)
+      if (cached && trackView && hasPrefetched && !hasActivated) {
+        if (optionsForEnsure.active) {
+          detailError.value = ''
         }
+        markCardActivated(cardId)
+        return cached
       }
 
-      const cached = getCachedDetail(target._id)
-      if (cached) {
+      if (cached && ((trackView && hasActivated) || (!trackView && (hasActivated || hasPrefetched)))) {
         if (optionsForEnsure.active) {
           detailError.value = ''
         }
         return cached
       }
 
-      return await fetchCardDetail(target._id)
+      const detail = await requestOpenCard(cardId, trackView)
+      if (optionsForEnsure.active) {
+        detailError.value = ''
+      }
+      return detail
     } catch (error) {
       const message = getErrorMessage(error, '加载图片详情失败')
 
@@ -175,19 +273,43 @@ export function useCategoryDetailData(options: DetailDataOptions) {
     }
   }
 
-  /** 预取相邻卡片详情 */
+  /** 预解锁指定索引卡片 */
+  function prefetchCardByIndex(index: number) {
+    const target = getSnapshotByIndex(index)
+    const cardId = String(target?._id || '')
+    if (!cardId) {
+      return
+    }
+
+    const cached = peekCachedDetail(cardId)
+    if (!cached && (activatedCardIds.has(cardId) || prefetchedCardIds.has(cardId))) {
+      resetCardTrackingState(cardId)
+    }
+
+    if (
+      activatedCardIds.has(cardId) ||
+      prefetchedCardIds.has(cardId) ||
+      pendingOpenByCardId.has(cardId)
+    ) {
+      return
+    }
+
+    void ensureDetailByIndex(index, {
+      silent: true,
+      trackView: false,
+    })
+  }
+
+  /** 预取当前卡片左右一张，形成半径 1 访问窗口 */
   function prefetchNeighborDetails() {
     if (total.value <= 1) {
       return
     }
 
-    const leftIndex = normalizeIndex(activeIndex.value - 1)
-    const rightIndex = normalizeIndex(activeIndex.value + 1)
-    const targets = leftIndex === rightIndex ? [leftIndex] : [leftIndex, rightIndex]
-
-    targets.forEach((index) => {
-      void ensureDetailByIndex(index, { silent: true })
-    })
+    for (let offset = 1; offset <= PREFETCH_RADIUS; offset += 1) {
+      prefetchCardByIndex(normalizeIndex(activeIndex.value - offset))
+      prefetchCardByIndex(normalizeIndex(activeIndex.value + offset))
+    }
   }
 
   /** 计算起始索引 */
@@ -197,7 +319,7 @@ export function useCategoryDetailData(options: DetailDataOptions) {
 
   /** 拉取分类快照 */
   async function loadSnapshotCards() {
-    if (!options.categoryId.value) {
+    if (options.source.value === 'category' && !options.categoryId.value) {
       snapshotError.value = '缺少分类ID'
       return false
     }
@@ -207,7 +329,9 @@ export function useCategoryDetailData(options: DetailDataOptions) {
     detailError.value = ''
 
     try {
-      const dedupedList = await fetchCategorySnapshotCards(options.categoryId.value)
+      const dedupedList = options.source.value === 'favorites'
+        ? await fetchFavoriteSnapshotCards()
+        : await fetchCategorySnapshotCards(options.categoryId.value)
       snapshotCards.value = dedupedList
 
       if (dedupedList.length <= 0) {
@@ -221,7 +345,7 @@ export function useCategoryDetailData(options: DetailDataOptions) {
 
       const currentDetailResult = await ensureDetailByIndex(activeIndex.value, {
         active: true,
-        chargeCardView: true,
+        trackView: true,
       })
 
       if (currentDetailResult) {
@@ -246,7 +370,7 @@ export function useCategoryDetailData(options: DetailDataOptions) {
 
   /** 重新加载当前详情 */
   async function retryCurrentDetail() {
-    const result = await ensureDetailByIndex(activeIndex.value, { active: true, chargeCardView: true })
+    const result = await ensureDetailByIndex(activeIndex.value, { active: true, trackView: true })
     if (result) {
       prefetchNeighborDetails()
       notifyCurrentCardReady()
@@ -275,7 +399,7 @@ export function useCategoryDetailData(options: DetailDataOptions) {
     activeIndex.value = normalized
     swiperCurrent.value = normalized
 
-    const chargedResult = await ensureDetailByIndex(activeIndex.value, { active: true, chargeCardView: true })
+    const chargedResult = await ensureDetailByIndex(activeIndex.value, { active: true, trackView: true })
     if (!chargedResult) {
       return false
     }
@@ -306,7 +430,10 @@ export function useCategoryDetailData(options: DetailDataOptions) {
       return
     }
 
-    const cached = getCachedDetail(cardId) || (await ensureDetailByIndex(activeIndex.value, { silent: true }))
+    const cached = getCachedDetail(cardId) || (await ensureDetailByIndex(activeIndex.value, {
+      silent: true,
+      trackView: true,
+    }))
     if (!cached) {
       return
     }

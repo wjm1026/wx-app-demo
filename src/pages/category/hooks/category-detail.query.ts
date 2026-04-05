@@ -1,7 +1,10 @@
 import { navigateBack, switchTab } from '@/utils'
 
+export type DetailSource = 'category' | 'favorites'
+
 /** 详情页支持的路由参数 */
 export interface DetailQuery {
+  source?: string
   categoryId?: string
   categoryName?: string
   cardId?: string

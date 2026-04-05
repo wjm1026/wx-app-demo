@@ -6,12 +6,12 @@ type PageParams = {
   pageSize: number
 }
 
-type PagedFetcher<T, Q extends object> = (
+type PagedFetcher<T, Q extends object, R extends PagedResult<T>> = (
   params: Q & PageParams,
-) => Promise<ApiResponse<PagedResult<T>>>
+) => Promise<ApiResponse<R>>
 
-interface UsePagedListOptions<T, Q extends object> {
-  fetcher: PagedFetcher<T, Q>
+interface UsePagedListOptions<T, Q extends object, R extends PagedResult<T>> {
+  fetcher: PagedFetcher<T, Q, R>
   pageSize?: number
   initialQuery?: Q
   onError?: (message: string) => void
@@ -22,8 +22,12 @@ interface RefreshOptions {
 }
 
 /** 封装分页列表逻辑 */
-export function usePagedList<T, Q extends object = Record<string, never>>(
-  options: UsePagedListOptions<T, Q>,
+export function usePagedList<
+  T,
+  Q extends object = Record<string, never>,
+  R extends PagedResult<T> = PagedResult<T>,
+>(
+  options: UsePagedListOptions<T, Q, R>,
 ) {
   const pageSize = options.pageSize ?? 20
 
@@ -38,6 +42,7 @@ export function usePagedList<T, Q extends object = Record<string, never>>(
   const loading = ref(false)
   const currentPage = ref(0)
   const total = ref(0)
+  const pageData = ref<R | null>(null) as Ref<R | null>
   const hasMore = ref(true)
   const query = ref(
     normalizeQuery(options.initialQuery ? { ...options.initialQuery } : ({} as Q)),
@@ -80,6 +85,8 @@ export function usePagedList<T, Q extends object = Record<string, never>>(
         options.onError?.(response.msg || '加载失败')
         return false
       }
+
+      pageData.value = response.data
 
       const rows = Array.isArray(response.data.list) ? response.data.list : []
       list.value = targetPage === 1 ? [...rows] : [...list.value, ...rows]
@@ -126,6 +133,7 @@ export function usePagedList<T, Q extends object = Record<string, never>>(
     loading,
     currentPage,
     total,
+    pageData,
     hasMore,
     query,
     updateQuery,

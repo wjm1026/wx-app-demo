@@ -7,7 +7,13 @@ import { getErrorMessage, normalizeInviteCode, showToast } from '@/utils'
 import { useDetailAudioController } from './category-detail.audio'
 import { useCategoryDetailData } from './category-detail.data'
 import { useCategoryLearningRecorder } from './category-detail.learning'
-import { decodeQueryValue, fallbackBack, parseStartIndex, type DetailQuery } from './category-detail.query'
+import {
+  decodeQueryValue,
+  fallbackBack,
+  parseStartIndex,
+  type DetailQuery,
+  type DetailSource,
+} from './category-detail.query'
 
 const SWIPE_GUIDE_STORAGE_KEY = 'CATEGORY_DETAIL_SWIPE_GUIDE_SHOWN_V1'
 const AUTO_PLAY_STORAGE_KEY = 'CATEGORY_DETAIL_AUTO_PLAY_ENABLED_V1'
@@ -25,6 +31,7 @@ export function useCategoryDetailPage() {
   const { ensureLoggedIn, isLoggedIn, store } = useLoginGuard()
 
   // 路由入参状态
+  const source = ref<DetailSource>('category')
   const categoryId = ref('')
   const categoryName = ref('图片详情')
   const startCardId = ref('')
@@ -52,6 +59,7 @@ export function useCategoryDetailPage() {
 
   // 页面数据层：负责快照拉取、详情缓存、轮播切换等核心数据行为。
   const detailData = useCategoryDetailData({
+    source,
     categoryId,
     startCardId,
     startIndex,
@@ -99,6 +107,8 @@ export function useCategoryDetailPage() {
   const hasChineseAudio = computed(() => !!chineseAudioSrc.value)
   const hasEnglishAudio = computed(() => !!englishAudioSrc.value)
   const ownInviteCode = computed(() => normalizeInviteCode(store.userInfo?.invite_code))
+  const isFavoritesSource = computed(() => source.value === 'favorites')
+  const currentCollectionLabel = computed(() => (isFavoritesSource.value ? '收藏列表' : '当前分类'))
 
   // 音频控制层：只关心“能不能播”和“播哪个地址”
   const audioController = useDetailAudioController({
@@ -264,7 +274,7 @@ export function useCategoryDetailPage() {
     }
 
     if (total.value <= 1) {
-      stopAutoPlay({ message: '当前分类卡片不足 2 张，已暂停自动播放' })
+      stopAutoPlay({ message: `${currentCollectionLabel.value}卡片不足 2 张，已暂停自动播放` })
       return false
     }
 
@@ -426,13 +436,23 @@ export function useCategoryDetailPage() {
   /** 构建详情页分享 query，保留当前卡片上下文并附带邀请码 */
   function buildDetailShareQuery(inviteCode?: string) {
     const queryItems: string[] = []
+    const shareCategoryId = String(
+      currentDetail.value?.category?._id
+      || currentDetail.value?.category_id
+      || snapshotCards.value[activeIndex.value]?.category_id
+      || categoryId.value
+      || '',
+    ).trim()
+    const shareCategoryName = String(
+      currentDetail.value?.category?.name || (isFavoritesSource.value ? '' : categoryName.value || ''),
+    ).trim()
 
-    if (categoryId.value) {
-      queryItems.push(`categoryId=${encodeURIComponent(categoryId.value)}`)
+    if (shareCategoryId) {
+      queryItems.push(`categoryId=${encodeURIComponent(shareCategoryId)}`)
     }
 
-    if (categoryName.value) {
-      queryItems.push(`categoryName=${encodeURIComponent(categoryName.value)}`)
+    if (shareCategoryName) {
+      queryItems.push(`categoryName=${encodeURIComponent(shareCategoryName)}`)
     }
 
     const resolvedCardId = currentCardId.value || startCardId.value
@@ -514,9 +534,19 @@ export function useCategoryDetailPage() {
   /** 页面加载：解析 query 并拉取快照 */
   onLoad((query) => {
     const resolvedQuery = (query || {}) as DetailQuery
+    const resolvedSource = decodeQueryValue(resolvedQuery.source)
+    source.value = resolvedSource === 'favorites' ? 'favorites' : 'category'
+
+    if (source.value === 'favorites') {
+      categoryName.value = '我的收藏'
+
+      if (!ensureLoggedIn({ message: '登录后可查看收藏' })) {
+        return
+      }
+    }
 
     const resolvedCategoryId = decodeQueryValue(resolvedQuery.categoryId)
-    if (!resolvedCategoryId) {
+    if (source.value === 'category' && !resolvedCategoryId) {
       showToast('缺少分类ID')
       setTimeout(() => {
         fallbackBack()
@@ -527,7 +557,7 @@ export function useCategoryDetailPage() {
     categoryId.value = resolvedCategoryId
 
     const resolvedCategoryName = decodeQueryValue(resolvedQuery.categoryName)
-    if (resolvedCategoryName) {
+    if (source.value === 'category' && resolvedCategoryName) {
       categoryName.value = resolvedCategoryName
     }
 

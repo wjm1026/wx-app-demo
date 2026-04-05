@@ -19,10 +19,10 @@
         <text class="hero-badge-text">学习收藏夹</text>
       </view>
 
-      <view class="hero-main">
+        <view class="hero-main">
         <view class="hero-copy">
           <text class="hero-label">已收藏卡片</text>
-          <text class="hero-value">{{ favorites.length }}</text>
+          <text class="hero-value">{{ favoriteCount }}</text>
           <text class="hero-desc">把想反复学习的内容放在一起，回来就能继续看。</text>
         </view>
 
@@ -76,10 +76,11 @@
 
       <view v-else class="favorites-list">
         <view
-          v-for="item in decoratedFavorites"
+          v-for="(item, index) in decoratedFavorites"
           :key="item._id"
           class="favorite-card"
           :class="item.tone"
+          @click="openFavoriteDetail(item, index)"
         >
           <view class="favorite-media-wrap">
             <CardImage
@@ -112,7 +113,7 @@
 
             <view class="favorite-footer">
               <text class="favorite-stats">{{ item.statsLabel }}</text>
-              <view class="favorite-cta">
+              <view class="favorite-cta" @click.stop="openFavoriteDetail(item, index)">
                 <text class="favorite-cta-text">继续学习</text>
                 <image class="favorite-cta-icon" src="/static/icons/line/chevron-right.svg" mode="aspectFit" />
               </view>
@@ -134,10 +135,12 @@ import { useFavoritesPage } from './hooks/useFavoritesPage'
 
 const {
   decoratedFavorites,
+  favoriteCount,
   favorites,
   goBack,
   goHome,
   isLoading,
+  openFavoriteDetail,
   removeFavorite,
   sectionHint,
   statusBarHeight,
