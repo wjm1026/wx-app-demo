@@ -88,7 +88,7 @@
               :src="item.image"
               :label="item.name"
               :category="item.categoryLabel"
-              mode="aspectFill"
+              mode="widthFix"
             />
             <view class="favorite-category-chip">{{ item.categoryLabel }}</view>
           </view>

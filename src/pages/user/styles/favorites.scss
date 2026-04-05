@@ -303,12 +303,10 @@
 .skeleton-image,
 .skeleton-line,
 .skeleton-action {
-  background: linear-gradient(
-    90deg,
-    rgba(236, 241, 248, 0.9) 0%,
-    rgba(255, 255, 255, 0.98) 50%,
-    rgba(236, 241, 248, 0.9) 100%
-  );
+  background: linear-gradient(90deg,
+      rgba(236, 241, 248, 0.9) 0%,
+      rgba(255, 255, 255, 0.98) 50%,
+      rgba(236, 241, 248, 0.9) 100%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }
@@ -359,12 +357,14 @@
 .favorite-media-wrap {
   position: relative;
   flex-shrink: 0;
+  align-self: flex-start;
   width: 184rpx;
 }
 
 .favorite-image {
+  display: block;
   width: 184rpx;
-  height: 184rpx;
+  height: auto;
   border-radius: 28rpx;
   background: $color-bg-secondary;
 }

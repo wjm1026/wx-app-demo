@@ -11,6 +11,7 @@ import {
 
 const CONTENT_TOP_GAP_PX = uni.upx2px(32)
 const TABBAR_SPACER_PX = uni.upx2px(160)
+const HOME_GRID_AD_UNIT_ID = 'adunit-44dd081062bf7751'
 const CATEGORY_FALLBACK_GRADIENTS = [
   'linear-gradient(145deg, #fff4dc 0%, #ffe8b8 100%)',
   'linear-gradient(145deg, #edf5ff 0%, #dceafe 100%)',
@@ -111,6 +112,7 @@ export function useIndexPage() {
   const heroPreviewCategories = ref<Category[]>([])
   const isInitialLoading = ref(true)
   const isCategoryLoading = ref(false)
+  const showHomeGridAd = ref(true)
 
   const resolvedNavBarHeight = computed(
     () => measuredNavBarHeight.value || navBarHeight.value,
@@ -238,6 +240,7 @@ export function useIndexPage() {
   })
 
   onShow(() => {
+    showHomeGridAd.value = true
     void loadCategories({ showLoadingState: false })
     void loadDisplayConfig()
     updateNavBarHeight()
@@ -248,6 +251,21 @@ export function useIndexPage() {
     uni.stopPullDownRefresh()
   })
 
+  function handleHomeGridAdLoad() {
+    showHomeGridAd.value = true
+    console.log('首页格子广告加载成功')
+  }
+
+  function handleHomeGridAdError(error: unknown) {
+    showHomeGridAd.value = false
+    console.error('首页格子广告加载失败', error)
+  }
+
+  function handleHomeGridAdClose() {
+    showHomeGridAd.value = false
+    console.log('首页格子广告关闭')
+  }
+
   return {
     categoryCountText,
     categories,
@@ -257,8 +275,12 @@ export function useIndexPage() {
     getCategoryDescription: getCategoryDescriptionText,
     getCategoryImage,
     getCategoryMonogram,
+    handleHomeGridAdClose,
+    handleHomeGridAdError,
+    handleHomeGridAdLoad,
     heroDescription,
     heroPreviewCards,
+    homeGridAdUnitId: HOME_GRID_AD_UNIT_ID,
     isInitialLoading,
     mainScrollStyle,
     navContentStyle,
@@ -266,6 +288,7 @@ export function useIndexPage() {
     openCategoryCards,
     resolvedAppLogo,
     safeBottomStyle,
+    showHomeGridAd,
     statusBarHeight,
     totalCardCountText,
   }

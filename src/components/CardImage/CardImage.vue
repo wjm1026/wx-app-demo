@@ -1,5 +1,5 @@
 <template>
-  <view class="card-image">
+  <view class="card-image" :class="{ 'is-width-fix': isWidthFix }">
     <image
       v-if="resolvedSrc"
       class="card-image__native"
@@ -31,6 +31,7 @@ const props = withDefaults(defineProps<Props>(), {
 const hasFailed = ref(false);
 
 const resolvedSrc = computed(() => (hasFailed.value ? "" : props.src));
+const isWidthFix = computed(() => props.mode === "widthFix");
 
 /** 处理错误 */
 function handleError() {
@@ -59,5 +60,18 @@ watch(
 
 .card-image__empty {
   background: #f3f4f6;
+}
+
+.card-image.is-width-fix {
+  height: auto;
+}
+
+.card-image.is-width-fix .card-image__native {
+  display: block;
+  height: auto;
+}
+
+.card-image.is-width-fix .card-image__empty {
+  min-height: 184rpx;
 }
 </style>

@@ -134,7 +134,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { onLoad, onShow } from "@dcloudio/uni-app";
+import { onHide, onLoad, onReady, onShow, onUnload } from "@dcloudio/uni-app";
 import CustomTabbar from "@/components/CustomTabbar/CustomTabbar.vue";
 import {
   cardApi,
@@ -266,9 +266,14 @@ const ALLOWED_LAUNCH_MODES = new Set<DisplayGameLaunchMode>([
   "direct",
 ]);
 const TABBAR_ROUTE_SET = new Set(TABBAR_ITEMS.map((item) => item.pagePath));
+const INTERSTITIAL_AD_UNIT_ID = "adunit-d7d3ff2e79f404ea";
 const gameBlocks = ref<GameBlock[]>([...DEFAULT_GAME_BLOCKS]);
 const displayConfigLoading = ref(false);
 const listenPickRoutePath = ref(DEFAULT_LISTEN_PICK_ROUTE);
+let interstitialAd: UniNamespace.InterstitialAdContext | null = null;
+let isInterstitialLoading = false;
+let shouldShowInterstitialAfterLoad = false;
+let hasShownInterstitialAd = false;
 
 function normalizeTone(value: unknown): GameBlock["tone"] {
   const tone = String(value || "").trim() as DisplayGameTone;
@@ -361,6 +366,68 @@ async function loadDisplayConfig() {
   } finally {
     displayConfigLoading.value = false;
   }
+}
+
+function handleInterstitialAdLoad() {
+  isInterstitialLoading = false;
+  if (shouldShowInterstitialAfterLoad && !hasShownInterstitialAd) {
+    shouldShowInterstitialAfterLoad = false;
+    showInterstitialAdOnce();
+  }
+}
+
+function handleInterstitialAdError(error: unknown) {
+  isInterstitialLoading = false;
+  shouldShowInterstitialAfterLoad = false;
+  console.error("插屏广告加载失败", error);
+}
+
+function handleInterstitialAdClose() {}
+
+function cleanupInterstitialAd() {
+  if (!interstitialAd) {
+    return;
+  }
+
+  interstitialAd.offLoad(handleInterstitialAdLoad);
+  interstitialAd.offError(handleInterstitialAdError);
+  interstitialAd.offClose(handleInterstitialAdClose);
+  interstitialAd.destroy();
+  interstitialAd = null;
+}
+
+function createInterstitialAd() {
+  if (interstitialAd || typeof uni.createInterstitialAd !== "function") {
+    return;
+  }
+
+  interstitialAd = uni.createInterstitialAd({
+    adUnitId: INTERSTITIAL_AD_UNIT_ID,
+  });
+  interstitialAd.onLoad(handleInterstitialAdLoad);
+  interstitialAd.onError(handleInterstitialAdError);
+  interstitialAd.onClose(handleInterstitialAdClose);
+  isInterstitialLoading = true;
+}
+
+function showInterstitialAdOnce() {
+  if (hasShownInterstitialAd || !interstitialAd) {
+    return;
+  }
+
+  if (isInterstitialLoading) {
+    shouldShowInterstitialAfterLoad = true;
+    return;
+  }
+
+  isInterstitialLoading = true;
+  interstitialAd.show().then(() => {
+    hasShownInterstitialAd = true;
+    isInterstitialLoading = false;
+  }).catch((error) => {
+    isInterstitialLoading = false;
+    console.error("插屏广告显示失败", error);
+  });
 }
 
 const stageStyle = computed<Record<string, string>>(() => {
@@ -499,8 +566,23 @@ onLoad(() => {
   void loadDisplayConfig();
 });
 
+onReady(() => {
+  // #ifdef MP-WEIXIN
+  createInterstitialAd();
+  showInterstitialAdOnce();
+  // #endif
+});
+
 onShow(() => {
   void loadDisplayConfig();
+});
+
+onHide(() => {
+  cleanupInterstitialAd();
+});
+
+onUnload(() => {
+  cleanupInterstitialAd();
 });
 </script>
 

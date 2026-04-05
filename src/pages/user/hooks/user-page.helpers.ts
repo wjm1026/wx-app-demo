@@ -1,8 +1,8 @@
 import type { UserInfo } from '@/api'
-import { buildInviteSharePath } from '@/utils'
+import { buildInviteSharePath, normalizeInviteCode } from '@/utils'
 
 export const MOCK_REWARDED_AD_DURATION_MS = 2000
-export const REWARDED_VIDEO_AD_UNIT_ID = 'adunit-xxxxxxxxx'
+export const REWARDED_VIDEO_AD_UNIT_ID = 'adunit-cc103a50a2773999'
 
 // 用户中心的受保护页面统一收口到这里，后续新增入口时不用再全文搜 URL。
 export const PROTECTED_USER_PAGE_ROUTES = {
@@ -64,5 +64,19 @@ export function buildUserSharePayload(inviteCode?: string) {
       ? `输入邀请码 ${inviteCode}，一起加入学习计划`
       : '来宝宝识物，一起学认知',
     path: buildInviteSharePath(inviteCode),
+  }
+}
+
+/** 构建用户页朋友圈分享参数 */
+export function buildUserTimelineSharePayload(inviteCode?: string) {
+  const normalizedInviteCode = normalizeInviteCode(inviteCode)
+
+  return {
+    title: normalizedInviteCode
+      ? `输入邀请码 ${normalizedInviteCode}，一起加入学习计划`
+      : '来宝宝识物，一起学认知',
+    query: normalizedInviteCode
+      ? `inviteCode=${encodeURIComponent(normalizedInviteCode)}`
+      : '',
   }
 }

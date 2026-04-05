@@ -4,7 +4,7 @@ import {
   onReachBottom,
   onShow,
 } from '@dcloudio/uni-app'
-import { userApi, type PointsLogItem } from '@/api'
+import { userApi, type PointsLogItem, type PointsLogPageResult } from '@/api'
 import { useLoginGuard } from '@/composables/useLoginGuard'
 import { usePageLayout } from '@/composables/usePageLayout'
 import { usePagedList } from '@/composables/usePagedList'
@@ -36,15 +36,33 @@ const LOG_VISUAL_MAP: Record<string, LogVisualMeta> = {
     chipTone: 'chip-amber',
     iconTone: 'icon-amber',
   },
+  card_view_consume: {
+    icon: '/static/icons/line/ticket.svg',
+    chipLabel: '看卡消费',
+    chipTone: 'chip-amber',
+    iconTone: 'icon-amber',
+  },
   gift: {
     icon: '/static/icons/line/gift.svg',
     chipLabel: '新手奖励',
     chipTone: 'chip-pink',
     iconTone: 'icon-pink',
   },
+  game_round_consume: {
+    icon: '/static/icons/line/ticket.svg',
+    chipLabel: '游戏开局',
+    chipTone: 'chip-amber',
+    iconTone: 'icon-amber',
+  },
   invite: {
     icon: '/static/icons/line/users.svg',
     chipLabel: '邀请奖励',
+    chipTone: 'chip-violet',
+    iconTone: 'icon-violet',
+  },
+  invite_bonus: {
+    icon: '/static/icons/line/users.svg',
+    chipLabel: '填码奖励',
     chipTone: 'chip-violet',
     iconTone: 'icon-violet',
   },
@@ -76,9 +94,11 @@ export function usePointsLogPage() {
     list: logs,
     loading,
     hasMore,
+    pageData,
     refresh,
     loadMore,
-  } = usePagedList<PointsLogItem>({
+    total,
+  } = usePagedList<PointsLogItem, Record<string, never>, PointsLogPageResult>({
     pageSize: 20,
     fetcher: ({ page, pageSize }) => userApi.getPointsLog({ page, pageSize }),
     onError: (message) => showToast(message || '获取记录失败'),
@@ -107,11 +127,18 @@ export function usePointsLogPage() {
     }),
   )
   const summaryCards = computed(() => {
-    const incomeCount = logs.value.filter((item) => Number(item.amount || 0) > 0).length
-    const consumeCount = logs.value.filter((item) => Number(item.amount || 0) < 0).length
-    const latestLabel = logs.value[0]
-      ? formatRelativeDate(logs.value[0].create_time) || '刚刚更新'
-      : '暂无更新'
+    const summary = pageData.value?.summary
+    const incomeCount = Number(
+      summary?.rewardCount ?? logs.value.filter((item) => Number(item.amount || 0) > 0).length,
+    )
+    const consumeCount = Number(
+      summary?.consumeCount ?? logs.value.filter((item) => Number(item.amount || 0) < 0).length,
+    )
+    const latestLabel = summary?.latestCreateTime
+      ? formatRelativeDate(summary.latestCreateTime) || '刚刚更新'
+      : logs.value[0]
+        ? formatRelativeDate(logs.value[0].create_time) || '刚刚更新'
+        : '暂无更新'
 
     return [
       {
@@ -140,7 +167,9 @@ export function usePointsLogPage() {
     }
 
     if (logs.value.length > 0) {
-      return `已加载 ${logs.value.length} 条记录`
+      return total.value > 0
+        ? `已加载 ${logs.value.length}/${total.value} 条记录`
+        : `已加载 ${logs.value.length} 条记录`
     }
 
     return '最近获得和使用的积分都会展示在这里'

@@ -119,6 +119,13 @@
   min-height: 100vh;
 }
 
+.home-grid-ad {
+  position: fixed;
+  right: 24rpx;
+  bottom: calc(env(safe-area-inset-bottom) + 156rpx);
+  z-index: 29;
+}
+
 .content-shell {
   padding: 0 $spacing-3;
 }

@@ -97,6 +97,7 @@ export function useListenPickPage() {
 
   let shakeTimer: ReturnType<typeof setTimeout> | null = null
   let nextPressTimer: ReturnType<typeof setTimeout> | null = null
+  let sessionRoundKey = ''
 
   const stageStyle = computed<Record<string, string>>(() => {
     const topInset = getStatusBarHeight() + uni.upx2px(8)
@@ -232,6 +233,8 @@ export function useListenPickPage() {
   }
 
   function resetSessionState() {
+    sessionRoundKey = ''
+
     round.value = 1
     streak.value = 0
     score.value = 0
@@ -365,6 +368,9 @@ export function useListenPickPage() {
       streak.value = 0
       score.value = 0
 
+      sessionRoundKey = createSessionRoundKey()
+      await consumeGameRound()
+
       if (await setupNextRound()) {
         scheduleAutoPlay(320)
       }
@@ -381,8 +387,6 @@ export function useListenPickPage() {
       resetRoundBoard()
       return false
     }
-
-    await consumeGameRound()
 
     const nextTargetId = remainingTargetIds.value.shift()
     if (!nextTargetId) {
@@ -410,18 +414,22 @@ export function useListenPickPage() {
   }
 
   async function consumeGameRound() {
+    if (!sessionRoundKey) {
+      throw new Error('缺少本局扣费标识')
+    }
+
     const response = await pointsApi.consumeAction({
       actionType: 'game_round',
-      roundKey: createRoundKey(),
+      roundKey: sessionRoundKey,
     })
     if (response.code !== 0 || !response.data) {
       throw new Error(response.msg || '本局积分扣费失败')
     }
   }
 
-  function createRoundKey() {
-    const randomPart = Math.random().toString(36).slice(2, 10)
-    return `${Date.now()}-${round.value}-${remainingTargetIds.value.length}-${randomPart}`
+  function createSessionRoundKey() {
+    const randomPart = Math.random().toString(36).slice(2, 8)
+    return `${gameName.value}:${categoryId.value || 'default'}:${Date.now()}-${randomPart}`
   }
 
   function pickTemplate(): GameTemplate {

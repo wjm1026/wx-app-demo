@@ -149,6 +149,17 @@
     </view>
 
     <CustomTabbar :current="0" :reserve-space="false" />
+
+    <!-- #ifdef MP-WEIXIN -->
+    <ad-custom
+      v-if="showHomeGridAd"
+      class="home-grid-ad"
+      :unit-id="homeGridAdUnitId"
+      @load="handleHomeGridAdLoad"
+      @error="handleHomeGridAdError"
+      @close="handleHomeGridAdClose"
+    ></ad-custom>
+    <!-- #endif -->
   </view>
 </template>
 
@@ -165,8 +176,12 @@ const {
   getCategoryDescription,
   getCategoryImage,
   getCategoryMonogram,
+  handleHomeGridAdClose,
+  handleHomeGridAdError,
+  handleHomeGridAdLoad,
   heroDescription,
   heroPreviewCards,
+  homeGridAdUnitId,
   isInitialLoading,
   mainScrollStyle,
   navContentStyle,
@@ -174,6 +189,7 @@ const {
   openCategoryCards,
   resolvedAppLogo,
   safeBottomStyle,
+  showHomeGridAd,
   statusBarHeight,
   totalCardCountText,
 } = useIndexPage();

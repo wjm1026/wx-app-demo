@@ -107,6 +107,16 @@ export interface PointsLogItem {
   create_time: number
 }
 
+export interface PointsLogSummary {
+  rewardCount: number
+  consumeCount: number
+  latestCreateTime?: number
+}
+
+export interface PointsLogPageResult extends PagedResult<PointsLogItem> {
+  summary?: PointsLogSummary
+}
+
 export type ConsumeActionType = 'game_round'
 
 export interface ConsumeActionResult {

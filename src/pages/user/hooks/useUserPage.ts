@@ -1,5 +1,5 @@
 import { computed, onMounted, ref, watch } from 'vue'
-import { onShareAppMessage, onShow } from '@dcloudio/uni-app'
+import { onReady, onShareAppMessage, onShareTimeline, onShow, onUnload } from '@dcloudio/uni-app'
 import { pointsApi, userApi } from '@/api'
 import { uploadApiFile } from '@/api/shared'
 import { loginWithWeixin } from '@/auth/session'
@@ -17,6 +17,7 @@ import {
 import {
   buildUserPageViewModel,
   buildUserSharePayload,
+  buildUserTimelineSharePayload,
   isRewardedAdCompleted,
   isUnauthorizedCode,
   MOCK_REWARDED_AD_DURATION_MS,
@@ -32,6 +33,7 @@ type UserProfilePatch = {
 }
 
 const PROFILE_NICKNAME_MAX_LENGTH = 20
+const REWARDED_AD_TOAST_DELAY_MS = 120
 
 /** 封装用户页面逻辑 */
 export function useUserPage() {
@@ -47,6 +49,10 @@ export function useUserPage() {
   const profileNicknameDraft = ref('')
   const profileAvatarDraft = ref('')
   const profileAvatarTempFilePath = ref('')
+  let rewardedVideoAd: UniNamespace.RewardedVideoAdContext | null = null
+  let rewardedAdToastTimer: ReturnType<typeof setTimeout> | null = null
+  let isRewardedAdLoading = false
+  let isRewardedAdShowing = false
 
   const isLoggedIn = computed(() => store.isLoggedIn)
   const userInfo = computed(() => buildUserPageViewModel(store.userInfo))
@@ -422,11 +428,11 @@ export function useUserPage() {
 
     if (res.code === 0) {
       void loadUserInfo()
-      showToast(`获得${res.data?.earnPoints || 10}积分 🎉`, 'success')
+      queueRewardedAdToast(`获得${res.data?.earnPoints || 10}积分 🎉`, 'success')
       return
     }
 
-    showToast(res.msg || '获取积分失败')
+    queueRewardedAdToast(res.msg || '获取积分失败')
   }
 
   // 广告回调不在正常请求链路里，单独兜底可以避免广告异常把整个页面流程带崩。
@@ -434,18 +440,107 @@ export function useUserPage() {
     try {
       await rewardPointsFromAd()
     } catch {
-      showToast('获取积分失败')
+      queueRewardedAdToast('获取积分失败')
     }
+  }
+
+  /** 清理广告提示定时器 */
+  function clearRewardedAdToastTimer() {
+    if (rewardedAdToastTimer === null) {
+      return
+    }
+
+    clearTimeout(rewardedAdToastTimer)
+    rewardedAdToastTimer = null
+  }
+
+  /** 延迟展示广告相关提示，避开微信原生广告关闭后的视图切换瞬间 */
+  function queueRewardedAdToast(
+    title: string,
+    icon: 'success' | 'error' | 'none' | 'loading' = 'none',
+    duration = 2000,
+  ) {
+    clearRewardedAdToastTimer()
+    rewardedAdToastTimer = setTimeout(() => {
+      rewardedAdToastTimer = null
+      showToast(title, icon, duration)
+    }, REWARDED_AD_TOAST_DELAY_MS)
+  }
+
+  /** 处理激励广告加载成功 */
+  function handleRewardedAdLoad() {
+    isRewardedAdLoading = false
+  }
+
+  /** 处理激励广告加载失败 */
+  function handleRewardedAdError(error: unknown) {
+    isRewardedAdLoading = false
+    isRewardedAdShowing = false
+    console.error('激励视频广告加载失败', error)
   }
 
   /** 处理激励广告关闭 */
   function handleRewardedAdClose(status: unknown) {
+    isRewardedAdShowing = false
+
     if (isRewardedAdCompleted(status)) {
       void rewardPointsFromAdSafely()
       return
     }
 
-    showToast('请看完广告才能获得奖励')
+    queueRewardedAdToast('请看完广告才能获得奖励')
+  }
+
+  /** 销毁激励广告实例 */
+  function cleanupRewardedAd() {
+    if (!rewardedVideoAd) {
+      return
+    }
+
+    rewardedVideoAd.offLoad(handleRewardedAdLoad)
+    rewardedVideoAd.offError(handleRewardedAdError)
+    rewardedVideoAd.offClose(handleRewardedAdClose)
+    rewardedVideoAd.destroy()
+    rewardedVideoAd = null
+    clearRewardedAdToastTimer()
+    isRewardedAdLoading = false
+    isRewardedAdShowing = false
+  }
+
+  /** 创建激励广告实例 */
+  function createRewardedAd() {
+    if (rewardedVideoAd || typeof uni.createRewardedVideoAd !== 'function') {
+      return rewardedVideoAd
+    }
+
+    rewardedVideoAd = uni.createRewardedVideoAd({
+      adUnitId: REWARDED_VIDEO_AD_UNIT_ID,
+    })
+    rewardedVideoAd.onLoad(handleRewardedAdLoad)
+    rewardedVideoAd.onError(handleRewardedAdError)
+    rewardedVideoAd.onClose(handleRewardedAdClose)
+    isRewardedAdLoading = true
+
+    return rewardedVideoAd
+  }
+
+  /** 预加载激励广告 */
+  async function preloadRewardedAd() {
+    const ad = createRewardedAd()
+
+    if (!ad) {
+      return false
+    }
+
+    try {
+      isRewardedAdLoading = true
+      await ad.load()
+      return true
+    } catch (error) {
+      isRewardedAdLoading = false
+      console.error('激励视频广告预加载失败', error)
+      return false
+    }
   }
 
   // 非微信环境没有真实激励广告，这里用一个延时模拟，保证本地调试和降级路径的
@@ -465,18 +560,31 @@ export function useUserPage() {
     }
 
     // #ifdef MP-WEIXIN
+    if (isRewardedAdShowing) {
+      return
+    }
+
     try {
-      const videoAd = uni.createRewardedVideoAd({
-        adUnitId: REWARDED_VIDEO_AD_UNIT_ID,
-      })
+      const videoAd = createRewardedAd()
 
-      videoAd.onClose((status) => {
-        handleRewardedAdClose(status)
-      })
+      if (!videoAd) {
+        queueRewardedAdToast('当前微信版本暂不支持激励广告')
+        return
+      }
 
-      videoAd.show().catch(() => videoAd.load().then(() => videoAd.show()))
-    } catch {
-      await rewardPointsFromAdSafely()
+      isRewardedAdShowing = true
+
+      try {
+        await videoAd.show()
+      } catch {
+        isRewardedAdLoading = true
+        await videoAd.load()
+        await videoAd.show()
+      }
+    } catch (error) {
+      isRewardedAdShowing = false
+      console.error('激励视频广告展示失败', error)
+      queueRewardedAdToast('广告暂时不可用，请稍后再试')
     }
     // #endif
 
@@ -551,13 +659,26 @@ export function useUserPage() {
 
   // 用户中心里的“分享给朋友”也统一走邀请码分享，避免和邀请页出现两套不同链路。
   onShareAppMessage(() => buildUserSharePayload(userInfo.value.inviteCode))
+  onShareTimeline(() => buildUserTimelineSharePayload(userInfo.value.inviteCode))
 
   onMounted(() => {
     refreshUserPanel()
   })
 
+  onReady(() => {
+    // #ifdef MP-WEIXIN
+    void preloadRewardedAd()
+    // #endif
+  })
+
   onShow(() => {
     refreshUserPanel()
+  })
+
+  onUnload(() => {
+    // #ifdef MP-WEIXIN
+    cleanupRewardedAd()
+    // #endif
   })
 
   watch(isLoggedIn, () => {

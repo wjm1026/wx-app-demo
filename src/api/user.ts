@@ -5,8 +5,7 @@ import type {
   InviteInfoResult,
   InviteTaskConfig,
   LoginByWeixinResult,
-  PagedResult,
-  PointsLogItem,
+  PointsLogPageResult,
   UserInfo,
 } from './types'
 
@@ -39,7 +38,7 @@ export const userApi = {
   getInviteInfo: () => apiGet<InviteInfoResult>('/api/v1/users/invite-info') as Promise<ApiResponse<InviteInfoResult>>,
   /** 获取积分日志 */
   getPointsLog: (params?: { page?: number; pageSize?: number }) =>
-    apiGet<PagedResult<PointsLogItem>>('/api/v1/users/points-logs', params) as Promise<
-      ApiResponse<PagedResult<PointsLogItem>>
+    apiGet<PointsLogPageResult>('/api/v1/users/points-logs', params) as Promise<
+      ApiResponse<PointsLogPageResult>
     >,
 }
