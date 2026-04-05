@@ -226,6 +226,138 @@
               </view>
             </view>
           </view>
+
+          <view v-if="game.key === 'listen-pick'" class="feedback-config-card">
+            <view class="section-head">
+              <text class="section-title">听音选图反馈语音</text>
+              <text class="section-subtitle">保存后会按提示语自动生成答对 / 答错反馈音频</text>
+            </view>
+
+            <view class="switch-row">
+              <view class="switch-item">
+                <text class="switch-label">答对后自动下一题</text>
+                <switch
+                  :checked="game.listenPickFeedback.autoNextOnCorrect"
+                  color="#f59e0b"
+                  @change="handleListenPickAutoNextChange(index, $event)"
+                />
+              </view>
+            </view>
+
+            <view class="feedback-summary-row">
+              <view class="feedback-summary-chip">
+                答对已生成 {{ countGeneratedFeedbackAudios(game.listenPickFeedback.correctAudios) }} 条
+              </view>
+              <view class="feedback-summary-chip">
+                答错已生成 {{ countGeneratedFeedbackAudios(game.listenPickFeedback.wrongAudios) }} 条
+              </view>
+            </view>
+
+            <view class="feedback-tts-head">
+              <text class="feedback-tts-title">反馈发音参数</text>
+              <text class="feedback-tts-subtitle">修改后会重新生成新文件名音频，并清理旧 OSS 文件</text>
+            </view>
+
+            <view class="form-grid">
+              <view class="form-item span-2">
+                <text class="form-label">答对提示语</text>
+                <textarea
+                  class="form-textarea"
+                  auto-height
+                  maxlength="300"
+                  :value="game.listenPickFeedback.correctTextArea"
+                  placeholder="每行一条，例如：真棒"
+                  @input="handleListenPickFeedbackInput(index, 'correctTextArea', $event)"
+                ></textarea>
+              </view>
+
+              <view class="form-item span-2">
+                <text class="form-label">答错提示语</text>
+                <textarea
+                  class="form-textarea"
+                  auto-height
+                  maxlength="300"
+                  :value="game.listenPickFeedback.wrongTextArea"
+                  placeholder="每行一条，例如：再想想"
+                  @input="handleListenPickFeedbackInput(index, 'wrongTextArea', $event)"
+                ></textarea>
+              </view>
+
+              <view class="form-item">
+                <text class="form-label">音色</text>
+                <input
+                  class="form-input"
+                  :value="game.listenPickFeedback.tts.voice"
+                  placeholder="zhibei_emo"
+                  @input="handleListenPickTtsInput(index, 'voice', $event)"
+                />
+              </view>
+
+              <view class="form-item">
+                <text class="form-label">情感</text>
+                <input
+                  class="form-input"
+                  :value="game.listenPickFeedback.tts.emotionCategory"
+                  placeholder="happy / 开心，可留空"
+                  @input="handleListenPickTtsInput(index, 'emotionCategory', $event)"
+                />
+              </view>
+
+              <view class="form-item">
+                <text class="form-label">语速 (-500~500)</text>
+                <input
+                  class="form-input"
+                  type="number"
+                  :value="game.listenPickFeedback.tts.speechRate"
+                  placeholder="-110"
+                  @input="handleListenPickTtsInput(index, 'speechRate', $event)"
+                />
+              </view>
+
+              <view class="form-item">
+                <text class="form-label">语调 (-500~500)</text>
+                <input
+                  class="form-input"
+                  type="number"
+                  :value="game.listenPickFeedback.tts.pitchRate"
+                  placeholder="130"
+                  @input="handleListenPickTtsInput(index, 'pitchRate', $event)"
+                />
+              </view>
+
+              <view class="form-item">
+                <text class="form-label">音量 (0~100)</text>
+                <input
+                  class="form-input"
+                  type="number"
+                  :value="game.listenPickFeedback.tts.volume"
+                  placeholder="60"
+                  @input="handleListenPickTtsInput(index, 'volume', $event)"
+                />
+              </view>
+
+              <view class="form-item">
+                <text class="form-label">采样率</text>
+                <input
+                  class="form-input"
+                  type="number"
+                  :value="game.listenPickFeedback.tts.sampleRate"
+                  placeholder="16000"
+                  @input="handleListenPickTtsInput(index, 'sampleRate', $event)"
+                />
+              </view>
+
+              <view class="form-item">
+                <text class="form-label">格式</text>
+                <input
+                  class="form-input"
+                  :value="game.listenPickFeedback.tts.format"
+                  placeholder="mp3"
+                  @input="handleListenPickTtsInput(index, 'format', $event)"
+                />
+              </view>
+            </view>
+          </view>
         </view>
       </view>
 
@@ -244,6 +376,7 @@ import { useAdminDisplayConfigPage } from './hooks/useAdminDisplayConfigPage'
 
 const {
   addGame,
+  countGeneratedFeedbackAudios,
   clearMiniAppIcon,
   enabledGameCount,
   gameForms,
@@ -251,6 +384,9 @@ const {
   handleGameSortInput,
   handleGameSwitchChange,
   handleGameTextInput,
+  handleListenPickAutoNextChange,
+  handleListenPickFeedbackInput,
+  handleListenPickTtsInput,
   handleLaunchModeChange,
   handleMiniAppIconInput,
   handleToneChange,

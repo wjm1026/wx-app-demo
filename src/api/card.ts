@@ -7,6 +7,7 @@ import type {
   Category,
   DisplayConfigResult,
   FavoritesPageResult,
+  GamePromptAudioManifestResult,
   OpenCardResult,
   PagedResult,
 } from './types'
@@ -31,6 +32,12 @@ export const cardApi = {
       ...params,
       fields: 'lite',
     }) as Promise<ApiResponse<PagedResult<CardLite>>>,
+  /** 获取游戏题干音频清单 */
+  getGamePromptAudioManifest: (params: { gameName: string; cardIds: string[] }) =>
+    apiGet<GamePromptAudioManifestResult>('/api/v1/games/audio/prompt-manifest', {
+      gameName: params.gameName,
+      cardIds: params.cardIds.join(','),
+    }) as Promise<ApiResponse<GamePromptAudioManifestResult>>,
   /** 打开卡片详情（必要时解锁） */
   openCard: (cardId: string, payload?: { track_view?: boolean }) =>
     apiPost<OpenCardResult>(

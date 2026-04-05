@@ -1,10 +1,14 @@
 import { computed, onBeforeUnmount, reactive, toRefs } from 'vue'
 import { onLoad, onUnload } from '@dcloudio/uni-app'
-import { cardApi, pointsApi } from '@/api'
+import { cardApi, pointsApi, type FeedbackAudioItem, type ListenPickFeedbackConfig } from '@/api'
+import {
+  DEFAULT_LISTEN_PICK_CORRECT_TEXTS,
+  normalizeListenPickFeedbackConfig,
+} from '@/config/listen-pick-feedback'
 import {
   getErrorMessage,
-  getStatusBarHeight,
   getSafeAreaBottom,
+  getStatusBarHeight,
   navigateBack,
   showToast,
   switchTab,
@@ -33,15 +37,17 @@ import {
   type ListenPickQuery,
 } from './listen-pick.shared'
 import { useListenPickAudio } from './useListenPickAudio'
+import { useListenPickFeedbackAudio } from './useListenPickFeedbackAudio'
 
 const configuredGameAudioBase = normalizeBaseUrl(import.meta.env?.VITE_GAME_AUDIO_BASE_URL)
 
 const NEXT_BUTTON_ACTIVE_MS = 240
 const SHAKE_DURATION_MS = 420
+const AUTO_NEXT_FALLBACK_DELAY_MS = 600
+const WRONG_FEEDBACK_UNLOCK_DELAY_MS = 240
 
 /** 听音选图页主 Hook：负责数据加载、回合编排、交互状态和生命周期清理。 */
 export function useListenPickPage() {
-  // 会话进度状态
   const progressState = reactive({
     round: 1,
     streak: 0,
@@ -50,7 +56,6 @@ export function useListenPickPage() {
     remainingTargetIds: [] as string[],
   })
 
-  // 当前回合与卡片状态
   const boardState = reactive({
     allCards: [] as GameCard[],
     roundCards: [] as GameCard[],
@@ -62,15 +67,14 @@ export function useListenPickPage() {
     lastTemplateId: '',
   })
 
-  // 页面运行时状态
   const runtimeState = reactive({
     isLoading: true,
     loadError: '',
     fireworksKey: 1,
     isNextPressed: false,
+    isChoiceLocked: false,
   })
 
-  // 页面配置状态（query + 自动探测）
   const configState = reactive({
     gameName: DEFAULT_GAME_NAME,
     audioFormat: DEFAULT_AUDIO_FORMAT as AudioFormat,
@@ -78,6 +82,11 @@ export function useListenPickPage() {
     categoryName: FALLBACK_CATEGORY_NAME,
     categoryKeyword: FALLBACK_CATEGORY_KEYWORD,
     detectedAudioBase: '',
+    autoNextOnCorrect: true,
+    correctAudios: [] as FeedbackAudioItem[],
+    wrongAudios: [] as FeedbackAudioItem[],
+    promptAudioMap: {} as Record<string, Record<string, string>>,
+    questionAudioRequestKey: '',
   })
 
   const { round, streak, score, totalRounds, remainingTargetIds } = toRefs(progressState)
@@ -91,13 +100,27 @@ export function useListenPickPage() {
     currentTemplateText,
     lastTemplateId,
   } = toRefs(boardState)
-  const { isLoading, loadError, fireworksKey, isNextPressed } = toRefs(runtimeState)
-  const { gameName, audioFormat, categoryId, categoryName, categoryKeyword, detectedAudioBase } =
-    toRefs(configState)
+  const { isLoading, loadError, fireworksKey, isNextPressed, isChoiceLocked } = toRefs(runtimeState)
+  const {
+    gameName,
+    audioFormat,
+    categoryId,
+    categoryName,
+    categoryKeyword,
+    detectedAudioBase,
+    autoNextOnCorrect,
+    correctAudios,
+    wrongAudios,
+    promptAudioMap,
+    questionAudioRequestKey,
+  } = toRefs(configState)
 
   let shakeTimer: ReturnType<typeof setTimeout> | null = null
   let nextPressTimer: ReturnType<typeof setTimeout> | null = null
+  let choiceUnlockTimer: ReturnType<typeof setTimeout> | null = null
+  let autoAdvanceTimer: ReturnType<typeof setTimeout> | null = null
   let sessionRoundKey = ''
+  let hasAdvancedCurrentSuccess = false
 
   const stageStyle = computed<Record<string, string>>(() => {
     const topInset = getStatusBarHeight() + uni.upx2px(8)
@@ -119,7 +142,6 @@ export function useListenPickPage() {
   )
   const isNextActionEnabled = computed(() => isSuccess.value || shouldShowReloadAction.value)
   const isSessionComplete = computed(() => isSuccess.value && remainingTargetIds.value.length <= 0)
-
   const effectiveAudioBase = computed(() => configuredGameAudioBase || detectedAudioBase.value)
 
   const questionText = computed(() => {
@@ -143,15 +165,25 @@ export function useListenPickPage() {
   })
 
   const currentQuestionAudioSrc = computed(() => {
-    if (!targetCardId.value || !currentTemplateId.value || !effectiveAudioBase.value) {
+    if (!targetCardId.value || !currentTemplateId.value) {
+      return ''
+    }
+
+    const resolvedAudioUrl = promptAudioMap.value[targetCardId.value]?.[currentTemplateId.value]
+    if (resolvedAudioUrl) {
+      return resolvedAudioUrl
+    }
+
+    if (!effectiveAudioBase.value) {
       return ''
     }
 
     const encodedGameName = encodeURIComponent(gameName.value)
     const encodedCardId = encodeURIComponent(targetCardId.value)
     const encodedTemplateId = encodeURIComponent(currentTemplateId.value)
+    const cacheBust = questionAudioRequestKey.value ? `?v=${encodeURIComponent(questionAudioRequestKey.value)}` : ''
 
-    return `${effectiveAudioBase.value}/game/${encodedGameName}/${encodedCardId}/${encodedTemplateId}.${audioFormat.value}`
+    return `${effectiveAudioBase.value}/game/${encodedGameName}/${encodedCardId}/${encodedTemplateId}.${audioFormat.value}${cacheBust}`
   })
 
   const {
@@ -163,6 +195,12 @@ export function useListenPickPage() {
     scheduleAutoPlay,
     stopQuestionAudio,
   } = useListenPickAudio(currentQuestionAudioSrc)
+
+  const {
+    cleanup: cleanupFeedbackAudio,
+    playFeedbackAudio,
+    stopFeedbackAudio,
+  } = useListenPickFeedbackAudio()
 
   const placeholderText = computed(() => {
     if (isLoading.value) {
@@ -198,6 +236,13 @@ export function useListenPickPage() {
     return `${base} · 进度 ${round.value}/${totalRounds.value}`
   })
 
+  function applyFeedbackConfig(config?: Partial<ListenPickFeedbackConfig> | null) {
+    const normalized = normalizeListenPickFeedbackConfig(config)
+    autoNextOnCorrect.value = normalized.autoNextOnCorrect
+    correctAudios.value = [...normalized.correctAudios]
+    wrongAudios.value = [...normalized.wrongAudios]
+  }
+
   function clearShakeTimer() {
     if (!shakeTimer) {
       return
@@ -216,42 +261,99 @@ export function useListenPickPage() {
     nextPressTimer = null
   }
 
+  function clearChoiceUnlockTimer() {
+    if (!choiceUnlockTimer) {
+      return
+    }
+
+    clearTimeout(choiceUnlockTimer)
+    choiceUnlockTimer = null
+  }
+
+  function clearAutoAdvanceTimer() {
+    if (!autoAdvanceTimer) {
+      return
+    }
+
+    clearTimeout(autoAdvanceTimer)
+    autoAdvanceTimer = null
+  }
+
   function clearTimers() {
     clearShakeTimer()
     clearNextPressTimer()
+    clearChoiceUnlockTimer()
+    clearAutoAdvanceTimer()
   }
 
-  function resetRoundSelection() {
+  function resetRoundInteractionState() {
     selectedCardId.value = ''
     shakingCardId.value = ''
+    isChoiceLocked.value = false
+    hasAdvancedCurrentSuccess = false
+    clearChoiceUnlockTimer()
+    clearAutoAdvanceTimer()
   }
 
   function resetRoundBoard() {
     roundCards.value = []
     targetCardId.value = ''
-    resetRoundSelection()
+    resetRoundInteractionState()
   }
 
   function resetSessionState() {
     sessionRoundKey = ''
-
     round.value = 1
     streak.value = 0
     score.value = 0
     totalRounds.value = 0
     remainingTargetIds.value = []
-
     allCards.value = []
     resetRoundBoard()
     currentTemplateId.value = DEFAULT_TEMPLATE.templateId
     currentTemplateText.value = DEFAULT_TEMPLATE.templateText
     lastTemplateId.value = ''
-
     loadError.value = ''
     detectedAudioBase.value = ''
+    promptAudioMap.value = {}
+    questionAudioRequestKey.value = ''
+    applyFeedbackConfig()
+  }
+
+  function applyPromptAudioManifest(items?: Array<{ cardId?: string; templateId?: string; audioUrl?: string }> | null) {
+    const nextMap: Record<string, Record<string, string>> = {}
+    for (const item of Array.isArray(items) ? items : []) {
+      const cardKey = String(item?.cardId || '').trim()
+      const templateKey = String(item?.templateId || '').trim()
+      const audioUrl = String(item?.audioUrl || '').trim()
+      if (!cardKey || !templateKey || !audioUrl) {
+        continue
+      }
+      if (!nextMap[cardKey]) {
+        nextMap[cardKey] = {}
+      }
+      nextMap[cardKey][templateKey] = audioUrl
+    }
+    promptAudioMap.value = nextMap
+  }
+
+  function scheduleChoiceUnlock(delay = 0) {
+    clearChoiceUnlockTimer()
+    choiceUnlockTimer = setTimeout(() => {
+      isChoiceLocked.value = false
+    }, delay)
+  }
+
+  function scheduleAutoAdvanceFallback() {
+    clearAutoAdvanceTimer()
+    autoAdvanceTimer = setTimeout(() => {
+      void advanceAfterSuccess({ markPressed: false, stopFeedback: false })
+    }, AUTO_NEXT_FALLBACK_DELAY_MS)
   }
 
   function handleReplayVoice(options: { silentWhenMissing?: boolean } = {}) {
+    stopFeedbackAudio()
+    clearAutoAdvanceTimer()
     replayVoice(options)
   }
 
@@ -265,16 +367,60 @@ export function useListenPickPage() {
     }
   }
 
-  /**
-   * 选卡逻辑：
-   * - 已答对时锁定当前回合，避免重复点击把成功态覆盖
-   * - 答错只重置连击，不扣累计分
-   */
+  function resolveRandomFeedbackItem(items: FeedbackAudioItem[]) {
+    return pickRandom(items) || null
+  }
+
+  function playCorrectFeedback() {
+    const feedbackItem = resolveRandomFeedbackItem(correctAudios.value)
+    const shouldAutoAdvance = autoNextOnCorrect.value
+
+    const played = playFeedbackAudio(feedbackItem, {
+      fallbackText: feedbackItem?.text || DEFAULT_LISTEN_PICK_CORRECT_TEXTS[0],
+      onEnded: () => {
+        if (!shouldAutoAdvance) {
+          return
+        }
+        void advanceAfterSuccess({ markPressed: false, stopFeedback: false })
+      },
+      onFailed: () => {
+        if (!shouldAutoAdvance) {
+          return
+        }
+        scheduleAutoAdvanceFallback()
+      },
+    })
+
+    if (!played && shouldAutoAdvance) {
+      scheduleAutoAdvanceFallback()
+    }
+  }
+
+  function playWrongFeedback() {
+    const feedbackItem = resolveRandomFeedbackItem(wrongAudios.value)
+    const played = playFeedbackAudio(feedbackItem, {
+      fallbackText: feedbackItem?.text || '再试试呢',
+      onEnded: () => {
+        scheduleChoiceUnlock()
+      },
+      onFailed: () => {
+        scheduleChoiceUnlock(WRONG_FEEDBACK_UNLOCK_DELAY_MS)
+      },
+    })
+
+    if (!played) {
+      scheduleChoiceUnlock(WRONG_FEEDBACK_UNLOCK_DELAY_MS)
+    }
+  }
+
   function handleChoose(cardId: string) {
-    if (!canPlayRound.value || isSuccess.value) {
+    if (!canPlayRound.value || isSuccess.value || isChoiceLocked.value) {
       return
     }
 
+    stopFeedbackAudio()
+    clearAutoAdvanceTimer()
+    clearChoiceUnlockTimer()
     selectedCardId.value = cardId
 
     if (cardId === targetCardId.value) {
@@ -282,11 +428,16 @@ export function useListenPickPage() {
       fireworksKey.value += 1
       streak.value += 1
       score.value += 10
+      stopQuestionAudio()
+      playCorrectFeedback()
       return
     }
 
     streak.value = 0
     shakingCardId.value = cardId
+    isChoiceLocked.value = true
+    stopQuestionAudio()
+    playWrongFeedback()
 
     clearShakeTimer()
     shakeTimer = setTimeout(() => {
@@ -303,10 +454,58 @@ export function useListenPickPage() {
     }, NEXT_BUTTON_ACTIVE_MS)
   }
 
+  async function continueToNextRound() {
+    if (isSessionComplete.value) {
+      switchTab('/pages/game/game')
+      return true
+    }
+
+    round.value += 1
+
+    try {
+      if (await setupNextRound()) {
+        scheduleAutoPlay()
+        return true
+      }
+
+      round.value = Math.max(1, round.value - 1)
+      return false
+    } catch (error) {
+      round.value = Math.max(1, round.value - 1)
+      loadError.value = getErrorMessage(error, '本局开局失败')
+      showToast(loadError.value)
+      return false
+    }
+  }
+
+  async function advanceAfterSuccess(options: { markPressed: boolean; stopFeedback: boolean }) {
+    if (!isSuccess.value || hasAdvancedCurrentSuccess) {
+      return
+    }
+
+    hasAdvancedCurrentSuccess = true
+    isChoiceLocked.value = false
+    clearAutoAdvanceTimer()
+
+    if (options.markPressed) {
+      markNextPressed()
+    }
+
+    if (options.stopFeedback) {
+      stopFeedbackAudio()
+    }
+
+    const advanced = await continueToNextRound()
+    if (!advanced) {
+      hasAdvancedCurrentSuccess = false
+    }
+  }
+
   async function handleNextRound() {
     markNextPressed()
 
     if (shouldShowReloadAction.value) {
+      stopFeedbackAudio()
       await initializeGame()
       return
     }
@@ -315,32 +514,13 @@ export function useListenPickPage() {
       return
     }
 
-    if (isSessionComplete.value) {
-      switchTab('/pages/game/game')
-      return
-    }
-
-    round.value += 1
-    try {
-      if (await setupNextRound()) {
-        scheduleAutoPlay()
-      }
-    } catch (error) {
-      round.value = Math.max(1, round.value - 1)
-      loadError.value = getErrorMessage(error, '本局开局失败')
-      showToast(loadError.value)
-    }
+    await advanceAfterSuccess({ markPressed: false, stopFeedback: true })
   }
 
-  /**
-   * 初始化流程：
-   * 1. 解析分类与配置
-   * 2. 拉取卡片并构建目标队列
-   * 3. 进入首轮并自动播报
-   */
   async function initializeGame() {
     clearTimers()
     stopQuestionAudio()
+    stopFeedbackAudio()
 
     isLoading.value = true
     resetSessionState()
@@ -350,13 +530,19 @@ export function useListenPickPage() {
       categoryId.value = category.id
       categoryName.value = category.name
 
-      const cards = await fetchCardsByCategory(category.id)
+      const [cards, feedbackConfig] = await Promise.all([
+        fetchCardsByCategory(category.id),
+        fetchListenPickFeedbackConfig(),
+      ])
+
       if (cards.length < 2) {
         throw new Error('该分类卡片不足 2 张')
       }
 
+      applyFeedbackConfig(feedbackConfig)
       allCards.value = cards
       detectedAudioBase.value = detectAudioBaseFromCards(cards, configuredGameAudioBase)
+      applyPromptAudioManifest(await fetchGamePromptAudioManifest(cards))
 
       remainingTargetIds.value = buildSessionTargetQueue(cards)
       totalRounds.value = remainingTargetIds.value.length
@@ -369,6 +555,7 @@ export function useListenPickPage() {
       score.value = 0
 
       sessionRoundKey = createSessionRoundKey()
+      questionAudioRequestKey.value = createQuestionAudioRequestKey()
       await consumeGameRound()
 
       if (await setupNextRound()) {
@@ -405,11 +592,12 @@ export function useListenPickPage() {
 
     const template = pickTemplate()
 
+    stopFeedbackAudio()
     roundCards.value = shuffleArray([target, distractor])
     targetCardId.value = target.id
     currentTemplateId.value = template.templateId
     currentTemplateText.value = template.templateText
-    resetRoundSelection()
+    resetRoundInteractionState()
     return true
   }
 
@@ -428,6 +616,11 @@ export function useListenPickPage() {
   }
 
   function createSessionRoundKey() {
+    const randomPart = Math.random().toString(36).slice(2, 8)
+    return `${gameName.value}:${categoryId.value || 'default'}:${Date.now()}-${randomPart}`
+  }
+
+  function createQuestionAudioRequestKey() {
     const randomPart = Math.random().toString(36).slice(2, 8)
     return `${gameName.value}:${categoryId.value || 'default'}:${Date.now()}-${randomPart}`
   }
@@ -513,6 +706,41 @@ export function useListenPickPage() {
     return Array.from(new Map(merged.map((item) => [item.id, item])).values())
   }
 
+  async function fetchListenPickFeedbackConfig() {
+    try {
+      const response = await cardApi.getDisplayConfig()
+      if (response.code !== 0 || !response.data) {
+        return normalizeListenPickFeedbackConfig()
+      }
+
+      const games = Array.isArray(response.data.games) ? response.data.games : []
+      const matchedGame = games.find((item) => String(item?.key || '').trim() === gameName.value)
+      return normalizeListenPickFeedbackConfig(matchedGame?.listenPickFeedback)
+    } catch {
+      return normalizeListenPickFeedbackConfig()
+    }
+  }
+
+  async function fetchGamePromptAudioManifest(cards: GameCard[]) {
+    const cardIds = Array.from(new Set(cards.map((item) => String(item?.id || '').trim()).filter(Boolean)))
+    if (cardIds.length <= 0) {
+      return []
+    }
+
+    try {
+      const response = await cardApi.getGamePromptAudioManifest({
+        gameName: gameName.value,
+        cardIds,
+      })
+      if (response.code !== 0 || !response.data) {
+        return []
+      }
+      return Array.isArray(response.data.items) ? response.data.items : []
+    } catch {
+      return []
+    }
+  }
+
   function applyQuery(query: ListenPickQuery) {
     const resolvedCategoryId = decodeQueryValue(query.categoryId)
     const resolvedCategoryName = decodeQueryValue(query.categoryName)
@@ -544,6 +772,7 @@ export function useListenPickPage() {
   function cleanupPage() {
     clearTimers()
     cleanupAudio()
+    cleanupFeedbackAudio()
   }
 
   onLoad((query) => {

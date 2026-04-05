@@ -96,6 +96,19 @@ export interface CardLite {
   update_time?: number
 }
 
+export interface GamePromptAudioManifestItem {
+  cardId: string
+  templateId: string
+  objectKey: string
+  audioUrl: string
+}
+
+export interface GamePromptAudioManifestResult {
+  gameName: string
+  prefix: string
+  items: GamePromptAudioManifestItem[]
+}
+
 export interface PointsLogItem {
   _id: string
   type: string
@@ -190,6 +203,31 @@ export interface PointsRuleConfig {
   update_time?: number
 }
 
+export interface FeedbackAudioItem {
+  key: string
+  text: string
+  audio: string
+}
+
+export interface ListenPickFeedbackTtsConfig {
+  voice: string
+  speechRate: number
+  pitchRate: number
+  volume: number
+  format: 'mp3' | 'wav' | 'pcm'
+  sampleRate: 8000 | 16000 | 24000 | 48000
+  emotionCategory: string
+}
+
+export interface ListenPickFeedbackConfig {
+  autoNextOnCorrect: boolean
+  correctTexts: string[]
+  wrongTexts: string[]
+  tts: ListenPickFeedbackTtsConfig
+  correctAudios: FeedbackAudioItem[]
+  wrongAudios: FeedbackAudioItem[]
+}
+
 export type DisplayGameTone =
   | 'gold'
   | 'blue'
@@ -220,6 +258,7 @@ export interface DisplayGameConfig {
   available: boolean
   enabled: boolean
   sortOrder: number
+  listenPickFeedback?: ListenPickFeedbackConfig
 }
 
 export interface DisplayConfigResult {
@@ -243,6 +282,7 @@ export interface AdminDisplayConfigPayload {
     available: boolean
     enabled: boolean
     sortOrder: number
+    listenPickFeedback?: ListenPickFeedbackConfig
   }>
 }
 

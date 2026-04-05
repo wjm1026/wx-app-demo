@@ -15,10 +15,12 @@ interface RequestApiOptions {
   data?: unknown
   withAuth?: boolean
   headers?: Record<string, string>
+  timeoutMs?: number
 }
 
 interface RequestControlOptions {
   withAuth?: boolean
+  timeoutMs?: number
 }
 
 export interface UploadedFileInfo {
@@ -172,6 +174,7 @@ export async function requestApi<T = unknown>(
     data,
     withAuth = true,
     headers,
+    timeoutMs = 15000,
   } = options
 
   if (withAuth) {
@@ -197,7 +200,7 @@ export async function requestApi<T = unknown>(
         url: resolveRequestUrl(url),
         method: method as UniApp.RequestOptions['method'],
         data: sanitizeRequestData(data),
-        timeout: 15000,
+        timeout: timeoutMs,
         header: buildHeaders(withAuth, headers),
         success: resolve,
         fail: reject,
@@ -230,6 +233,7 @@ export function apiGet<T = unknown>(
     method: 'GET',
     data,
     withAuth: options.withAuth,
+    timeoutMs: options.timeoutMs,
   })
 }
 
@@ -244,6 +248,7 @@ export function apiPost<T = unknown>(
     method: 'POST',
     data,
     withAuth: options.withAuth,
+    timeoutMs: options.timeoutMs,
   })
 }
 
@@ -258,6 +263,7 @@ export function apiPut<T = unknown>(
     method: 'PUT',
     data,
     withAuth: options.withAuth,
+    timeoutMs: options.timeoutMs,
   })
 }
 
@@ -272,6 +278,7 @@ export function apiDelete<T = unknown>(
     method: 'DELETE',
     data,
     withAuth: options.withAuth,
+    timeoutMs: options.timeoutMs,
   })
 }
 

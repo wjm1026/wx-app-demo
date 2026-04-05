@@ -1,5 +1,5 @@
 import { computed, ref, type ComputedRef } from 'vue'
-import { destroyAudio, getErrorMessage, playAudio, showToast, stopAudio } from '@/utils'
+import { getErrorMessage, showToast } from '@/utils'
 
 interface ReplayVoiceOptions {
   silentWhenMissing?: boolean
@@ -7,9 +7,8 @@ interface ReplayVoiceOptions {
 
 /**
  * 题干音频播放控制：
- * - 管理按压态和播放态
- * - 负责自动播放调度
- * - 统一清理音频上下文和定时器
+ * - 每个页面独立持有题干音频上下文，避免和反馈语音串音
+ * - 支持自动播报、手动重播与统一清理
  */
 export function useListenPickAudio(audioSrc: ComputedRef<string>) {
   const isVoicePressed = ref(false)
@@ -18,8 +17,8 @@ export function useListenPickAudio(audioSrc: ComputedRef<string>) {
 
   let pressTimer: ReturnType<typeof setTimeout> | null = null
   let autoPlayTimer: ReturnType<typeof setTimeout> | null = null
-  let activeAudioContext: UniApp.InnerAudioContext | null = null
-  let boundAudioContext: UniApp.InnerAudioContext | null = null
+  let audioContext: UniApp.InnerAudioContext | null = null
+  let audioContextSrc = ''
 
   function clearPressTimer() {
     if (!pressTimer) {
@@ -39,44 +38,79 @@ export function useListenPickAudio(audioSrc: ComputedRef<string>) {
     autoPlayTimer = null
   }
 
-  function stopQuestionAudio() {
-    isVoicePlaying.value = false
-    activeAudioContext = null
-    stopAudio()
-  }
-
-  function destroyQuestionAudio() {
-    isVoicePlaying.value = false
-    activeAudioContext = null
-    boundAudioContext = null
-    destroyAudio()
-  }
-
-  function bindQuestionAudioContext(context: UniApp.InnerAudioContext) {
-    activeAudioContext = context
-    isVoicePlaying.value = true
-
-    if (boundAudioContext === context) {
-      return
-    }
-
-    boundAudioContext = context
-
-    const clearWhenCurrent = () => {
-      if (activeAudioContext !== context) {
+  function bindAudioContext(context: UniApp.InnerAudioContext) {
+    context.onEnded(() => {
+      if (audioContext !== context) {
         return
       }
 
-      activeAudioContext = null
       isVoicePlaying.value = false
+    })
+
+    context.onStop(() => {
+      if (audioContext !== context) {
+        return
+      }
+
+      isVoicePlaying.value = false
+    })
+
+    context.onError((error) => {
+      if (audioContext !== context) {
+        return
+      }
+
+      isVoicePlaying.value = false
+      showToast(getErrorMessage(error, '音频播放失败'))
+    })
+  }
+
+  function destroyQuestionAudio() {
+    const current = audioContext
+    audioContext = null
+    audioContextSrc = ''
+    isVoicePlaying.value = false
+
+    if (!current) {
+      return
     }
 
-    context.onEnded(clearWhenCurrent)
-    context.onStop(clearWhenCurrent)
-    context.onError(() => {
-      clearWhenCurrent()
-      showToast('音频播放失败')
-    })
+    try {
+      current.stop()
+    } catch {
+      // ignore stop errors during teardown
+    }
+
+    try {
+      current.destroy()
+    } catch {
+      // ignore destroy errors during teardown
+    }
+  }
+
+  function ensureAudioContext(src: string) {
+    if (audioContext && audioContextSrc === src) {
+      return audioContext
+    }
+
+    destroyQuestionAudio()
+
+    const context = uni.createInnerAudioContext()
+    context.src = src
+    bindAudioContext(context)
+
+    audioContext = context
+    audioContextSrc = src
+    return context
+  }
+
+  function stopQuestionAudio() {
+    if (!audioContext) {
+      return
+    }
+
+    isVoicePlaying.value = false
+    audioContext.stop()
   }
 
   function replayVoice(options: ReplayVoiceOptions = {}) {
@@ -95,10 +129,19 @@ export function useListenPickAudio(audioSrc: ComputedRef<string>) {
     }
 
     try {
-      const context = playAudio(audioSrc.value)
-      bindQuestionAudioContext(context)
+      const context = ensureAudioContext(audioSrc.value)
+      if (audioContextSrc === audioSrc.value) {
+        try {
+          context.seek(0)
+        } catch {
+          // 某些平台刚切流时 seek 可能失败，直接 play 即可。
+        }
+      }
+
+      isVoicePlaying.value = true
+      context.play()
     } catch (error) {
-      stopQuestionAudio()
+      destroyQuestionAudio()
       showToast(getErrorMessage(error, '音频播放失败'))
     }
   }

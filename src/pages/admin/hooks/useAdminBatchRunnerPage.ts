@@ -45,6 +45,10 @@ interface BatchParamsForm {
   emotionCategory: string
 }
 
+interface StoredBatchParams extends Partial<BatchParamsForm> {
+  categoryTemplates?: Record<string, string>
+}
+
 const CREDENTIALS_STORAGE_KEY = 'ADMIN_BATCH_ALIYUN_CREDENTIALS_V1'
 const ACTION_PARAMS_STORAGE_PREFIX = 'ADMIN_BATCH_PARAMS_V1_'
 const DEFAULT_GAME_TEMPLATES = [
@@ -204,6 +208,19 @@ function parseTemplateItems(rawText: string): AdminGamePromptTemplateItem[] {
   }))
 }
 
+function normalizeCategoryTemplates(raw?: Record<string, string> | null) {
+  const normalized: Record<string, string> = {}
+  for (const [categoryId, template] of Object.entries(raw || {})) {
+    const key = safeText(categoryId)
+    const value = safeText(template)
+    if (!key || !value || value === DEFAULT_PARAMS.template) {
+      continue
+    }
+    normalized[key] = value
+  }
+  return normalized
+}
+
 /** 封装批处理配置页面逻辑 */
 export function useAdminBatchRunnerPage() {
   const { statusBarHeight } = usePageLayout()
@@ -215,6 +232,7 @@ export function useAdminBatchRunnerPage() {
   const resultMessage = ref('')
   const categories = ref<Category[]>([])
   const categoriesLoading = ref(false)
+  const gamePromptCategoryTemplates = ref<Record<string, string>>({})
 
   const credentials = reactive<AdminAliyunCredentials>({
     appKey: '',
@@ -277,8 +295,38 @@ export function useAdminBatchRunnerPage() {
     applyCredentials(stored)
   }
 
+  function resolveStoredTemplate(categoryId: string, fallback?: string) {
+    const key = safeText(categoryId)
+    if (key && hasText(gamePromptCategoryTemplates.value[key])) {
+      return safeText(gamePromptCategoryTemplates.value[key])
+    }
+    return safeText(fallback) || DEFAULT_PARAMS.template
+  }
+
+  function syncCurrentCategoryTemplate() {
+    if (!isGamePromptAction.value) {
+      return
+    }
+    const key = safeText(params.categoryId)
+    if (!key) {
+      return
+    }
+    const nextValue = safeText(params.template)
+    const nextTemplates = { ...gamePromptCategoryTemplates.value }
+    if (!nextValue || nextValue === DEFAULT_PARAMS.template) {
+      delete nextTemplates[key]
+    } else {
+      nextTemplates[key] = nextValue
+    }
+    gamePromptCategoryTemplates.value = nextTemplates
+  }
+
+  function applyCategoryTemplate(categoryId: string, fallback?: string) {
+    params.template = resolveStoredTemplate(categoryId, fallback)
+  }
+
   function loadActionParams(nextAction: BatchActionType) {
-    const stored = readJsonStorage<Partial<BatchParamsForm>>(ACTION_PARAMS_STORAGE_PREFIX + nextAction)
+    const stored = readJsonStorage<StoredBatchParams>(ACTION_PARAMS_STORAGE_PREFIX + nextAction)
     params.limit = safeText(stored?.limit) || DEFAULT_PARAMS.limit
     params.startId = safeText(stored?.startId)
     params.onlyEnabled = stored?.onlyEnabled !== false
@@ -286,7 +334,12 @@ export function useAdminBatchRunnerPage() {
 
     params.categoryId = safeText(stored?.categoryId)
     params.gameName = safeText(stored?.gameName) || DEFAULT_PARAMS.gameName
-    params.template = safeText(stored?.template) || DEFAULT_PARAMS.template
+    gamePromptCategoryTemplates.value = nextAction === 'generate-game-prompts'
+      ? normalizeCategoryTemplates(stored?.categoryTemplates)
+      : {}
+    params.template = nextAction === 'generate-game-prompts'
+      ? resolveStoredTemplate(params.categoryId, safeText(stored?.template))
+      : safeText(stored?.template) || DEFAULT_PARAMS.template
     params.voice = safeText(stored?.voice) || DEFAULT_PARAMS.voice
     params.speechRate = safeText(stored?.speechRate) || DEFAULT_PARAMS.speechRate
     params.pitchRate = safeText(stored?.pitchRate) || DEFAULT_PARAMS.pitchRate
@@ -305,7 +358,10 @@ export function useAdminBatchRunnerPage() {
     })
   }
 
-  function persistActionParams() {
+  function persistActionParams(options: { syncCurrentTemplate?: boolean } = {}) {
+    if (options.syncCurrentTemplate !== false) {
+      syncCurrentCategoryTemplate()
+    }
     writeJsonStorage(ACTION_PARAMS_STORAGE_PREFIX + action.value, {
       limit: safeText(params.limit) || DEFAULT_PARAMS.limit,
       startId: safeText(params.startId),
@@ -321,6 +377,7 @@ export function useAdminBatchRunnerPage() {
       format: safeText(params.format),
       sampleRate: safeText(params.sampleRate),
       emotionCategory: safeText(params.emotionCategory),
+      categoryTemplates: isGamePromptAction.value ? { ...gamePromptCategoryTemplates.value } : undefined,
     })
   }
 
@@ -342,6 +399,9 @@ export function useAdminBatchRunnerPage() {
         if (!exists && list.length > 0) {
           params.categoryId = String(list[0]?._id || '')
         }
+      }
+      if (isGamePromptAction.value) {
+        applyCategoryTemplate(params.categoryId)
       }
     } catch {
       categories.value = []
@@ -578,6 +638,10 @@ export function useAdminBatchRunnerPage() {
     event: Event,
   ) {
     params[field] = String(getEventValue(event) || '')
+    if (field === 'template') {
+      syncCurrentCategoryTemplate()
+      persistActionParams({ syncCurrentTemplate: false })
+    }
   }
 
   function handleCategoryChange(event: Event) {
@@ -585,7 +649,10 @@ export function useAdminBatchRunnerPage() {
     if (!Number.isInteger(rawIndex) || rawIndex < 0 || rawIndex >= categoryOptions.value.length) {
       return
     }
+    syncCurrentCategoryTemplate()
     params.categoryId = categoryOptions.value[rawIndex]?.id || ''
+    applyCategoryTemplate(params.categoryId)
+    persistActionParams({ syncCurrentTemplate: false })
   }
 
   function toggleSecretVisibility() {

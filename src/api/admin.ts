@@ -117,6 +117,7 @@ export const adminApi = {
     apiPost<AdminCardBatchResult>(
       '/api/v1/admin/games/audio/generate-animal-prompts',
       payload,
+      { timeoutMs: 180000 },
     ) as Promise<ApiResponse<AdminCardBatchResult>>,
   /** 获取分类列表 */
   getCategoryList: () => apiGet<Category[]>('/api/v1/admin/categories') as Promise<ApiResponse<Category[]>>,

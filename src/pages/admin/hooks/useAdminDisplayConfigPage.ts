@@ -3,13 +3,25 @@ import { onShow } from '@dcloudio/uni-app'
 import {
   adminApi,
   type AdminDisplayConfigPayload,
+  type FeedbackAudioItem,
   type DisplayConfigResult,
   type DisplayGameConfig,
   type DisplayGameLaunchMode,
   type DisplayGameTone,
+  type ListenPickFeedbackTtsConfig,
 } from '@/api'
 import { uploadApiFile } from '@/api/shared'
 import { usePageLayout } from '@/composables/usePageLayout'
+import {
+  countGeneratedFeedbackAudios,
+  DEFAULT_LISTEN_PICK_CORRECT_TEXTS,
+  DEFAULT_LISTEN_PICK_FEEDBACK_TTS,
+  DEFAULT_LISTEN_PICK_WRONG_TEXTS,
+  feedbackTextsToTextarea,
+  normalizeListenPickFeedbackConfig,
+  normalizeListenPickFeedbackTtsConfig,
+  parseFeedbackTextarea,
+} from '@/config/listen-pick-feedback'
 import { getErrorMessage, hideLoading, navigateBack, showLoading, showToast } from '@/utils'
 
 const GAME_KEY_PATTERN = /^[a-z0-9-]{2,32}$/
@@ -48,6 +60,22 @@ interface GameForm {
   available: boolean
   enabled: boolean
   sortOrder: number
+  listenPickFeedback: {
+    autoNextOnCorrect: boolean
+    correctTextArea: string
+    wrongTextArea: string
+    tts: {
+      voice: string
+      speechRate: string
+      pitchRate: string
+      volume: string
+      format: string
+      sampleRate: string
+      emotionCategory: string
+    }
+    correctAudios: FeedbackAudioItem[]
+    wrongAudios: FeedbackAudioItem[]
+  }
 }
 
 function normalizeText(value: unknown) {
@@ -68,6 +96,34 @@ function normalizeSort(value: unknown, fallback = 0) {
     return fallback
   }
   return parsed
+}
+
+function parseIntegerInput(value: string) {
+  if (!/^-?\d+$/.test(value)) {
+    return null
+  }
+  const parsed = Number.parseInt(value, 10)
+  return Number.isNaN(parsed) ? null : parsed
+}
+
+function parseUnsignedIntegerInput(value: string) {
+  if (!/^\d+$/.test(value)) {
+    return null
+  }
+  const parsed = Number.parseInt(value, 10)
+  return Number.isNaN(parsed) ? null : parsed
+}
+
+function toFeedbackTtsForm(tts: ListenPickFeedbackTtsConfig) {
+  return {
+    voice: normalizeText(tts.voice),
+    speechRate: String(tts.speechRate),
+    pitchRate: String(tts.pitchRate),
+    volume: String(tts.volume),
+    format: normalizeText(tts.format) || DEFAULT_LISTEN_PICK_FEEDBACK_TTS.format,
+    sampleRate: String(tts.sampleRate),
+    emotionCategory: normalizeText(tts.emotionCategory),
+  }
 }
 
 function normalizeTone(value: unknown): DisplayGameTone {
@@ -91,6 +147,7 @@ function toGameForm(item: DisplayGameConfig, index: number): GameForm {
   const defaultRoutePath = launchMode === 'listen-pick-category'
     ? '/pages/game/listen-pick'
     : '/pages/game/coming-soon'
+  const feedbackConfig = normalizeListenPickFeedbackConfig(item.listenPickFeedback)
 
   return {
     _id: normalizeText(item._id),
@@ -106,6 +163,14 @@ function toGameForm(item: DisplayGameConfig, index: number): GameForm {
     available: Boolean(item.available),
     enabled: item.enabled !== false,
     sortOrder: normalizeSort(item.sortOrder, (index + 1) * 10),
+    listenPickFeedback: {
+      autoNextOnCorrect: feedbackConfig.autoNextOnCorrect,
+      correctTextArea: feedbackTextsToTextarea(feedbackConfig.correctTexts),
+      wrongTextArea: feedbackTextsToTextarea(feedbackConfig.wrongTexts),
+      tts: toFeedbackTtsForm(feedbackConfig.tts),
+      correctAudios: [...feedbackConfig.correctAudios],
+      wrongAudios: [...feedbackConfig.wrongAudios],
+    },
   }
 }
 
@@ -194,6 +259,22 @@ export function useAdminDisplayConfigPage() {
         available: Boolean(item.available),
         enabled: Boolean(item.enabled),
         sortOrder: normalizeSort(item.sortOrder),
+        listenPickFeedback: normalizeText(item.key) === 'listen-pick'
+          ? {
+              autoNextOnCorrect: item.listenPickFeedback.autoNextOnCorrect !== false,
+              correctTexts: parseFeedbackTextarea(
+                item.listenPickFeedback.correctTextArea,
+                DEFAULT_LISTEN_PICK_CORRECT_TEXTS,
+              ),
+              wrongTexts: parseFeedbackTextarea(
+                item.listenPickFeedback.wrongTextArea,
+                DEFAULT_LISTEN_PICK_WRONG_TEXTS,
+              ),
+              tts: normalizeListenPickFeedbackTtsConfig(item.listenPickFeedback.tts),
+              correctAudios: item.listenPickFeedback.correctAudios,
+              wrongAudios: item.listenPickFeedback.wrongAudios,
+            }
+          : undefined,
       })),
     }
   }
@@ -254,6 +335,14 @@ export function useAdminDisplayConfigPage() {
       available: false,
       enabled: true,
       sortOrder: nextSort,
+      listenPickFeedback: {
+        autoNextOnCorrect: true,
+        correctTextArea: feedbackTextsToTextarea(DEFAULT_LISTEN_PICK_CORRECT_TEXTS),
+        wrongTextArea: feedbackTextsToTextarea(DEFAULT_LISTEN_PICK_WRONG_TEXTS),
+        tts: toFeedbackTtsForm(DEFAULT_LISTEN_PICK_FEEDBACK_TTS),
+        correctAudios: [],
+        wrongAudios: [],
+      },
     })
   }
 
@@ -315,6 +404,57 @@ export function useAdminDisplayConfigPage() {
       routePath: selectedMode === 'listen-pick-category'
         ? '/pages/game/listen-pick'
         : gameForms.value[index]?.routePath || '/pages/game/coming-soon',
+    })
+  }
+
+  function patchFeedback(
+    index: number,
+    patch: Partial<GameForm['listenPickFeedback']>,
+  ) {
+    const current = gameForms.value[index]
+    if (!current) {
+      return
+    }
+
+    patchGame(index, {
+      listenPickFeedback: {
+        ...current.listenPickFeedback,
+        ...patch,
+      },
+    })
+  }
+
+  function handleListenPickFeedbackInput(
+    index: number,
+    field: 'correctTextArea' | 'wrongTextArea',
+    event: ValueEvent,
+  ) {
+    patchFeedback(index, {
+      [field]: String(readEventValue(event) || ''),
+    })
+  }
+
+  function handleListenPickAutoNextChange(index: number, event: ValueEvent) {
+    patchFeedback(index, {
+      autoNextOnCorrect: Boolean(readEventValue(event)),
+    })
+  }
+
+  function handleListenPickTtsInput(
+    index: number,
+    field: keyof GameForm['listenPickFeedback']['tts'],
+    event: ValueEvent,
+  ) {
+    const current = gameForms.value[index]
+    if (!current) {
+      return
+    }
+
+    patchFeedback(index, {
+      tts: {
+        ...current.listenPickFeedback.tts,
+        [field]: String(readEventValue(event) || ''),
+      },
     })
   }
 
@@ -421,7 +561,8 @@ export function useAdminDisplayConfigPage() {
   function validatePayload(payload: AdminDisplayConfigPayload) {
     const seenKeys = new Set<string>()
 
-    for (const game of payload.games) {
+    for (let index = 0; index < payload.games.length; index += 1) {
+      const game = payload.games[index]
       if (!GAME_KEY_PATTERN.test(game.key)) {
         showToast(`游戏 key 不合法: ${game.key || '(空)'}`)
         return false
@@ -448,6 +589,60 @@ export function useAdminDisplayConfigPage() {
         showToast(`游戏 ${game.key} 色调不支持`)
         return false
       }
+
+      const form = gameForms.value[index]
+      if (game.key === 'listen-pick' && form && !validateListenPickFeedbackTts(game.key, form.listenPickFeedback.tts)) {
+        return false
+      }
+    }
+
+    return true
+  }
+
+  function validateListenPickFeedbackTts(
+    gameKey: string,
+    tts: GameForm['listenPickFeedback']['tts'],
+  ) {
+    const voice = normalizeText(tts.voice)
+    if (!voice) {
+      showToast(`游戏 ${gameKey} 的反馈语音音色不能为空`)
+      return false
+    }
+
+    const speechRate = parseIntegerInput(normalizeText(tts.speechRate))
+    if (speechRate === null || speechRate < -500 || speechRate > 500) {
+      showToast(`游戏 ${gameKey} 的反馈语音语速范围必须是 -500 到 500`)
+      return false
+    }
+
+    const pitchRate = parseIntegerInput(normalizeText(tts.pitchRate))
+    if (pitchRate === null || pitchRate < -500 || pitchRate > 500) {
+      showToast(`游戏 ${gameKey} 的反馈语调范围必须是 -500 到 500`)
+      return false
+    }
+
+    const volume = parseUnsignedIntegerInput(normalizeText(tts.volume))
+    if (volume === null || volume < 0 || volume > 100) {
+      showToast(`游戏 ${gameKey} 的反馈音量范围必须是 0 到 100`)
+      return false
+    }
+
+    const sampleRate = parseUnsignedIntegerInput(normalizeText(tts.sampleRate))
+    if (sampleRate !== 8000 && sampleRate !== 16000 && sampleRate !== 24000 && sampleRate !== 48000) {
+      showToast(`游戏 ${gameKey} 的反馈采样率仅支持 8000 / 16000 / 24000 / 48000`)
+      return false
+    }
+
+    const format = normalizeText(tts.format).toLowerCase()
+    if (format !== 'mp3' && format !== 'wav' && format !== 'pcm') {
+      showToast(`游戏 ${gameKey} 的反馈格式仅支持 mp3 / wav / pcm`)
+      return false
+    }
+
+    const emotionCategory = normalizeText(tts.emotionCategory)
+    if (emotionCategory.length > 32) {
+      showToast(`游戏 ${gameKey} 的反馈情感不能超过 32 个字符`)
+      return false
     }
 
     return true
@@ -486,12 +681,16 @@ export function useAdminDisplayConfigPage() {
   })
 
   return {
+    countGeneratedFeedbackAudios,
     enabledGameCount,
     gameForms,
     goBack,
     handleGameSortInput,
     handleGameSwitchChange,
     handleGameTextInput,
+    handleListenPickAutoNextChange,
+    handleListenPickFeedbackInput,
+    handleListenPickTtsInput,
     handleLaunchModeChange,
     handleMiniAppIconInput,
     handleToneChange,
