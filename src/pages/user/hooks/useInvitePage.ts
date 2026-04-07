@@ -1,5 +1,5 @@
 import { computed, ref } from 'vue'
-import { onShareAppMessage, onShareTimeline, onShow } from '@dcloudio/uni-app'
+import { onShow } from '@dcloudio/uni-app'
 import { userApi, type InviteUserInfo } from '@/api'
 import { useLoginGuard } from '@/composables/useLoginGuard'
 import {
@@ -348,21 +348,27 @@ export function useInvitePage() {
     handlePlatformTask('小红书', '小红书文案已复制')
   }
 
-  onShareAppMessage(() => ({
-    title: ownInviteCode.value
-      ? `来做积分任务，输入口令 ${ownInviteCode.value} 一起加入学习计划`
-      : '来宝宝识物，完成任务赚积分',
-    path: buildInviteSharePath(ownInviteCode.value),
-  }))
+  /** 构建邀请页分享给朋友参数 */
+  function buildShareAppMessagePayload() {
+    return {
+      title: ownInviteCode.value
+        ? `来做积分任务，输入口令 ${ownInviteCode.value} 一起加入学习计划`
+        : '来宝宝识物，完成任务赚积分',
+      path: buildInviteSharePath(ownInviteCode.value),
+    }
+  }
 
-  onShareTimeline(() => ({
-    title: ownInviteCode.value
-      ? `宝宝识物积分任务中心｜口令 ${ownInviteCode.value}`
-      : '宝宝识物积分任务中心',
-    query: ownInviteCode.value
-      ? `inviteCode=${encodeURIComponent(ownInviteCode.value)}`
-      : '',
-  }))
+  /** 构建邀请页分享到朋友圈参数 */
+  function buildShareTimelinePayload() {
+    return {
+      title: ownInviteCode.value
+        ? `宝宝识物积分任务中心｜口令 ${ownInviteCode.value}`
+        : '宝宝识物积分任务中心',
+      query: ownInviteCode.value
+        ? `inviteCode=${encodeURIComponent(ownInviteCode.value)}`
+        : '',
+    }
+  }
 
   onShow(async () => {
     landingInviteCode.value = getStoredInviteCode()
@@ -381,6 +387,8 @@ export function useInvitePage() {
   })
 
   return {
+    buildShareAppMessagePayload,
+    buildShareTimelinePayload,
     conversionHint,
     copyCode,
     decoratedInvitedList,

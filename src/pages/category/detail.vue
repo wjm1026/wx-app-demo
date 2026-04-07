@@ -29,10 +29,16 @@
               ></view>
               <view class="nav-index-chip-glint"></view>
             </view>
-            <view v-if="showAutoPlayGuide" class="auto-play-guide" aria-hidden="true">
+            <view
+              v-if="showAutoPlayGuide"
+              class="auto-play-guide"
+              aria-hidden="true"
+            >
               <view class="auto-play-guide-focus"></view>
               <view class="auto-play-guide-bubble">
-                <text class="auto-play-guide-text">点胶囊开启自动播放（中文→英文→下一张）</text>
+                <text class="auto-play-guide-text"
+                  >点胶囊开启自动播放（中文→英文→下一张）</text
+                >
               </view>
             </view>
           </view>
@@ -191,10 +197,13 @@
 </template>
 
 <script setup lang="ts">
+import { onShareAppMessage, onShareTimeline } from "@dcloudio/uni-app";
 import { useCategoryDetailPage } from "./hooks/useCategoryDetailPage";
 
 const {
   activeIndex,
+  buildShareAppMessagePayload,
+  buildShareTimelinePayload,
   canSwipe,
   categoryName,
   currentDisplayIndex,
@@ -227,6 +236,9 @@ const {
   swiperCurrent,
   total,
 } = useCategoryDetailPage();
+
+onShareAppMessage(() => buildShareAppMessagePayload());
+onShareTimeline(() => buildShareTimelinePayload());
 </script>
 
 <style src="./styles/detail.scss" scoped lang="scss"></style>

@@ -1,5 +1,5 @@
 import { computed, ref } from 'vue'
-import { onLoad, onShareAppMessage, onShareTimeline, onUnload } from '@dcloudio/uni-app'
+import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { cardApi } from '@/api'
 import { useLoginGuard } from '@/composables/useLoginGuard'
 import { usePageLayout } from '@/composables/usePageLayout'
@@ -55,7 +55,7 @@ export function useCategoryDetailPage() {
     useCategoryLearningRecorder(isLoggedIn)
 
   // 先放一个空实现，等音频控制器初始化后再替换为真实 stop 方法。
-  let stopPlayingAudio = () => {}
+  let stopPlayingAudio = () => { }
 
   // 页面数据层：负责快照拉取、详情缓存、轮播切换等核心数据行为。
   const detailData = useCategoryDetailData({
@@ -496,6 +496,26 @@ export function useCategoryDetailPage() {
     return '来宝宝识物，一起学认知'
   }
 
+  /** 构建详情页分享给朋友参数 */
+  function buildShareAppMessagePayload() {
+    const inviteCode = ownInviteCode.value
+    const payload = {
+      title: buildDetailShareTitle(inviteCode),
+      path: buildDetailSharePath(inviteCode),
+    }
+    return payload
+  }
+
+  /** 构建详情页分享到朋友圈参数 */
+  function buildShareTimelinePayload() {
+    const inviteCode = ownInviteCode.value
+    const payload = {
+      title: buildDetailShareTitle(inviteCode),
+      query: buildDetailShareQuery(inviteCode),
+    }
+    return payload
+  }
+
   /** 切换当前卡片收藏状态 */
   async function toggleCurrentFavorite() {
     if (isFavoriteLoading.value || isDetailLoading.value || detailError.value) {
@@ -575,22 +595,6 @@ export function useCategoryDetailPage() {
     })()
   })
 
-  onShareAppMessage(() => {
-    const inviteCode = ownInviteCode.value
-    return {
-      title: buildDetailShareTitle(inviteCode),
-      path: buildDetailSharePath(inviteCode),
-    }
-  })
-
-  onShareTimeline(() => {
-    const inviteCode = ownInviteCode.value
-    return {
-      title: buildDetailShareTitle(inviteCode),
-      query: buildDetailShareQuery(inviteCode),
-    }
-  })
-
   /** 页面卸载：销毁音频实例，避免后台继续播放和旧监听残留 */
   onUnload(() => {
     dismissSwipeGuide()
@@ -603,6 +607,8 @@ export function useCategoryDetailPage() {
   // 仅向模板暴露展示和交互必须的数据/方法
   return {
     activeIndex,
+    buildShareAppMessagePayload,
+    buildShareTimelinePayload,
     canSwipe,
     categoryName,
     currentDisplayIndex,

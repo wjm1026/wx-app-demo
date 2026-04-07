@@ -182,9 +182,12 @@
 </template>
 
 <script setup lang="ts">
+import { onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
 import { useInvitePage } from './hooks/useInvitePage'
 
 const {
+  buildShareAppMessagePayload,
+  buildShareTimelinePayload,
   conversionHint,
   copyCode,
   decoratedInvitedList,
@@ -206,6 +209,9 @@ const {
   statusBarHeight,
   summaryCards,
 } = useInvitePage()
+
+onShareAppMessage(() => buildShareAppMessagePayload())
+onShareTimeline(() => buildShareTimelinePayload())
 </script>
 
 <style src="./styles/invite.scss" scoped lang="scss"></style>

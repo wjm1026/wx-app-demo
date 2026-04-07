@@ -360,10 +360,13 @@
 </template>
 
 <script setup lang="ts">
+import { onShareAppMessage, onShareTimeline } from "@dcloudio/uni-app";
 import CustomTabbar from "@/components/CustomTabbar/CustomTabbar.vue";
 import { useUserPage } from "./hooks/useUserPage";
 
 const {
+  buildShareAppMessagePayload,
+  buildShareTimelinePayload,
   chooseProfileEditorAvatar,
   closeProfileEditor,
   contentScrollStyle,
@@ -391,6 +394,9 @@ const {
   userInfo,
   watchAd,
 } = useUserPage();
+
+onShareAppMessage(() => buildShareAppMessagePayload());
+onShareTimeline(() => buildShareTimelinePayload());
 </script>
 
 <style src="./styles/user.scss" scoped lang="scss"></style>

@@ -1,5 +1,5 @@
 import { computed, onMounted, ref, watch } from 'vue'
-import { onReady, onShareAppMessage, onShareTimeline, onShow, onUnload } from '@dcloudio/uni-app'
+import { onReady, onShow, onUnload } from '@dcloudio/uni-app'
 import { pointsApi, userApi } from '@/api'
 import { uploadApiFile } from '@/api/shared'
 import { loginWithWeixin } from '@/auth/session'
@@ -657,9 +657,15 @@ export function useUserPage() {
     goProtectedPage('admin')
   }
 
-  // 用户中心里的“分享给朋友”也统一走邀请码分享，避免和邀请页出现两套不同链路。
-  onShareAppMessage(() => buildUserSharePayload(userInfo.value.inviteCode))
-  onShareTimeline(() => buildUserTimelineSharePayload(userInfo.value.inviteCode))
+  /** 构建用户页分享给朋友参数 */
+  function buildShareAppMessagePayload() {
+    return buildUserSharePayload(userInfo.value.inviteCode)
+  }
+
+  /** 构建用户页分享到朋友圈参数 */
+  function buildShareTimelinePayload() {
+    return buildUserTimelineSharePayload(userInfo.value.inviteCode)
+  }
 
   onMounted(() => {
     refreshUserPanel()
@@ -696,6 +702,8 @@ export function useUserPage() {
   )
 
   return {
+    buildShareAppMessagePayload,
+    buildShareTimelinePayload,
     chooseProfileEditorAvatar,
     closeProfileEditor,
     contentScrollStyle,

@@ -20,7 +20,9 @@
       "path": "pages/category/detail",
       "style": {
         "navigationBarTitleText": "图片详情",
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "enableShareAppMessage": true,
+        "enableShareTimeline": true
       }
     },
     {
@@ -48,7 +50,9 @@
       "path": "pages/user/user",
       "style": {
         "navigationBarTitleText": "我的",
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "enableShareAppMessage": true,
+        "enableShareTimeline": true
       }
     },
     {
@@ -62,7 +66,9 @@
       "path": "pages/user/invite",
       "style": {
         "navigationBarTitleText": "赚取积分",
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "enableShareAppMessage": true,
+        "enableShareTimeline": true
       }
     },
     {
